@@ -15,6 +15,7 @@ Confirmed product decisions:
 - Players install the platform app. It installs and manages the Godot runtime for them.
 - V1 games share one tested Godot runtime installation. Future incompatible runtimes are downloaded once per required version.
 - Games are ordinary Godot projects, initially using GDScript and our SDK.
+- Support 1–16 local player slots, with wireless Xbox and PlayStation controllers and mixed groups. Validate the physical connection capacity per OS/adapter/controller combination.
 - SQLite stores local platform data on player computers.
 - PostgreSQL on Neon stores global platform data for our backend.
 - Installed games and local saves work offline.
@@ -155,7 +156,8 @@ Freeze public API names after the sample game validates them. Document accepted 
 
 ### TV and controller behavior
 
-- Start with one to four local players.
+- Support one to sixteen local players. The SDK and manifest validator now accept sixteen; physical sixteen-controller wireless sessions remain a hardware acceptance requirement.
+- Target Bluetooth-capable Xbox One/Series controllers, DualShock 4, and DualSense, paired to the computer. Use Godot/SDL's mapped stick, D-pad, and face-button events for both wireless and USB input. Record tested configurations in [the controller matrix](docs/controller-test-matrix.md).
 - Provide complete controller navigation, including error dialogs and install failures.
 - Pause launcher input while a game is active so both processes do not respond to the same button press.
 - Restore focus and the selected library item when a game exits.
@@ -344,7 +346,7 @@ migrations/
   postgres/
   sqlite/
 examples/
-  four-player-demo/
+  little-world/             # Current source sample is sdk/examples/little_world/
 tests/
   fixtures/
   integration/
@@ -380,7 +382,7 @@ Record exact engine/build settings and OS targets here. Resolve feasibility fail
 
 Build player joining, actions, glyph fallback, remapping, disconnect recovery, pause, TV menus, saves, and quit-to-platform.
 
-Acceptance: four players can complete a session with controller-only navigation; disconnecting one device does not transfer control to another player; restarting the game restores its save. Verify direct TV output and at least one compatible screen-sharing setup.
+Acceptance: sixteen players can complete a session with controller-only navigation, including tested wireless Xbox, PlayStation, and mixed-controller setups; disconnecting one device does not transfer control to another player; restarting the game restores its save. Verify direct TV output and at least one compatible screen-sharing setup. Synthetic sixteen-device input tests are necessary but do not satisfy the wireless hardware acceptance requirement.
 
 ### Milestone 2: local platform app
 

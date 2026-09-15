@@ -18,10 +18,27 @@ The first V1 slice is **local package validation and installation**:
 - Idempotent retry, previous-release retention, and recovery by retry after a filesystem rename succeeds but database activation fails.
 - A CLI with human-readable output and `--json` for automation.
 - Shared Godot discovery/version policy, setup instructions, and an initial SDK editor plugin/autoload that checks the running engine.
+- A playable **Little World** 3D sample, with 16 player slots, device-isolated input, jumping, and reconnect/leave handling through the SDK.
 
 **Godot is not required for package/library commands and is not installed or downloaded by them.** `doctor` probes discovered executables with `--headless --version`. Package validation executes no game code: success means that metadata and bytes match, not that a package is playable, signed, or safe.
 
-The Godot launcher, full input/save SDK, runtime installation, game execution, OS sandbox, Neon API, sign-in, downloads, and sharing remain planned work. This is developer tooling, not a playable V1 release.
+The Godot launcher, full input/save SDK, runtime installation, packaged game launch, OS sandbox, Neon API, sign-in, downloads, and sharing remain planned work. Little World is a playable source prototype, not a complete V1 platform release.
+
+## Play Little World
+
+```sh
+python3 scripts/play.py
+```
+
+The script uses `couch doctor` to find a supported installed Godot, imports the project, and opens the 3D game. It does not download an engine, export templates, or art assets. Alternatively, open `sdk/project.godot` in the supported editor and press F6 on `examples/little_world/world.tscn`, or F5 for the project.
+
+- Pair wireless Xbox or PlayStation controllers to the **computer**, then press **A / Cross** to join.
+- Use the **left stick or D-pad** to move; **A / Cross** jumps. Hold **B / Circle** for 1.25 seconds to leave.
+- Keyboard: **Enter** joins, **WASD / arrows** move, **Space** jumps, and **Backspace** leaves. The keyboard consumes one player slot.
+- **F11** toggles fullscreen; **F3** shows detected controller names, IDs, and mapping status.
+- A disconnected character remains reserved. Press a face button, select a slot with D-pad left/right, then press A / Cross to reclaim it; choose “New player” to use a free slot. Keyboard reclaim uses arrows and Enter.
+
+See [the game README](sdk/examples/little_world/README.md) and [wireless setup and hardware tests](docs/controller-test-matrix.md). The software supports sixteen slots. Physical wireless compatibility and simultaneous controller counts still need testing on the listed hardware.
 
 ## Prerequisites
 
@@ -106,6 +123,8 @@ crates/manifests/          manifest model, semantic checks, streaming verificati
 crates/local-library/      SQLite persistence and staged local import
 crates/runtime/            discovery, version checks, and setup reports for the host
 sdk/                       GDScript addon, shared runtime policy, engine test harness
+sdk/examples/little_world/ playable 3D source sample using the SDK
+scripts/play.py             launch sample through platform runtime discovery
 scripts/test_sdk.py         explicit SDK checks using our own Godot discovery
 migrations/sqlite/         embedded, checksummed SQLx migrations
 schemas/                   JSON Schema for creator/agent tooling
@@ -125,4 +144,4 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 
 Rust tests use temporary directories, synthetic content, and test executables. They do not install Godot, run games, need a database server, or access cloud services. CI is configured to run the same checks on Windows, macOS, and Linux; Linux is a development/test environment, not a declared V1 game target. `scripts/test_sdk.py` is a separate explicit check that runs GDScript in an already-installed supported engine.
 
-Shared-PCK runtime execution, rendering, controller hardware, and sandbox validation remain required before distribution is ready.
+The source sample has rendered and passed scene/physics checks on macOS ARM64. Shared-PCK runtime execution, other graphics/OS targets, physical controller hardware, and sandbox validation remain required before distribution is ready.

@@ -80,7 +80,7 @@ fn rejects_invalid_players_and_duplicate_targets() {
     for players in [
         json!({"min": 0, "max": 4}),
         json!({"min": 4, "max": 2}),
-        json!({"min": 1, "max": 5}),
+        json!({"min": 1, "max": 17}),
     ] {
         let mut value = valid_json();
         value["players"] = players;
@@ -90,6 +90,18 @@ fn rejects_invalid_players_and_duplicate_targets() {
     let duplicate = value["artifacts"][0].clone();
     value["artifacts"] = json!([duplicate.clone(), duplicate]);
     rejects(value);
+}
+
+#[test]
+fn accepts_large_couch_games() {
+    for count in [5, 8, 16] {
+        let mut value = valid_json();
+        value["players"] = json!({"min": 1, "max": count});
+        serde_json::from_value::<Manifest>(value)
+            .unwrap()
+            .validate()
+            .unwrap();
+    }
 }
 
 #[test]

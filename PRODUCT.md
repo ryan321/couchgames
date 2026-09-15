@@ -246,12 +246,12 @@ It removes the repetitive work that almost every couch game otherwise has to rec
 The SDK should handle:
 
 - controller detection
-- Xbox controllers
-- PlayStation controllers
+- wireless Xbox controllers (Bluetooth-capable models)
+- wireless PlayStation controllers (DualShock 4 and DualSense)
 - common PC controllers
 - Bluetooth controllers
 - USB controllers
-- multiple controllers simultaneously
+- up to 16 controllers simultaneously, including mixed Xbox and PlayStation groups
 - controller disconnect/reconnect
 - player assignment
 - "Press any button to join"
@@ -344,6 +344,8 @@ This creates a polished console-style experience without every game developer im
 # Local Multiplayer
 
 Local multiplayer should be a first-class platform capability.
+
+Support **1–16 local players** as a core product requirement. Games can choose a smaller maximum; the platform and SDK must not impose a four-player limit. Wireless Xbox and PlayStation controllers are required, paired to the player's computer. Sixteen player slots in software do not establish that every computer or wireless adapter can connect sixteen controllers: publish tested OS/controller/connection combinations and validate the full sixteen-controller session before advertising that hardware setup as supported.
 
 The SDK should make this trivial:
 
@@ -793,6 +795,10 @@ PLAY TOGETHER TONIGHT
 2 PLAYER
 
 4 PLAYER
+
+8 PLAYER
+
+16 PLAYER
 
 FAMILY GAMES
 

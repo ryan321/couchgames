@@ -12,6 +12,7 @@ use std::{
 
 pub const MAX_MANIFEST_BYTES: u64 = 64 * 1024;
 pub const MAX_ARTIFACT_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+pub const MAX_PLAYERS: u8 = 16;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -240,10 +241,13 @@ impl Manifest {
         {
             return Err(Error::Invalid("runtime must be an ID from 1 to 999".into()));
         }
-        if self.players.min == 0 || self.players.max > 4 || self.players.min > self.players.max {
-            return Err(Error::Invalid(
-                "players must satisfy 1 <= min <= max <= 4".into(),
-            ));
+        if self.players.min == 0
+            || self.players.max > MAX_PLAYERS
+            || self.players.min > self.players.max
+        {
+            return Err(Error::Invalid(format!(
+                "players must satisfy 1 <= min <= max <= {MAX_PLAYERS}"
+            )));
         }
         if self.artifacts.is_empty() || self.artifacts.len() > 3 {
             return Err(Error::Invalid("provide 1–3 target artifacts".into()));

@@ -7,7 +7,7 @@ This is the execution checklist for [TECH_STACK.md](TECH_STACK.md). V1 is comple
 - The user authorized the standard Godot 4.7.2 editor for development and dogfooding. Do not install export templates or additional runtime versions implicitly; disk space remains limited.
 - Do not automatically install toolchains or download runtimes from build scripts, tests, or CLI commands.
 - Keep Rust debug symbols and incremental compilation disabled to limit disk use.
-- Develop and test engine-independent components locally. Actual game execution, rendering, controller hardware, and OS sandbox validation remain separate required checks on a suitable machine.
+- Develop engine-independent components and run the source sample locally. Physical controller hardware, shared PCK execution, other OS targets, and sandbox validation remain separate required checks.
 - Neon is our server database. SQLite and save files live on player computers.
 - A TV uses a direct display connection or an existing screen-sharing setup. V1 does not build a streaming system.
 
@@ -70,7 +70,7 @@ Verification after this slice: 31 Rust tests passed on macOS ARM64, along with f
 
 **Exit:** both games run from the same installed engine on each supported OS, a crash returns to the launcher, and adversarial tests demonstrate the access boundary. Until then, avoid claims that game distribution is safe or that PCKs work across targets.
 
-### 1. SDK and four-player sample
+### 1. SDK and sixteen-player sample
 
 1. GDScript addon, `Platform` autoload, starter project, and documented API.
 2. Per-player input state; join, leave, disconnect, and reclaim-slot flow.
@@ -78,7 +78,22 @@ Verification after this slice: 31 Rust tests passed on macOS ARM64, along with f
 4. Controller-driven menus, pause, TV-safe layout, and quit-to-platform.
 5. Asynchronous local save/load with explicit errors, atomic replacement, and schema migration hooks.
 
-**Exit:** four independent controllers can complete a session, reconnect without stealing another player's slot, and restore a saved game. Check direct TV output and one screen-sharing setup.
+**Exit:** sixteen independent controllers can complete a session, reconnect without stealing another player's slot, and restore a saved game. Wireless Xbox, PlayStation, and mixed groups are required hardware test cases. Check direct TV output and one screen-sharing setup.
+
+#### Little World: first playable slice
+
+- [x] A 3D island with original procedural characters, steps, platforms, a shared camera, movement, jumping, and fall recovery.
+- [x] Sixteen player slots in the SDK, package validator, and JSON Schema.
+- [x] Device-isolated left-stick/D-pad movement, radial dead zone, and mapped south-button jump (Xbox A / PlayStation Cross).
+- [x] Join, hold-to-leave, reserve on disconnect, and explicit slot selection on reconnect; keyboard fallback uses one of the same sixteen slots.
+- [x] Clear held input on focus loss/disconnect; normalize diagonal movement.
+- [x] Source-project launch through the platform's installed-engine discovery; no export template downloads.
+- [x] Engine-backed synthetic routing tests and actual scene/physics tests; rendered visual inspection on this Mac.
+- [x] Wireless setup instructions and a hardware test matrix with untested cases marked pending.
+- [ ] Physical wireless Xbox, PlayStation, and mixed-controller sessions at 1, 2, 4, 8, and 16 players.
+- [ ] Full pause/menu, remapping, haptics, persistence, host lifecycle, and packaged launch.
+
+Verified locally on macOS ARM64: 32 Rust tests, formatting, Clippy, eight runtime checks, 547 synthetic input assertions, and 25 headless scene/physics assertions passed. A rendered run passed the same scene tests plus screenshot capture. This validates source-game behavior, not physical wireless connections or a packaged distribution runtime.
 
 ### 2. Desktop library and runtime management
 

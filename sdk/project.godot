@@ -1,8 +1,16 @@
-; Development harness for the SDK. Copy addons/couchgames into a creator project.
+; SDK development project and playable Little World example.
 config_version=5
 
 [application]
-config/name="Couch Games SDK"
+config/name="Little World · Couch Games"
+run/main_scene="res://examples/little_world/world.tscn"
+
+[display]
+window/size/viewport_width=1600
+window/size/viewport_height=1000
+window/size/window_width_override=1280
+window/size/window_height_override=800
+window/stretch/mode="canvas_items"
 
 [autoload]
 Platform="*res://addons/couchgames/platform.gd"
@@ -13,3 +21,4 @@ enabled=PackedStringArray("res://addons/couchgames/plugin.cfg")
 [rendering]
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
