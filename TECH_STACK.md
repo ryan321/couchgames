@@ -39,7 +39,7 @@ The specific libraries and additional services below are recommendations. No inf
 | API contracts | HTTP/JSON + OpenAPI | Versioned API used by the desktop host and CLI |
 | Local protocol | Versioned JSON messages | Communication between Godot processes and the desktop host |
 | Package specification | JSON Schema + PCK + SHA-256 + signed release metadata | Compatibility, content integrity, distribution identity |
-| Backend deployment | Docker container on a managed container host | One API deployment initially; hosting provider pending |
+| Backend deployment | Rust service on managed hosting; Docker optional | One API deployment initially; packaging depends on the hosting provider |
 | Build automation | GitHub Actions | Rust checks, Godot checks, native builds, packaging |
 | Diagnostics | Rust tracing + rotating local logs | Actionable errors and opt-in diagnostic exports |
 
@@ -48,6 +48,8 @@ Use a Rust workspace to share manifest parsing, API models, package verification
 Axum fits the Tokio ecosystem, and SQLx provides PostgreSQL and SQLite drivers. Keep separate database schemas and migrations for the two databases; sharing a library does not make their SQL interchangeable. [Axum documentation](https://docs.rs/axum/latest/axum/), [SQLx documentation](https://docs.rs/sqlx/latest/sqlx/)
 
 Pin exact dependency versions in lockfiles and record the engine build during the initial prototype. This document deliberately does not treat a floating `latest` version as a production runtime.
+
+The initial development policy now targets standard official Godot **4.7.2 stable**. The host discovery crate and SDK share `sdk/addons/couchgames/runtime_policy.json`. `couch doctor --require-godot` checks availability/version and provides installation instructions; the SDK checks its running engine. This pins development tooling while final distribution runtime flags and OS isolation remain under investigation.
 
 ## 3. System layout
 
@@ -192,6 +194,8 @@ Offline policy for V1: already installed games remain playable after account log
 ### API and Neon
 
 Start with one modular Rust API service. It handles profiles, libraries, membership, invitations, releases, upload authorization, and download authorization.
+
+Docker is an optional server deployment format, not a requirement for the player app, SDK, or local development. Deploy the Rust binary directly if the chosen host supports it. Untrusted validation workers still need a proven isolation boundary; a Docker image by itself does not establish that boundary.
 
 Neon credentials exist only in server configuration. The desktop host and CLI call authenticated HTTPS endpoints; ordinary games do not receive account-wide API credentials.
 

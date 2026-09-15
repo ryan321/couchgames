@@ -12,6 +12,8 @@ fn doctor_is_read_only_and_confirms_no_engine_downloads() {
     let output = Command::new(env!("CARGO_BIN_EXE_couch"))
         .args(["--json", "--data-dir"])
         .arg(&data)
+        .arg("--godot")
+        .arg(root.path().join("missing-godot"))
         .arg("doctor")
         .output()
         .unwrap();
@@ -72,4 +74,61 @@ fn operational_errors_have_stable_codes_and_nonzero_exit() {
     let result: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(result["ok"], false);
     assert_eq!(result["error"]["code"], "PACKAGE_IO");
+}
+
+#[test]
+fn required_godot_failure_retains_setup_guidance_in_json() {
+    let root = tempfile::tempdir().unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_couch"))
+        .args(["--json", "--godot"])
+        .arg(root.path().join("missing"))
+        .args(["doctor", "--require-godot"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let result: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(result["ok"], false);
+    assert_eq!(result["error"]["code"], "GODOT_NOT_READY");
+    assert_eq!(result["data"]["godot"]["status"], "unusable");
+    assert!(
+        !result["data"]["godot"]["instructions"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn explicit_engine_overrides_environment_and_unsupported_versions_fail_readiness() {
+    use std::{fs, os::unix::fs::PermissionsExt};
+    let root = tempfile::tempdir().unwrap();
+    let old = root.path().join("old-godot");
+    let current = root.path().join("current-godot");
+    for (path, version) in [(&old, "4.6.1"), (&current, "4.7.2")] {
+        fs::write(
+            path,
+            format!("#!/bin/sh\necho {version}.stable.official.abc\n"),
+        )
+        .unwrap();
+        fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let failed = Command::new(env!("CARGO_BIN_EXE_couch"))
+        .env("COUCH_GODOT", &old)
+        .args(["--json", "doctor", "--require-godot"])
+        .output()
+        .unwrap();
+    assert_eq!(failed.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&failed.stdout).unwrap();
+    assert_eq!(report["data"]["godot"]["status"], "unsupported");
+    let success = Command::new(env!("CARGO_BIN_EXE_couch"))
+        .env("COUCH_GODOT", &old)
+        .args(["--json", "--godot"])
+        .arg(&current)
+        .args(["doctor", "--require-godot"])
+        .output()
+        .unwrap();
+    assert!(success.status.success());
+    let report: Value = serde_json::from_slice(&success.stdout).unwrap();
+    assert_eq!(report["data"]["godot"]["status"], "supported");
 }

@@ -6,6 +6,7 @@
 *.sqlite-wal
 .DS_Store
 .godot/
+__pycache__/
 .env
 .env.*
 !.env.example

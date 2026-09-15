@@ -467,6 +467,10 @@ The platform downloads the runtime once and reuses it for every compatible game.
 
 Players should only need to install the platform app. The app handles runtime installation automatically; players do not need to install the Godot editor or manage engine versions themselves.
 
+The platform should first detect whether a supported Godot installation is already available and reuse a compatible installation where appropriate. If Godot is missing, unusable, or unsupported, show the required version and clear installation instructions. Do not silently replace a user's incompatible installation.
+
+The host and SDK must share a supported-version policy. The host checks availability before launching Godot; the SDK checks the engine it is running inside and gives creators setup guidance when that engine is unsupported. Initial developer tooling can guide installation before automatic runtime management is implemented.
+
 Each game runs in its own process using the shared runtime executable. Sharing an installed runtime does not mean loading every game into the launcher's process.
 
 This packaging approach must be validated against the chosen runtime build and export settings before finalizing the package specification.

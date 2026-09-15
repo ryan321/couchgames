@@ -1,5 +1,5 @@
 [workspace]
-members = ["apps/cli", "crates/manifests", "crates/local-library"]
+members = ["apps/cli", "crates/manifests", "crates/local-library", "crates/runtime"]
 resolver = "2"
 
 [workspace.package]
@@ -18,9 +18,10 @@ sha2 = "0.10"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "sqlite", "migrate"] }
 tempfile = "3"
 thiserror = "2"
-tokio = { version = "1", features = ["macros", "rt", "time"] }
+tokio = { version = "1", features = ["macros", "rt", "time", "process", "io-util"] }
 couch-manifests = { path = "crates/manifests" }
 couch-local-library = { path = "crates/local-library" }
+couch-runtime = { path = "crates/runtime" }
 
 # Keep local builds small on machines with limited disk space.
 [profile.dev]

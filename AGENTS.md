@@ -3,6 +3,7 @@
 ## Development constraints
 
 - Do not download or install Godot, export templates, or engine binaries on this computer unless the user explicitly asks to do so. Disk space is limited.
+- The user has authorized installing the standard Godot 4.7.2 editor for development and dogfooding. Export templates and additional engine versions are not included in that authorization.
 - Local builds, tests, and CLI commands must not implicitly install a runtime or toolchain.
 - Keep the low-disk Rust build profiles in `Cargo.toml`. Use synthetic byte fixtures for engine-independent tests and clearly label them as non-playable.
 - Do not claim game execution, controller behavior, runtime compatibility, or sandboxing is verified by package-integrity tests.
@@ -18,5 +19,7 @@
 ## Verification
 
 - Run `cargo fmt --all -- --check`, `cargo test --workspace --locked`, and `cargo clippy --workspace --all-targets --locked -- -D warnings` for relevant Rust changes.
+- For SDK changes, run `python3 scripts/test_sdk.py` against an already-installed supported engine. It uses our own doctor command and never installs an engine.
+- Keep the Rust host and SDK on the shared policy in `sdk/addons/couchgames/runtime_policy.json`; add compatibility cases to `sdk/tests/runtime_versions.json` when changing it.
 - Update the implementation checklist and README when behavior changes; distinguish configured CI from checks actually run.
 - Database migrations are embedded in `crates/local-library/src/migrations.rs`. Add new migrations to that list and do not rewrite migrations already released to users.

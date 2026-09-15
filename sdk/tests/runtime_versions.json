@@ -1,0 +1,9 @@
+[
+  {"raw":"4.7.2.stable.official.abc123", "info":{"major":4,"minor":7,"patch":2,"status":"stable","build":"official"}, "dotnet":false, "supported":true},
+  {"raw":"4.7.1.stable.official.abc123", "info":{"major":4,"minor":7,"patch":1,"status":"stable","build":"official"}, "dotnet":false, "supported":false},
+  {"raw":"4.7.3.stable.official.abc123", "info":{"major":4,"minor":7,"patch":3,"status":"stable","build":"official"}, "dotnet":false, "supported":false},
+  {"raw":"4.7.2.rc1.official.abc123", "info":{"major":4,"minor":7,"patch":2,"status":"rc1","build":"official"}, "dotnet":false, "supported":false},
+  {"raw":"4.7.2.stable.custom.abc123", "info":{"major":4,"minor":7,"patch":2,"status":"stable","build":"custom"}, "dotnet":false, "supported":false},
+  {"raw":"4.7.2.stable.mono.official.abc123", "info":{"major":4,"minor":7,"patch":2,"status":"stable","build":"official"}, "dotnet":true, "supported":false},
+  {"raw":"4.7.stable.official.abc123", "info":{"major":4,"minor":7,"patch":0,"status":"stable","build":"official"}, "dotnet":false, "supported":false}
+]

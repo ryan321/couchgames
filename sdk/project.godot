@@ -1,0 +1,15 @@
+; Development harness for the SDK. Copy addons/couchgames into a creator project.
+config_version=5
+
+[application]
+config/name="Couch Games SDK"
+
+[autoload]
+Platform="*res://addons/couchgames/platform.gd"
+
+[editor_plugins]
+enabled=PackedStringArray("res://addons/couchgames/plugin.cfg")
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

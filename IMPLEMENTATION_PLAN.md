@@ -4,7 +4,7 @@ This is the execution checklist for [TECH_STACK.md](TECH_STACK.md). V1 is comple
 
 ## Current constraints
 
-- Do not install Godot, export templates, or engine binaries on this development computer until the user explicitly authorizes it.
+- The user authorized the standard Godot 4.7.2 editor for development and dogfooding. Do not install export templates or additional runtime versions implicitly; disk space remains limited.
 - Do not automatically install toolchains or download runtimes from build scripts, tests, or CLI commands.
 - Keep Rust debug symbols and incremental compilation disabled to limit disk use.
 - Develop and test engine-independent components locally. Actual game execution, rendering, controller hardware, and OS sandbox validation remain separate required checks on a suitable machine.
@@ -44,6 +44,22 @@ Unsigned local imports are developer tooling only. They do not authorize public 
 Verified locally on macOS ARM64 with Rust 1.97.1: 21 tests passed; formatting and Clippy passed. This does not verify other operating systems, actual PCK compatibility, abrupt power-loss recovery, game execution, or sandboxing. See the README for the current guarantees and limits.
 
 ## Subsequent milestones
+
+### Runtime detection and SDK onboarding
+
+- [x] Shared policy for standard official Godot 4.7.2 stable, embedded by Rust and read by GDScript.
+- [x] Host discovery through explicit path, environment, PATH, and common application locations.
+- [x] Missing, unsupported, and unusable states with setup instructions; `doctor --require-godot` for readiness gating.
+- [x] Bounded version probes; explicit override precedence; tests for failure, timeout, and selecting a supported installation.
+- [x] SDK autoload and editor status panel using the same version policy.
+- [x] Explicit SDK test runner that selects Godot through our own doctor command.
+- [x] Dogfood missing → installation → supported on this Mac, then run the real SDK checks.
+
+This is a development-engine version check, not certification of the final shared distribution runtime, its signature, or its sandbox.
+
+Dogfood result: the host first reported a missing engine with setup instructions. The official standard macOS archive was verified against its release SHA-256, its app signature was verified, and Godot was installed in the user's Applications directory. Auto-discovery then selected `4.7.2.stable.official.ed1daf0bf` without a path override. The SDK editor plugin imported successfully and seven shared compatibility cases plus the real-engine check passed. The exercise exposed a short first-start timeout and JSON number formatting mismatch; both were addressed. Export templates were not installed.
+
+Verification after this slice: 31 Rust tests passed on macOS ARM64, along with formatting and Clippy. Engine-backed SDK checks passed separately through `scripts/test_sdk.py`. Remote CI and real Windows engine discovery are not yet verified.
 
 ### 0. Shared runtime and OS feasibility — engine validation pending
 

@@ -1,0 +1,9 @@
+{
+  "policy_version": 1,
+  "runtime_id": "1",
+  "godot_version": "4.7.2",
+  "release_status": "stable",
+  "build": "official",
+  "edition": "standard",
+  "download_url": "https://godotengine.org/download/archive/4.7.2-stable/"
+}

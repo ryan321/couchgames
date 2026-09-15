@@ -18,14 +18,24 @@ struct Cli {
     /// Override the per-user application data directory.
     #[arg(long, global = true)]
     data_dir: Option<PathBuf>,
+    /// Godot executable or macOS .app; overrides COUCH_GODOT and discovery.
+    #[arg(long, global = true)]
+    godot: Option<PathBuf>,
+    /// Time allowed per Godot version probe, including first-run OS checks.
+    #[arg(long, global = true, default_value_t = 15, value_parser = clap::value_parser!(u64).range(1..=120))]
+    godot_timeout_secs: u64,
     #[command(subcommand)]
     command: Command,
 }
 
 #[derive(Subcommand)]
 enum Command {
-    /// Show local configuration. Does not install tools or create files.
-    Doctor,
+    /// Show configuration and probe Godot's version. Never installs tools.
+    Doctor {
+        /// Exit with status 1 unless a supported Godot installation is found.
+        #[arg(long)]
+        require_godot: bool,
+    },
     /// Check manifest and every declared artifact's size and SHA-256.
     Validate { manifest: PathBuf },
     /// Import unsigned local content. Does not install a runtime or run a game.
@@ -44,10 +54,23 @@ async fn main() {
     let cli = Cli::parse();
     match run(&cli).await {
         Ok((value, human)) => {
+            let ready = !matches!(
+                cli.command,
+                Command::Doctor {
+                    require_godot: true
+                }
+            ) || value["godot"]["supported"] == true;
             if cli.json {
-                println!("{}", json!({ "ok": true, "data": value }));
+                let mut envelope = json!({ "ok": ready, "data": value });
+                if !ready {
+                    envelope["error"] = json!({"code": "GODOT_NOT_READY", "message": "Install or select a supported Godot version; see data.godot.instructions"});
+                }
+                println!("{envelope}");
             } else {
                 println!("{human}");
+            }
+            if !ready {
+                std::process::exit(1);
             }
         }
         Err(error) => {
@@ -85,8 +108,36 @@ fn data_dir(cli: &Cli) -> Result<PathBuf> {
 
 async fn run(cli: &Cli) -> Result<(Value, String)> {
     match &cli.command {
-        Command::Doctor => {
+        Command::Doctor { .. } => {
             let root = data_dir(cli)?;
+            let mut discovery = couch_runtime::Discovery::system(cli.godot.clone());
+            discovery.probe_timeout = std::time::Duration::from_secs(cli.godot_timeout_secs);
+            let report = discovery.check().await;
+            let mut godot_message = format!(
+                "Godot: {} (required: {} standard stable)",
+                report.status, report.policy.godot_version
+            );
+            if let Some(path) = &report.executable {
+                godot_message.push_str(&format!("\nExecutable: {}", path.display()));
+            }
+            for attempt in &report.attempts {
+                if !attempt.supported {
+                    let found = attempt
+                        .version
+                        .as_ref()
+                        .map(|version| format!(" (found {})", version.raw))
+                        .unwrap_or_default();
+                    godot_message.push_str(&format!(
+                        "\n{}{found}: {}",
+                        attempt.executable.display(),
+                        attempt.reason
+                    ));
+                }
+            }
+            if !report.supported {
+                godot_message.push_str("\nSetup instructions:\n");
+                godot_message.push_str(&report.instructions.join("\n"));
+            }
             let value = json!({
                 "version": env!("CARGO_PKG_VERSION"),
                 "data_dir": root,
@@ -94,12 +145,13 @@ async fn run(cli: &Cli) -> Result<(Value, String)> {
                 "runtime_management": "not_implemented",
                 "game_launch": "not_implemented",
                 "godot_required_for_current_commands": false,
-                "automatic_downloads": false
+                "automatic_downloads": false,
+                "godot": report
             });
             Ok((
                 value,
                 format!(
-                    "Couch Games {}\nData directory: {}\nPackage and library commands require no Godot.\nRuntime management and game launch are not implemented. No tools are downloaded.",
+                    "Couch Games {}\nData directory: {}\n{godot_message}\nPackage and library commands require no Godot.\nRuntime installation and game launch are not implemented. No tools are downloaded.",
                     env!("CARGO_PKG_VERSION"),
                     root.display()
                 ),
