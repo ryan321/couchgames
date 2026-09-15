@@ -1,0 +1,17 @@
+[package]
+name = "couch-local-library"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+couch-manifests.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+sha2.workspace = true

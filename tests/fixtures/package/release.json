@@ -1,0 +1,39 @@
+{
+  "manifest_version": 1,
+  "game_id": "example.fixture",
+  "title": "Synthetic package fixture (not playable)",
+  "release_id": "release-001",
+  "version": "0.1.0",
+  "runtime": "1",
+  "sdk": "0.1.0",
+  "players": {
+    "min": 1,
+    "max": 4
+  },
+  "artifacts": [
+    {
+      "os": "windows",
+      "architecture": "x86_64",
+      "renderer": "gl_compatibility",
+      "file": "fixture-windows-x86_64.pck",
+      "size_bytes": 63,
+      "sha256": "99cc747b0ece8708a074876b94214f652a17e84459653876bdc26c532c4d142b"
+    },
+    {
+      "os": "macos",
+      "architecture": "x86_64",
+      "renderer": "gl_compatibility",
+      "file": "fixture-macos-x86_64.pck",
+      "size_bytes": 63,
+      "sha256": "99cc747b0ece8708a074876b94214f652a17e84459653876bdc26c532c4d142b"
+    },
+    {
+      "os": "macos",
+      "architecture": "aarch64",
+      "renderer": "gl_compatibility",
+      "file": "fixture-macos-aarch64.pck",
+      "size_bytes": 63,
+      "sha256": "99cc747b0ece8708a074876b94214f652a17e84459653876bdc26c532c4d142b"
+    }
+  ]
+}

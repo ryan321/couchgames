@@ -1,0 +1,11 @@
+/target/
+/.couchgames/
+/.local-demo/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.DS_Store
+.godot/
+.env
+.env.*
+!.env.example

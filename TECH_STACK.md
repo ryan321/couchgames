@@ -1,6 +1,6 @@
 # Couch Games: Technical Architecture and Build Plan
 
-Status: proposed implementation plan, based on [PRODUCT.md](PRODUCT.md).
+Status: target architecture, based on [PRODUCT.md](PRODUCT.md). See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the execution checklist and [README.md](README.md) for what is currently implemented.
 
 Updated: September 15, 2026.
 
@@ -258,6 +258,7 @@ Illustrative manifest, with placeholder hash:
 {
   "manifest_version": 1,
   "game_id": "example.family-racing",
+  "title": "Family Racing",
   "release_id": "release-001",
   "version": "0.1.0",
   "runtime": "1",
@@ -269,13 +270,14 @@ Illustrative manifest, with placeholder hash:
       "architecture": "x86_64",
       "renderer": "gl_compatibility",
       "file": "game.pck",
+      "size_bytes": 123456,
       "sha256": "<64-character-content-hash>"
     }
   ]
 }
 ```
 
-Validate manifests against a versioned JSON Schema. Include byte sizes and platform minimums in the finalized artifact schema. Publish additional variants for supported Mac and Windows targets; reuse identical bytes only after cross-target testing confirms compatibility.
+Validate manifests against a versioned JSON Schema. The provisional implementation requires byte sizes; add tested platform minimums before runtime distribution. Publish additional variants for supported Mac and Windows targets; reuse identical bytes only after cross-target testing confirms compatibility. The local implementation's schema and semantic validator are in `schemas/` and `crates/manifests/`.
 
 Sign exact release metadata that binds game identity, release identity, runtime requirement, and artifact hashes. Include signing-key IDs and a rotation mechanism. Use an established signing library and documented serialization, not custom cryptography. A signature proves provenance and integrity, not harmless behavior.
 
