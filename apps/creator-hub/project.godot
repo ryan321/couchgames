@@ -1,0 +1,16 @@
+config_version=5
+[application]
+config/name="Couch Games Creator Hub"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="CouchGames/CreatorHub"
+run/main_scene="res://hub.tscn"
+[display]
+window/size/viewport_width=1100
+window/size/viewport_height=720
+window/size/window_width_override=1100
+window/size/window_height_override=720
+window/size/min_width=900
+window/size/min_height=650
+window/stretch/mode="canvas_items"
+[rendering]
+renderer/rendering_method="gl_compatibility"

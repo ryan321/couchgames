@@ -31,12 +31,12 @@ The first released kit should contain the following versioned deliverables.
 | --- | --- | --- |
 | Godot addon | `addons/couchgames/`, the `Platform` autoload, documented types/signals and runtime policy | Runtime checks, player input and experimental motion exist; complete service API planned |
 | Reusable couch UI | Join/ready lobby, selection cards, input prompts, pause/settings, disconnect handling and confirmations | Implemented in individual examples; extraction into reusable scenes planned |
-| Two small starters | Independent 2D and 3D projects with a working create/play/save/exit loop | Examples exist; clean standalone starters planned |
+| Two small starters | Independent 2D and 3D projects with a working create/play/save/exit loop | A standalone Little World-based 3D starter is bundled in the setup preview; a clean 2D starter and full create/play/save/exit contract remain planned |
 | Godot editor tools | Setup/status panel, project settings, action definitions, validation and platform playtest entry | Runtime status panel exists; remaining tools planned |
-| Creator CLI | Project creation, diagnosis, playtest, checks, packing, local install and private publishing | `doctor`, artifact `validate`, unsigned `install` and `library` exist |
+| Creator CLI | Project creation, diagnosis, playtest, checks, packing, local install and private publishing | `doctor`, artifact `validate`, unsigned `install` and `library` exist; setup preview bundles a prebuilt macOS CLI |
 | Local platform playtest | Run a developer project through the same lifecycle used by installed games | Source catalog and Python supervisor exist; generic project registration and production host planned |
 | Reference examples | Small recipes for motion, split-screen, shared cameras, selection and feedback | Playable examples exist; focused recipes planned |
-| Creator documentation | First-game guide, API reference, recipes, errors, migrations and troubleshooting | Repository setup docs exist; cohesive creator documentation planned |
+| Creator documentation | First-game guide, API reference, recipes, errors, migrations and troubleshooting | Setup preview includes an offline first-game guide; complete API/recipe documentation remains planned |
 | AI integration pack | `AGENTS.md`, machine-readable API/manifest schemas, runnable examples and structured diagnostics | Manifest schema and CLI JSON exist; creator-specific integration pack planned |
 | Release checks | Project checks, runtime tests, controller/TV checklist and a report describing what was tested | Internal synthetic/engine tests exist; reusable creator test harness planned |
 
@@ -189,7 +189,9 @@ Publishing requires authenticated upload, artifact verification, release approva
 
 ## 7. How can someone run it today?
 
-Today the entry point is this repository. Use an already-installed supported Godot, Rust/Cargo and Python 3. No export templates are needed for source play or SDK tests. The helper scripts can compile the Rust CLI with Cargo; they do not install a Rust toolchain or Godot.
+A native macOS Apple Silicon setup preview now lives in [apps/gdk-setup](apps/gdk-setup/README.md). Build it with `python3 scripts/build_gdk.py`; the resulting app installs a small GDK and opens a basic Creator Hub. It detects Godot before launch, offers guided installation, and creates standalone 3D source projects. It does not yet deliver the full starter/save/publishing contract defined above.
+
+For repository development, the entry point is this checkout. Use an already-installed supported Godot, Rust/Cargo and Python 3. No export templates are needed for source play or SDK tests. The helper scripts can compile the Rust CLI with Cargo; they do not install a Rust toolchain or Godot.
 
 From the repository root:
 

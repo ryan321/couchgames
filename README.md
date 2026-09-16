@@ -10,6 +10,17 @@ A controller-first platform for playing and privately sharing Godot games on you
 - [Pricing strategy options: paid platform, subscriptions, and creator marketplace](docs/pricing-strategy.md)
 - [Package manifest schema](schemas/manifest.schema.json)
 
+## GDK setup preview
+
+Build and open the native macOS Apple Silicon installer:
+
+```sh
+python3 scripts/build_gdk.py
+open '.couchgames/gdk/Couch Games GDK Setup.app'
+```
+
+The setup screen works without Godot. It reuses a supported editor or offers the official download page and an editor picker, then installs a small versioned GDK. Creator Hub can create an independent 3D game, open it in Godot, and run it after its first import. The built app includes the CLI and needs no Rust/Python on the creator's machine. This is an ad-hoc-signed internal preview; Windows, public signing/notarization and automatic editor downloads remain planned. [Build, testing and installation details](apps/gdk-setup/README.md).
+
 ## Current implementation
 
 The first V1 slice is **local package validation and installation**:
