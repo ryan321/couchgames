@@ -1,5 +1,5 @@
 extends Node2D
-## Crisp TV-sized interface over the lit dungeon. Mouse buttons complement controller input.
+## Dedicated party lobby and compact gameplay chrome; HUD never covers the dungeon.
 const Level = preload("res://examples/gauntlet/level.gd")
 const INK := Color("f0e8d9")
 const MUTED := Color("9eafbc")
@@ -9,6 +9,11 @@ var font: Font = ThemeDB.fallback_font
 var start_button: Button
 var retry_button: Button
 var library_button: Button
+var pause_button: Button
+var help_button: Button
+var lobby_buttons: Array[Button] = []
+var menu_buttons: Array[Button] = []
+var slot_buttons: Array = []
 var portraits: Array[SubViewportContainer] = []
 
 func text(value: String, at: Vector2, size := 18, color := INK) -> void:
@@ -44,24 +49,43 @@ func button(label: String, rect: Rect2, action: Callable) -> Button:
 	return result
 
 func _ready() -> void:
-	start_button = button("Enter the vault",Rect2(590,609,420,52),func():
-		if game.phase=="lobby": game.start()
-		elif game.phase=="paused": game.toggle_pause())
-	retry_button = button("Play again",Rect2(600,550,400,50),func(): game.reset_level())
-	library_button = button("Return to library",Rect2(1370,30,190,43),func(): game.return_to_library())
-	library_button.add_theme_font_size_override("font_size",17)
+	start_button = button("Enter the vault",Rect2(1240,824,336,48),func(): game.request_start())
+	retry_button = button("Back to hero lobby",Rect2(600,550,400,50),func(): game.reset_level())
+	library_button = button("Game library",Rect2(24,824,224,48),func(): game.return_to_library())
+	pause_button = button("Menu  ·  Esc / Home",Rect2(1380,22,196,44),func(): game.toggle_pause())
+	pause_button.add_theme_font_size_override("font_size",17)
+	help_button = button("Back",Rect2(620,738,360,48),func(): game.help = false)
+	var controls_button := button("Controls",Rect2(270,824,200,48),func(): game.toggle_help())
+	var fullscreen := button("Fullscreen",Rect2(492,824,230,48),func(): game.toggle_fullscreen())
+	lobby_buttons = [library_button,controls_button,fullscreen,start_button]
+	for i in 9:
+		var item := button("",Rect2(510,250+i*46,580,40),func(): game.activate_menu(i))
+		item.mouse_entered.connect(func(): game.menu_index = i)
+		menu_buttons.append(item)
+	for i in 16:
+		var id := i+1
+		var at := slot_origin(i)
+		var controls := [button("‹",Rect2(at+Vector2(206,16),Vector2(32,38)),func(): game.cycle_class(id,-1)),
+			button("›",Rect2(at+Vector2(245,16),Vector2(32,38)),func(): game.cycle_class(id)),
+			button("Ready",Rect2(at+Vector2(286,16),Vector2(74,38)),func(): game.toggle_ready(id)),
+			button("Color",Rect2(at+Vector2(58,36),Vector2(137,27)),func(): game.cycle_color(id))]
+		for control in controls: control.add_theme_font_size_override("font_size",16)
+		slot_buttons.append(controls)
 	for i in 4: make_portrait(i)
+
+func slot_origin(index: int) -> Vector2:
+	return Vector2(24+(index%4)*390,412+(index/4)*84)
 
 func make_portrait(kind: int) -> void:
 	var container := SubViewportContainer.new()
-	container.position = Vector2(334+kind*240,282)
-	container.size = Vector2(212,166)
+	container.position = Vector2(36+kind*390,158)
+	container.size = Vector2(136,174)
 	container.stretch = true
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(container)
 	portraits.append(container)
 	var viewport := SubViewport.new()
-	viewport.size = Vector2i(424,332)
+	viewport.size = Vector2i(272,348)
 	viewport.transparent_bg = true
 	viewport.own_world_3d = true
 	viewport.msaa_3d = Viewport.MSAA_2X
@@ -69,6 +93,7 @@ func make_portrait(kind: int) -> void:
 	var scene := Node3D.new()
 	viewport.add_child(scene)
 	var hero: Node3D = game.dungeon_view.hero_model(kind)
+	hero.name = "HeroPreview"
 	hero.rotation.y = 0.4
 	scene.add_child(hero)
 	var light := DirectionalLight3D.new()
@@ -91,103 +116,184 @@ func make_portrait(kind: int) -> void:
 
 func _process(_delta: float) -> void:
 	var lobby: bool = game.phase=="lobby" and not game.help
-	start_button.visible = (lobby or game.phase=="paused") and not game.help
-	start_button.disabled = game.heroes.is_empty()
-	start_button.text = "Join a controller to begin" if game.heroes.is_empty() else ("Resume adventure" if game.phase=="paused" else "Enter the vault  →")
+	start_button.visible = lobby
+	start_button.disabled = not game.all_ready()
+	start_button.text = "A / Cross / Wii 2: Enter vault" if game.all_ready() else "Waiting for everyone to ready"
+	start_button.add_theme_font_size_override("font_size",18)
 	retry_button.visible = game.phase in ["complete","defeat"] and not game.help
-	for portrait in portraits:
-		portrait.visible = lobby
-		portrait.get_child(0).render_target_update_mode = SubViewport.UPDATE_ALWAYS if lobby else SubViewport.UPDATE_DISABLED
+	library_button.visible = (lobby or game.phase in ["complete","defeat"]) and not game.help
+	pause_button.visible = game.phase=="playing" and not game.help
+	help_button.visible = game.help
+	for i in 16:
+		for control in slot_buttons[i]: control.visible = lobby and game.heroes.has(i+1)
+		slot_buttons[i][2].text = "Edit" if game.ready_players.get(i+1,false) else "Ready"
+		if game.heroes.has(i+1):
+			var hero: Dictionary = game.heroes[i+1]
+			var swatch: Button = slot_buttons[i][3]
+			swatch.text = "‹                         ›" if game.color_focus.has(i+1) else ""
+			swatch.add_theme_font_size_override("font_size",14)
+			var style: StyleBoxFlat = swatch.get_theme_stylebox("normal").duplicate()
+			style.bg_color = game.color_for(hero)
+			style.set_border_width_all(2 if game.color_focus.has(i+1) else 0)
+			style.border_color = Color.WHITE
+			swatch.add_theme_stylebox_override("normal",style)
+			for state in ["hover","pressed"]:
+				var hover: StyleBoxFlat = style.duplicate()
+				hover.set_border_width_all(2)
+				hover.border_color = Color.WHITE
+				swatch.add_theme_stylebox_override(state,hover)
+	for index in lobby_buttons.size():
+		var control := lobby_buttons[index]
+		if index in [1,2]: control.visible = lobby
+		var selected: bool = lobby and game.lobby_focus.values().has(index)
+		for state in ["normal","disabled"]:
+			var style: StyleBoxFlat = control.get_theme_stylebox(state).duplicate()
+			style.set_border_width_all(3 if selected else 0)
+			style.border_color = Color("a6dcee")
+			control.add_theme_stylebox_override(state,style)
+	var labels: Array = game.menu_labels()
+	for i in menu_buttons.size():
+		var control := menu_buttons[i]
+		control.visible = game.phase=="paused" and not game.help and i<labels.size()
+		if not control.visible: continue
+		control.text = ("›   " if i==game.menu_index else "")+labels[i]
+		var style: StyleBoxFlat = control.get_theme_stylebox("normal").duplicate()
+		style.bg_color = Color("ead39d") if i==game.menu_index else Color("2b4352")
+		control.add_theme_stylebox_override("normal",style)
+		control.add_theme_color_override("font_color",Color("17232c") if i==game.menu_index else INK)
+	for kind in portraits.size():
+		var item := portraits[kind]
+		if lobby:
+			var selected: Dictionary = game.preview_hero(kind)
+			var color_index: int = selected.get("color_index",kind)
+			var scene: Node3D = item.get_child(0).get_child(0)
+			var model: Node3D = scene.get_node("HeroPreview")
+			if model.get_meta("color_index")!=color_index:
+				scene.remove_child(model)
+				model.queue_free()
+				model = game.dungeon_view.hero_model(kind,color_index)
+				model.name = "HeroPreview"
+				model.rotation.y = 0.4
+				scene.add_child(model)
+		item.visible = lobby
+		item.get_child(0).render_target_update_mode = SubViewport.UPDATE_ALWAYS if lobby else SubViewport.UPDATE_DISABLED
 
 func _draw() -> void:
-	# Leave the 3D viewport unobstructed; draw only the interface around it.
-	for rect in [Rect2(0,0,1600,104),Rect2(0,736,1600,164),Rect2(0,104,40,632),Rect2(1560,104,40,632)]:
-		draw_rect(rect,Color("111e28"))
-	draw_line(Vector2(40,93),Vector2(1560,93),Color("46505a"),1)
-	text("C O U C H   G A M E S",Vector2(40,27),11,MUTED)
-	text("GAUNTLET",Vector2(39,75),40,GOLD)
-	text("THE EMBER VAULT",Vector2(333,43),24)
-	text("LEVEL 01   /   %d HEROES   /   %d ESCAPED" % [game.heroes.size(),game.escaped_count()],Vector2(335,72),14,MUTED)
-	text("TREASURE",Vector2(926,34),11,MUTED)
-	text("%06d"%game.score,Vector2(925,63),25,GOLD)
-	text("KEYS %02d    GENERATORS %d/4" % [game.keys,game.destroyed()],Vector2(1090,42),14)
-	text("%02d:%02d  ·  FIND YOUR WAY OUT" % [int(game.elapsed)/60,int(game.elapsed)%60],Vector2(1090,67),12,MUTED)
+	if game.phase=="lobby": draw_lobby()
+	else: draw_hud()
+	if game.help: draw_help()
+	elif game.phase=="paused": draw_menu()
+	elif game.phase in ["complete","defeat"]: draw_results()
+
+func draw_lobby() -> void:
+	draw_rect(Rect2(0,0,1600,900),Color("111e28"))
+	draw_rect(Rect2(0,0,1600,128),Color("192f3c"))
+	text("GAUNTLET  /  THE EMBER VAULT",Vector2(26,33),16,GOLD)
+	text("Build your party",Vector2(24,90),44)
+	text("01  JOIN     /     02  CHOOSE A HERO     /     03  READY UP",Vector2(650,84),21,MUTED)
+	text("%02d / 16 joined"%game.heroes.size(),Vector2(1370,35),20,GOLD)
+	for i in 4:
+		var at := Vector2(24+i*390,144)
+		var stats: Dictionary = Level.CLASSES[i]
+		var color := Color(stats.color)
+		panel_box(Rect2(at,Vector2(372,210)),Color("1b303e"),color.darkened(0.5))
+		text(stats.name.capitalize(),at+Vector2(158,42),27,color.lightened(0.2))
+		text(["Heavy axe","Sword & shield","Arcane staff","Recurved bow"][i],at+Vector2(158,76),19)
+		text(["Slow, heavy melee","Quick, armored melee","Magic bolts & area spells","Fast feet & arrows"][i],at+Vector2(158,106),16,MUTED)
+		text("%d health"%stats.health,at+Vector2(158,154),17,GOLD)
+		text("%d damage · %.2fs"%[stats.damage,stats.rate],at+Vector2(158,179),16,MUTED)
+		var preview: Dictionary = game.preview_hero(i)
+		if not preview.is_empty():
+			text("P%02d"%preview.id,at+Vector2(14,198),13,game.color_for(preview))
+			draw_rect(Rect2(at+Vector2(48,188),Vector2(18,10)),game.color_for(preview))
+	text("YOUR PARTY",Vector2(26,393),19,GOLD)
+	text("Each controller chooses independently. Duplicate heroes are welcome.",Vector2(218,393),18,MUTED)
+	var ready_count: int = game.heroes.keys().filter(func(id): return game.ready_players.get(id,false)).size()
+	text("%d / %d ready"%[ready_count,game.heroes.size()],Vector2(1415,393),18,GOLD)
 	for i in 16:
 		var id := i+1
-		var at := Vector2(40+(i%8)*190,753+(i/8)*56)
+		var at := slot_origin(i)
 		var occupied: bool = game.heroes.has(id)
-		panel_box(Rect2(at,Vector2(180,48)),Color("1e303d") if occupied else Color("162631"))
+		var ready: bool = game.ready_players.get(id,false)
+		var color: Color = game.color_for(game.heroes[id]) if occupied else Color("466070")
+		panel_box(Rect2(at,Vector2(372,72)),Color("21473f") if ready else Color("1a2d39"),Color("6bb998") if ready else Color("3b5361"),8)
+		text("%02d"%id,at+Vector2(13,30),23,color.lightened(0.25))
 		if occupied:
-			var hero: Dictionary = game.heroes[id]
-			var stats: Dictionary = Level.CLASSES[hero.hero_class]
-			var color := Color(stats.color)
-			panel_box(Rect2(at+Vector2(7,7),Vector2(31,30)),color.darkened(0.58),color.darkened(0.15),6)
-			text("%02d"%id,at+Vector2(11,29),17,color.lightened(0.3))
-			text(stats.name.capitalize(),at+Vector2(46,19),15,color)
-			text("ESCAPED ✓" if hero.escaped else ("DOWN · Revive" if hero.hp<=0 else "%d HP   ·   %d magic" % [ceili(hero.hp),hero.potions]),at+Vector2(46,35),12,Color("9becbe") if hero.escaped else INK)
-			draw_rect(Rect2(at+Vector2(8,43),Vector2(163,2)),Color("0c1922"))
-			draw_rect(Rect2(at+Vector2(8,43),Vector2(163*hero.hp/stats.health,2)),color)
+			text(Level.CLASSES[game.heroes[id].hero_class].name.capitalize(),at+Vector2(58,28),21,color.lightened(0.2))
+			text("↓" if game.lobby_focus.has(id) else ("✓" if ready else ""),at+Vector2(18,55),18,Color("a8e7c2") if ready else MUTED)
 		else:
-			text("%02d" % id,at+Vector2(10,29),16,Color("6a808e"))
-			text("A / Cross / Wii 2 to join",at+Vector2(42,29),11,Color("728996"))
-	centered("MOVE  Stick / D-pad     FIRE  A / Cross / Wii 2     MAGIC  X / Square / Wii 1     F1  Help     F2  Lighting     F3  Map     F11  Fullscreen",884,15,MUTED)
-	if game.phase=="playing":
-		draw_minimap()
-		if game.message_time>0:
-			panel_box(Rect2(340,688,920,38),Color(0.04,0.10,0.14,0.94),Color("546b70"),8)
-			centered(game.message,713,16,GOLD)
-		if game.escaped_count()>0:
-			panel_box(Rect2(1190,265,352,42),Color("1a403b"),Color("69bda4"),8)
-			text("%d / %d safely through the portal" % [game.escaped_count(),game.heroes.size()],Vector2(1208,292),17,Color("b6f2d8"))
-	if game.phase in ["lobby","paused","complete","defeat"] or game.help:
-		draw_rect(Rect2(40,104,1520,632),Color(0.02,0.05,0.08,0.64))
-		draw_panel()
+			text("Press A / Cross / Wii 2 to join",at+Vector2(58,31),17,MUTED)
+			text("Keyboard: Enter",at+Vector2(58,53),14,Color("6d8797"))
+	centered("Left / right: hero · Up, then left / right: color · A / Cross / Wii 2: confirm / ready · Down: lobby buttons · B / Circle / Minus: back",775,18)
+	centered("Everyone ready? Press A / Cross / Wii 2 again to enter. Menu / Options / Wii + or Home also starts.",801,18,GOLD)
+	centered("Lobby buttons: left / right to choose, confirm to select · Keyboard: Enter confirms, Tab changes hero, C changes color, P starts",894,15,MUTED)
 
-func draw_panel() -> void:
+func draw_hud() -> void:
+	var bottom: float = 88+game.display.size.y
+	draw_rect(Rect2(0,0,1600,88),Color("111e28"))
+	draw_rect(Rect2(0,bottom,1600,900-bottom),Color("111e28"))
+	text("GAUNTLET",Vector2(24,41),30,GOLD)
+	text("THE EMBER VAULT",Vector2(25,66),13,MUTED)
+	text("%06d treasure    ·    %02d keys"%[game.score,game.keys],Vector2(255,37),20)
+	text("%d / %d escaped    ·    %d / 4 generators    ·    %02d:%02d"%[game.escaped_count(),game.heroes.size(),game.destroyed(),int(game.elapsed)/60,int(game.elapsed)%60],Vector2(255,65),16,MUTED)
+	if game.message_time>0: text(game.message.left(52),Vector2(690,49),14,GOLD)
+	if game.show_minimap: draw_minimap()
+	var ids: Array = game.heroes.keys()
+	ids.sort()
+	for i in ids.size():
+		var hero: Dictionary = game.heroes[ids[i]]
+		var stats: Dictionary = Level.CLASSES[hero.hero_class]
+		var color: Color = game.color_for(hero)
+		var at := Vector2(16+(i%8)*198,bottom+4+(i/8)*36)
+		text("%02d"%hero.id,at+Vector2(0,21),18,color.lightened(0.3))
+		var status: String = "ESCAPED" if hero.escaped else ("DOWN · revive" if hero.hp<=0 else "%d HP · %d magic"%[ceili(hero.hp),hero.potions])
+		text(status,at+Vector2(33,19),14,Color("a8e7c2") if hero.escaped else INK)
+		draw_rect(Rect2(at+Vector2(33,25),Vector2(142,3)),Color("2b404c"))
+		draw_rect(Rect2(at+Vector2(33,25),Vector2(142*hero.hp/stats.health,3)),color)
+	centered("MOVE  Stick / D-pad    ·    ATTACK  A / Cross / Wii 2    ·    MAGIC  X / Square / Wii 1    ·    MENU  Esc / Menu / Options / Home    ·    F3  Full map",894,14,MUTED)
+
+func draw_menu() -> void:
+	draw_rect(Rect2(0,0,1600,900),Color(0.02,0.05,0.08,0.72))
+	panel_box(Rect2(470,140,660,620),Color("152935"),Color("728477"),18)
+	centered("Adventure paused" if game.confirm_leave.is_empty() else "End this run?",201,36,GOLD)
+	centered("Your party is safe while you choose." if game.confirm_leave.is_empty() else "Current level progress will be reset.",231,19,MUTED)
+	centered("Up / down to choose · A / Cross / Wii 2 / Enter to select",698,18)
+	centered("Esc / B / Circle / Wii Minus / Home to go back",727,17,MUTED)
+
+func draw_help() -> void:
+	draw_rect(Rect2(0,0,1600,900),Color(0.02,0.05,0.08,0.85))
+	panel_box(Rect2(140,120,1320,680),Color("152935"),Color("728477"),18)
+	centered("A guide to the vault",193,36,GOLD)
+	var lines := ["LOBBY: left / right chooses a hero. Up selects color; left / right changes it. Confirm color, then ready up.",
+		"Everyone ready? Press A / Cross / Wii 2 again to enter. Down selects lobby buttons; left / right chooses.",
+		"MOVE: stick / D-pad / WASD. ATTACK: A / Cross / Wii 2 / Space. MAGIC: X / Square / Wii 1.",
+		"Keys and food are shared. Destroy generators to stop the horde and earn bonus treasure.",
+		"Enter the glowing portal to escape. Every connected hero must make it out.",
+		"Stand near a fallen teammate to revive them before the last hero escapes.",
+		"MENU: Esc / Menu / Options / Wii + / Home / P. Change options or return to the lobby or library.",
+		"F1: help · F2: lighting · F3: full-dungeon view · F11: fullscreen · F1 / Esc / confirm: close guide."]
+	for i in lines.size(): centered(lines[i],263+i*55,19,MUTED)
+
+func draw_results() -> void:
+	draw_rect(Rect2(0,88,1600,700),Color(0.02,0.05,0.08,0.72))
 	panel_box(Rect2(285,158,1030,530),Color("152935"),Color("728477"),18)
-	if game.help:
-		centered("A guide to the vault",219,32,GOLD)
-		var lines := ["Move and aim with the left stick or D-pad. Hold A / Cross / Wii 2 to fire.","Cast magic with X / Square / Wii 1. Keyboard: Space fires; X casts.","Shared keys open doors. Food heals your party. Generators award bonus treasure.","Enter the glowing portal to escape. Escaped heroes are safe and leave the dungeon.","Every connected hero must escape. Stand near fallen teammates to revive them.","Pause: Menu / Options / Wii Home / P. Press fire to resume.","F1 closes this guide. F3 toggles the full map. F11 toggles fullscreen. Escape returns to the library."]
-		for i in lines.size(): centered(lines[i],275+i*47,18,MUTED)
-	elif game.phase=="lobby":
-		centered("The Ember Vault",214,40,GOLD)
-		centered("Choose your hero. Find the keys. Get everyone out.",250,21,MUTED)
-		for i in 4:
-			var at := Vector2(324+i*240,275)
-			var color := Color(Level.CLASSES[i].color)
-			panel_box(Rect2(at,Vector2(222,234)),Color("203541"),color.darkened(0.55),10)
-			text(Level.CLASSES[i].name.capitalize(),at+Vector2(18,202),24,color)
-			text(["Powerful axe · More health","Armored · Sword and shield","Arcane staff · Strong magic","Swift feet · Rapid arrows"][i],at+Vector2(18,223),13,MUTED)
-		centered("A / Cross / Wii 2: join     ·     X / Square / Wii 1: choose class",546,19)
-		centered("Release, then press A / Cross / Wii 2 again to begin.",576,21,GOLD)
-		centered("Keyboard: Enter to join/start · Tab to change class",596,14,MUTED)
-	elif game.phase=="paused":
-		centered("Take a breather",297,44,GOLD)
-		centered("Your party is safe while the dungeon is paused.",354,23,MUTED)
-		centered("Press A / Cross / Wii 2 to continue",425,28)
-		centered("Menu / Options / Wii Home / P also resumes",472,19,MUTED)
-	else:
-		var won: bool = game.phase=="complete"
-		centered("Everybody made it out!" if won else "The vault claimed the party",263,40,GOLD)
-		centered("THE EMBER VAULT  /  LEVEL COMPLETE" if won else "Regroup, revive one another, and try again.",311,20,MUTED)
-		centered("%d / %d escaped    ·    %06d treasure" % [game.escaped_count(),game.heroes.size(),game.score],384,29)
-		centered("%d monsters defeated    ·    %d generators destroyed" % [game.kills,game.destroyed()],432,21,MUTED)
-		if won:
-			centered("Returning to your library in %d…" % maxi(1,ceili(game.return_countdown)),492,23,Color("b1e0c7"))
-		else: centered("Menu / Wii Home / R to play again",492,22,GOLD)
+	var won: bool = game.phase=="complete"
+	centered("Everybody made it out!" if won else "The vault claimed the party",263,40,GOLD)
+	centered("THE EMBER VAULT  /  LEVEL COMPLETE" if won else "Regroup, revive one another, and try again.",311,20,MUTED)
+	centered("%d / %d escaped    ·    %06d treasure"%[game.escaped_count(),game.heroes.size(),game.score],384,29)
+	centered("%d monsters defeated    ·    %d generators destroyed"%[game.kills,game.destroyed()],432,21,MUTED)
+	centered("Returning to your library in %d…"%maxi(1,ceili(game.return_countdown)) if won else "A / Cross / Wii 2: retry · B / Circle / Wii Minus: game library",492,22,GOLD)
 
 func draw_minimap() -> void:
-	var origin := Vector2(1310,122)
-	var scale := 5.6
-	panel_box(Rect2(origin-Vector2(10,10),Vector2(244,144)),Color(0.035,0.075,0.1,0.93),Color("617c80"),8)
+	# Dedicated header space, outside the game viewport: no dungeon or portal can be obscured.
+	var origin := Vector2(1200,10)
+	var scale := 3.4
 	for cell: Vector2i in game.walls:
-		draw_rect(Rect2(origin+Vector2(cell)*scale,Vector2.ONE*scale),Color("556770"))
+		draw_rect(Rect2(origin+Vector2(cell)*scale,Vector2.ONE*scale),Color(0.5,0.64,0.69,0.48))
 	for cell: Vector2i in game.doors:
 		draw_rect(Rect2(origin+Vector2(cell)*scale,Vector2.ONE*scale),GOLD)
 	for pickup: Dictionary in game.pickups:
-		if pickup.kind=="key": draw_circle(origin+pickup.pos/32*scale,2.5,GOLD)
-	draw_circle(origin+Level.EXIT/32*scale,4,Color("8ff2cb"))
+		if pickup.kind=="key": draw_circle(origin+pickup.pos/32*scale,2,GOLD)
+	draw_circle(origin+Level.EXIT/32*scale,3.5,Color("8ff2cb"))
 	for hero: Dictionary in game.heroes.values():
-		if not hero.escaped:
-			draw_circle(origin+hero.pos/32*scale,3.0,Color(Level.CLASSES[hero.hero_class].color))
-	text("THE VAULT",origin+Vector2(0,128),11,MUTED)
+		if not hero.escaped: draw_circle(origin+hero.pos/32*scale,2.5,game.color_for(hero))

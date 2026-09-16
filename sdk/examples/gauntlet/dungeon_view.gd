@@ -292,9 +292,9 @@ func rebuild() -> void:
 		objects["crystal-%d"%i] = crystal
 		objects["generator-%d"%i] = tower
 
-func hero_model(kind: int) -> Node3D:
+func hero_model(kind: int, color_index := -1) -> Node3D:
 	var actor := preload("res://examples/gauntlet/hero_actor.gd").new()
-	actor.configure(self,kind)
+	actor.configure(self,kind,color_index)
 	return actor
 
 func enemy_model(kind: String) -> Node3D:
@@ -355,11 +355,11 @@ func _process(delta: float) -> void:
 		var hero: Dictionary = game.heroes[id]
 		var key := "hero-%d"%id
 		seen[key] = true
-		if actors.has(key) and actors[key].get_meta("class")!=hero.hero_class:
+		if actors.has(key) and (actors[key].get_meta("class")!=hero.hero_class or actors[key].get_meta("color_index")!=hero.color_index):
 			actors[key].queue_free()
 			actors.erase(key)
 		if not actors.has(key):
-			var model := hero_model(hero.hero_class)
+			var model := hero_model(hero.hero_class,hero.color_index)
 			add_child(model)
 			actors[key] = model
 			var label := Label3D.new()
@@ -369,10 +369,10 @@ func _process(delta: float) -> void:
 			label.font_size = 50
 			label.pixel_size = 0.008
 			label.outline_size = 12
-			label.modulate = Color(Level.CLASSES[hero.hero_class].color).lightened(0.3)
+			label.modulate = game.color_for(hero).lightened(0.3)
 			label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 			model.add_child(label)
-			var halo := ring(model,Vector3(0,0.10,0),0.4,0.025,Color(Level.CLASSES[hero.hero_class].color),0.5)
+			var halo := ring(model,Vector3(0,0.10,0),0.4,0.025,game.color_for(hero),0.5)
 			halo.name = "Halo"
 		var actor: Node3D = actors[key]
 		actor.position = at3(hero.pos)
@@ -380,6 +380,7 @@ func _process(delta: float) -> void:
 		actor.scale = Vector3.ONE*maxf(0.001,1.0-progress)*1.05
 		actor.visible = progress<1.0
 		actor.present(hero,delta,game.phase=="playing")
+		actor.damage_feedback.present(hero,game.elapsed)
 		actor.get_node("Number").text = "%02d%s" % [id," +" if hero.hp<=0 else ""]
 	for enemy: Dictionary in game.enemies:
 		var key := "enemy-%d"%enemy.id
@@ -387,12 +388,20 @@ func _process(delta: float) -> void:
 		if not actors.has(key):
 			actors[key] = enemy_model(enemy.kind)
 			add_child(actors[key])
+			var feedback := preload("res://examples/gauntlet/damage_feedback.gd").new()
+			feedback.name = "DamageFeedback"
+			actors[key].add_child(feedback)
+			feedback.configure(actors[key],true,1.18 if enemy.kind=="ghost" else 1.65)
 		var actor: Node3D = actors[key]
 		var position3 := at3(enemy.pos)
 		var direction := position3-actor.position
 		if Vector2(direction.x,direction.z).length()>0.003: actor.rotation.y = atan2(direction.x,direction.z)
 		actor.position = position3
 		actor.position.y = sin(game.clock*4+enemy.id)*0.08 if enemy.kind=="ghost" else absf(sin(game.clock*7+enemy.id))*0.025
+		var feedback: Node3D = actor.get_node("DamageFeedback")
+		feedback.present(enemy,game.elapsed)
+		actor.scale = Vector3.ONE+Vector3(0.04,-0.065,0.04)*feedback.recoil
+		actor.rotation.z = feedback.recoil*0.045
 	for pickup: Dictionary in game.pickups:
 		var key := "pickup-%s-%s" % [pickup.kind,pickup.pos]
 		seen[key] = true
@@ -437,15 +446,21 @@ func _process(delta: float) -> void:
 		effect.visible = i<needed
 		if i>=needed: continue
 		if i<game.shots.size():
-			effect.mesh = particle_mesh
 			var shot: Dictionary = game.shots[i]
-			effect.position = at3(shot.pos,1.35 if shot.owner>0 else 0.7)
-			effect.scale = Vector3(0.12,0.12,0.28)
-			effect.rotation.y = atan2(shot.velocity.x,shot.velocity.y)
-			effect.material_override = material(Color("fca266") if shot.owner==0 else (Color("82a5b4") if shot.get("hero_class",0)==2 else Color("e8dbad")),0,0.8)
+			var arrow: bool = shot.get("kind","")=="arrow" or (shot.owner>0 and shot.get("hero_class",0)==3)
+			effect.position = at3(shot.pos,1.15 if shot.owner>0 else 0.7)
+			effect.rotation = Vector3(0,atan2(shot.velocity.x,shot.velocity.y),0)
+			if arrow:
+				effect.mesh = arrow_mesh()
+				effect.scale = Vector3.ONE
+				effect.material_override = null
+			else:
+				effect.mesh = particle_mesh
+				effect.scale = Vector3(0.095,0.095,0.42) if shot.owner>0 else Vector3(0.14,0.14,0.24)
+				effect.material_override = material(Color("fca266") if shot.owner==0 else Color("8dbedb"),0,1.0)
 		elif i<game.shots.size()+game.sparks.size():
 			var spark: Dictionary = game.sparks[i-game.shots.size()]
-			var radius: float = (1.0-spark.life/0.65)*6.25 if spark.kind=="magic" else (1.0-spark.life/0.35)*0.65
+			var radius: float = Level.magic_radius(spark.life)/32.0 if spark.kind=="magic" else (1.0-spark.life/0.35)*0.65
 			if not effect.mesh is TorusMesh:
 				var torus := TorusMesh.new()
 				torus.inner_radius = 0.95; torus.outer_radius = 1.0; torus.rings = 32; torus.ring_segments = 6
@@ -581,3 +596,16 @@ func build_set_dressing() -> void:
 		box(architecture,at,Vector3(0.025,1.35,0.64),Color("522b32"))
 		box(architecture,at+Vector3(0,0.72,0),Vector3(0.06,0.045,0.85),Color("b49860"),0.6)
 		for side in [-1,1]: box(architecture,at+Vector3(0.02,0,side*0.28),Vector3(0.012,1.32,0.018),Color("c1a564"))
+
+func arrow_mesh() -> ArrayMesh:
+	if not model_meshes.has("arrow"):
+		var root := Node3D.new()
+		var shaft := cylinder(root,Vector3.ZERO,0.013,0.64,Color("9b7146"))
+		shaft.rotation.x = PI/2
+		var tip := cylinder(root,Vector3(0,0,0.36),0.046,0.13,Color("becad0"),0.0,0.7)
+		tip.rotation.x = PI/2
+		box(root,Vector3(0,0,-0.25),Vector3(0.16,0.015,0.13),Color("d7d3bc"))
+		box(root,Vector3(0,0,-0.25),Vector3(0.015,0.16,0.13),Color("d7d3bc"))
+		bake_meshes(root,"arrow")
+		root.free()
+	return model_meshes["arrow"]

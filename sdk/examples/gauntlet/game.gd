@@ -6,6 +6,15 @@ const Fleet = preload("res://examples/pocket_rally/wii_fleet.gd")
 const Sounds = preload("res://examples/gauntlet/sound.gd")
 const DIRECTIONS := [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN]
 var service: Node
+var display: SubViewportContainer
+var ready_players: Dictionary = {}
+var navigation: Dictionary = {}
+var lobby_focus: Dictionary = {}
+var color_focus: Dictionary = {}
+var preview_players: Dictionary = {}
+var menu_index := 0
+var confirm_leave := ""
+var show_minimap := true
 var board: Node2D
 var dungeon_view: Node3D
 var close_on_finish := true
@@ -19,6 +28,8 @@ var generators: Array = []
 var pickups: Array = []
 var enemies: Array = []
 var shots: Array = []
+var melee_swings: Array = []
+var combat_armed: Dictionary = {}
 var sparks: Array = []
 var flow: Dictionary = {}
 var phase := "lobby"
@@ -35,7 +46,6 @@ var _serial := 0
 var _action_previous: Dictionary = {}
 var _end_guard := 0.0
 var help := false
-var _help_paused := false
 
 func _ready() -> void:
 	DisplayServer.window_set_title("Gauntlet · The Ember Vault · Couch Games")
@@ -43,14 +53,14 @@ func _ready() -> void:
 	service.keyboard_enabled = true
 	service.player_joined.connect(join)
 	service.player_left.connect(leave)
-	var display := SubViewportContainer.new()
-	display.position = Vector2(40,104)
-	display.size = Vector2(1520,632)
+	display = SubViewportContainer.new()
+	display.position = Vector2(0,88)
+	display.size = Vector2(1600,752)
 	display.stretch = true
 	display.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(display)
 	var viewport := SubViewport.new()
-	viewport.size = Vector2i(1520,632)
+	viewport.size = Vector2i(1600,752)
 	viewport.own_world_3d = true
 	viewport.msaa_3d = Viewport.MSAA_2X
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -80,6 +90,8 @@ func reset_level() -> void:
 	pickups = Level.pickups()
 	enemies.clear()
 	shots.clear()
+	melee_swings.clear()
+	combat_armed.clear()
 	sparks.clear()
 	flow.clear()
 	keys = 0
@@ -89,26 +101,33 @@ func reset_level() -> void:
 	exit_time = 0
 	_flow_clock = 0
 	phase = "lobby"
+	help = false
+	confirm_leave = ""
+	ready_players.clear()
+	navigation.clear()
+	lobby_focus.clear()
+	color_focus.clear()
 	return_countdown = 6.0
 	_confirm_armed.clear()
 	for id: int in heroes:
 		var chosen: int = heroes[id].hero_class
-		heroes[id] = make_hero(id,chosen)
-	message = "JOIN, CHOOSE YOUR HERO, THEN PRESS FIRE AGAIN TO START."
+		heroes[id] = make_hero(id,chosen,heroes[id].color_index)
+	message = "JOIN, CHOOSE YOUR HERO, AND READY UP. MENU / HOME STARTS WHEN EVERYONE IS READY."
 	message_time = 8
 	_end_guard = 0.7
 	if dungeon_view: dungeon_view.rebuild()
 
-func make_hero(id: int, hero_class: int) -> Dictionary:
+func make_hero(id: int, hero_class: int, color_index := -1) -> Dictionary:
 	var stats: Dictionary = Level.CLASSES[hero_class]
-	return {"id":id,"hero_class":hero_class,"pos":Level.spawn(id),"face":Vector2.DOWN,
+	return {"id":id,"hero_class":hero_class,"color_index":posmod(id-1 if color_index<0 else color_index,Level.PLAYER_COLORS.size()),"pos":Level.spawn(id),"face":Vector2.DOWN,
 		"attack_serial":0,"magic_serial":0,"hit_serial":0,"hp":stats.health,"cooldown":0.0,"hurt":0.0,"potions":2,"revive":0.0,"escaped":false,"walk":0.0}
 
 func join(id: int) -> void:
 	if heroes.has(id): return
 	heroes[id] = make_hero(id,(id-1)%4)
+	preview_players[heroes[id].hero_class] = id
 	# Mid-level recruits arrive beside the surviving party, never behind a locked door.
-	if phase == "playing":
+	if phase in ["playing","paused"]:
 		for other: Dictionary in heroes.values():
 			if other.id != id and other.hp>0 and not other.escaped:
 				heroes[id].pos = other.pos
@@ -122,6 +141,11 @@ func leave(id: int) -> void:
 	heroes.erase(id)
 	_action_previous.erase(id)
 	_confirm_armed.erase(id)
+	ready_players.erase(id)
+	navigation.erase(id)
+	lobby_focus.erase(id)
+	color_focus.erase(id)
+	combat_armed.erase(id)
 	if heroes.is_empty():
 		reset_level()
 	else:
@@ -130,6 +154,7 @@ func leave(id: int) -> void:
 func start() -> void:
 	if heroes.is_empty(): return
 	phase = "playing"
+	combat_armed.clear()
 	announce("FIND THE KEYS. REACH THE EXIT. GET EVERY HERO OUT.")
 	sound.effect("start")
 
@@ -137,36 +162,155 @@ func announce(text: String) -> void:
 	message = text
 	message_time = 4.0
 
+func all_ready() -> bool:
+	return not heroes.is_empty() and heroes.keys().all(func(id): return ready_players.get(id,false))
+
+func toggle_ready(id: int) -> void:
+	if phase!="lobby" or not heroes.has(id): return
+	ready_players[id] = not ready_players.get(id,false)
+	sound.effect("select")
+
+func activate_lobby(index: int) -> void:
+	match index:
+		0: return_to_library()
+		1: toggle_help()
+		2: toggle_fullscreen()
+		3: request_start()
+
+func confirm_lobby(id: int) -> void:
+	if color_focus.has(id): color_focus.erase(id)
+	elif lobby_focus.has(id): activate_lobby(lobby_focus[id])
+	elif all_ready(): request_start()
+	elif not ready_players.get(id,false): toggle_ready(id)
+
+func request_start() -> void:
+	if phase!="lobby": return
+	if all_ready(): start()
+	else: announce("EVERY JOINED PLAYER MUST READY UP BEFORE STARTING")
+
+func sync_display() -> void:
+	service.keyboard_enabled = phase in ["lobby","playing"] or service.player_for_device(service.KEYBOARD_DEVICE)!=0
+	var rows := ceili(heroes.size()/8.0)
+	var area := Vector2(1600,900-88-(24+rows*36))
+	if display.size!=area:
+		display.size = area
+
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo: return
 	match event.keycode:
-		KEY_ESCAPE: get_tree().quit()
+		KEY_ESCAPE: menu_back()
 		KEY_F2: dungeon_view.toggle_quality()
 		KEY_F3: dungeon_view.toggle_overview()
-		KEY_F11:
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
-		KEY_F1:
-			help = not help
-			if help:
-				_help_paused = phase == "playing"
-				if _help_paused: phase = "paused"
-			elif _help_paused and phase == "paused": phase = "playing"
+		KEY_F11: toggle_fullscreen()
+		KEY_F1: toggle_help()
 		KEY_P: toggle_pause()
 		KEY_ENTER:
-			if phase == "lobby" and _end_guard<=0: start()
+			if help: help = false
+			elif phase=="lobby":
+				var id: int = service.player_for_device(service.KEYBOARD_DEVICE)
+				if id and _confirm_armed.get(id,false): confirm_lobby(id)
+			elif phase=="paused": activate_menu(menu_index)
+		KEY_UP:
+			if phase=="paused": move_menu(-1)
+		KEY_DOWN:
+			if phase=="paused": move_menu(1)
 		KEY_R:
 			if phase in ["complete","defeat"]: reset_level()
+		KEY_C:
+			var id: int = service.player_for_device(service.KEYBOARD_DEVICE)
+			if id and phase=="lobby" and not help: cycle_color(id)
 		KEY_TAB:
 			var id: int = service.player_for_device(service.KEYBOARD_DEVICE)
-			if id and phase == "lobby": cycle_class(id)
+			if id and phase=="lobby" and not help: cycle_class(id)
+
+func toggle_fullscreen() -> void:
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
+
+func toggle_help() -> void:
+	if help:
+		help = false
+		return
+	if phase=="playing": toggle_pause()
+	help = true
+
+func menu_back() -> void:
+	if help: help = false
+	elif not confirm_leave.is_empty(): confirm_leave = ""; menu_index = 0
+	elif phase in ["playing","paused"]: toggle_pause()
+	elif phase=="lobby": return_to_library()
 
 func toggle_pause() -> void:
-	if phase == "playing": phase = "paused"
-	elif phase == "paused": phase = "playing"
+	if phase=="lobby": request_start()
+	elif phase=="playing":
+		phase = "paused"
+		menu_index = 0
+		confirm_leave = ""
+		help = false
+	elif phase=="paused":
+		help = false
+		confirm_leave = ""
+		phase = "playing"
+		combat_armed.clear()
 
-func cycle_class(id: int) -> void:
-	heroes[id] = make_hero(id,(heroes[id].hero_class+1)%4)
+func menu_labels() -> Array[String]:
+	if help: return ["Back to menu"]
+	if not confirm_leave.is_empty(): return ["Keep playing", "End run and return to "+confirm_leave]
+	return ["Resume adventure", "Camera: "+("full dungeon" if dungeon_view.overview else "follow party"),
+		"Minimap: "+("shown" if show_minimap else "hidden"),
+		"Lighting: "+("cinematic" if dungeon_view.high_quality else "performance"),
+		"Sound: "+("on" if sound.enabled else "off"), "Controls & how to play", "Return to hero lobby", "Return to game library", "Toggle fullscreen"]
+
+func move_menu(direction: int) -> void:
+	menu_index = posmod(menu_index+direction,menu_labels().size())
 	sound.effect("select")
+
+func activate_menu(index: int) -> void:
+	if phase!="paused": return
+	if help: help = false; menu_index = 0; return
+	if not confirm_leave.is_empty():
+		var destination := confirm_leave
+		confirm_leave = ""
+		menu_index = 0
+		if index==0: toggle_pause()
+		elif destination=="lobby": reset_level()
+		else: return_to_library()
+		return
+	match index:
+		0: toggle_pause()
+		1: dungeon_view.toggle_overview()
+		2: show_minimap = not show_minimap
+		3: dungeon_view.toggle_quality()
+		4: sound.enabled = not sound.enabled
+		5: help = true; menu_index = 0
+		6: confirm_leave = "lobby"; menu_index = 0
+		7: confirm_leave = "library"; menu_index = 0
+		8: toggle_fullscreen()
+
+func cycle_class(id: int, direction := 1) -> void:
+	if phase!="lobby" or not heroes.has(id): return
+	heroes[id] = make_hero(id,posmod(heroes[id].hero_class+direction,4),heroes[id].color_index)
+	preview_players[heroes[id].hero_class] = id
+	color_focus.erase(id)
+	ready_players[id] = false
+	lobby_focus.erase(id)
+	sound.effect("select")
+
+func color_for(hero: Dictionary) -> Color:
+	return Level.player_color(int(hero.get("color_index",hero.hero_class)))
+
+func cycle_color(id: int, direction := 1) -> void:
+	if phase!="lobby" or not heroes.has(id): return
+	heroes[id].color_index = posmod(heroes[id].color_index+direction,Level.PLAYER_COLORS.size())
+	ready_players[id] = false
+	preview_players[heroes[id].hero_class] = id
+	sound.effect("select")
+
+func preview_hero(kind: int) -> Dictionary:
+	var id: int = preview_players.get(kind,0)
+	if heroes.has(id) and heroes[id].hero_class==kind: return heroes[id]
+	for hero: Dictionary in heroes.values():
+		if hero.hero_class==kind: return hero
+	return {}
 
 func actions(id: int) -> Dictionary:
 	var player: Dictionary = service.players.get(id,{})
@@ -179,6 +323,7 @@ func actions(id: int) -> Dictionary:
 		attack = attack or bool(buttons.get(button,false))
 	return {"attack":attack,
 		"magic":bool(keyboard.get(KEY_X,false)) or bool(buttons.get(JOY_BUTTON_X,false)),
+		"back":bool(buttons.get(player.profile.get("leave",JOY_BUTTON_B),false)),
 		"start":bool(buttons.get(JOY_BUTTON_START,false)) or (wii and bool(buttons.get(JOY_BUTTON_GUIDE,false)))}
 
 func _physics_process(delta: float) -> void:
@@ -191,28 +336,79 @@ func step(delta: float) -> void:
 	_end_guard = maxf(0,_end_guard-delta)
 	var start_pressed := false
 	var confirm_pressed := false
+	var back_pressed := false
+	var attack_taps: Dictionary = {}
+	var party_was_ready := all_ready()
+	var lobby_action := -1
 	for id: int in heroes:
 		var act := actions(id)
 		var previous: Dictionary = _action_previous.get(id,{})
-		if not act.get("attack",false): _confirm_armed[id] = true
+		if not act.get("attack",false):
+			_confirm_armed[id] = true
+			combat_armed[id] = true
 		var queued_confirm: bool = service.consume_jump(id)
 		var confirm_edge: bool = (queued_confirm or (act.get("attack",false) and not previous.get("attack",false))) and _confirm_armed.get(id,false)
 		confirm_pressed = confirm_pressed or confirm_edge
+		if phase=="playing" and confirm_edge: attack_taps[id] = true
 		var magic_edge: bool = act.get("magic",false) and not previous.get("magic",false)
 		var start_edge: bool = act.get("start",false) and not previous.get("start",false)
 		start_pressed = start_pressed or start_edge
-		if phase == "lobby":
+		back_pressed = back_pressed or (act.get("back",false) and not previous.get("back",false))
+		var move: Vector2 = service.movement(id)
+		var nav := Vector2i(signf(move.x) if absf(move.x)>0.6 else 0,signf(move.y) if absf(move.y)>0.6 else 0)
+		var old_nav: Vector2i = navigation.get(id,Vector2i.ZERO)
+		var is_keyboard: bool = service.player_for_device(service.KEYBOARD_DEVICE)==id
+		if phase=="lobby" and not help:
+			if nav.y>0 and old_nav.y<=0:
+				if color_focus.has(id): color_focus.erase(id)
+				else: lobby_focus[id] = 3
+			elif nav.y<0 and old_nav.y>=0:
+				if lobby_focus.has(id): lobby_focus.erase(id)
+				else: color_focus[id] = true
 			if magic_edge: cycle_class(id)
-		elif phase == "playing" and magic_edge: cast_magic(id)
+			elif nav.x!=0 and nav.x!=old_nav.x:
+				if lobby_focus.has(id): lobby_focus[id] = posmod(lobby_focus[id]+nav.x,4)
+				elif color_focus.has(id): cycle_color(id,nav.x)
+				else: cycle_class(id,nav.x)
+			if act.get("back",false) and not previous.get("back",false):
+				if lobby_focus.has(id): lobby_focus.erase(id)
+				elif color_focus.has(id): color_focus.erase(id)
+				else: ready_players[id] = false
+			if confirm_edge:
+				if color_focus.has(id): color_focus.erase(id)
+				elif lobby_focus.has(id): lobby_action = lobby_focus[id]
+				elif party_was_ready and all_ready(): lobby_action = 3
+				elif not ready_players.get(id,false): toggle_ready(id)
+		elif phase=="paused":
+			if not is_keyboard and nav.y!=0 and nav.y!=old_nav.y: move_menu(nav.y)
+		navigation[id] = nav
+		if phase == "playing" and magic_edge: cast_magic(id)
 		_action_previous[id] = act
-	if not help and (start_pressed or (confirm_pressed and phase in ["lobby","paused","defeat"])):
-		if phase == "lobby":
-			start()
-			# Starting never consumes a potion or fires a stray projectile.
-			return
+	if help and (confirm_pressed or back_pressed):
+		help = false
+		return
+	if back_pressed and phase=="paused":
+		menu_back()
+		return
+	if back_pressed and phase in ["complete","defeat"] and _end_guard<=0:
+		return_to_library()
+		return
+	if phase=="lobby" and not help and lobby_action>=0:
+		activate_lobby(lobby_action)
+		return
+	if start_pressed:
+		if help or not confirm_leave.is_empty(): menu_back()
+		elif phase=="lobby": request_start()
 		elif phase in ["complete","defeat"]:
 			if _end_guard<=0: reset_level()
 		else: toggle_pause()
+		return
+	if confirm_pressed and phase=="paused":
+		activate_menu(menu_index)
+		return
+	if confirm_pressed and phase=="defeat" and _end_guard<=0:
+		reset_level()
+		return
 	if confirm_pressed and phase == "complete" and _end_guard<=0:
 		return_to_library()
 	if phase != "playing": return
@@ -229,20 +425,20 @@ func step(delta: float) -> void:
 			hero.face = direction.normalized()
 			hero.pos = slide(hero.pos,direction*stats.speed*delta,10,true)
 			hero.walk += delta*12
-		if actions(id).get("attack",false) and hero.cooldown<=0:
+		if (actions(id).get("attack",false) or attack_taps.get(id,false)) and combat_armed.get(id,false) and hero.cooldown<=0:
 			fire(hero)
 		collect(hero)
 		try_exit(hero)
+	update_melee()
 	_flow_clock -= delta
 	if _flow_clock<=0:
 		build_flow()
 		_flow_clock = 0.3
 	update_generators(delta)
+	update_sparks(delta)
 	update_enemies(delta)
 	update_shots(delta)
 	update_revives(delta)
-	for spark: Dictionary in sparks: spark.life -= delta
-	sparks = sparks.filter(func(s): return s.life>0)
 	check_finish(delta)
 
 func blocked(at: Vector2, radius: float) -> bool:
@@ -277,25 +473,68 @@ func unlock(group: int) -> void:
 	sound.effect("key")
 
 func fire(hero: Dictionary) -> void:
+	if hero.hp<=0 or hero.escaped: return
 	var stats: Dictionary = Level.CLASSES[hero.hero_class]
 	hero.cooldown = stats.rate
 	hero.attack_serial += 1
-	shots.append({"pos":hero.pos,"velocity":hero.face*360,"damage":stats.damage,"life":1.35,"owner":hero.id,"hero_class":hero.hero_class})
-	sound.effect("shoot")
+	if hero.hero_class<2:
+		melee_swings.append({"owner":hero.id,"face":hero.face,"at":elapsed+stats.windup,"hero_class":hero.hero_class})
+		sound.effect("axe" if hero.hero_class==0 else "sword")
+	else:
+		var arrow: bool = hero.hero_class==3
+		shots.append({"pos":hero.pos,"velocity":hero.face*(480 if arrow else 340),"damage":stats.damage,
+			"life":1.35,"owner":hero.id,"hero_class":hero.hero_class,"kind":"arrow" if arrow else "arcane"})
+		sound.effect("bow" if arrow else "shoot")
+
+func melee_reaches(origin: Vector2, facing: Vector2, target: Vector2, reach: float, target_radius: float) -> bool:
+	var offset := target-origin
+	if offset.length()>reach+target_radius: return false
+	if offset.length()>target_radius and facing.dot(offset.normalized())<0.35: return false
+	# Sweep visibility through the same walls and closed doors as projectiles.
+	var parts := maxi(1,ceili(offset.length()/6.0))
+	for part in range(1,parts+1):
+		if blocked(origin+offset*float(part)/parts,0): return false
+	return true
+
+func update_melee() -> void:
+	for i in range(melee_swings.size()-1,-1,-1):
+		var swing: Dictionary = melee_swings[i]
+		if elapsed<swing.at: continue
+		melee_swings.remove_at(i)
+		var hero: Dictionary = heroes.get(swing.owner,{})
+		if hero.is_empty() or hero.hp<=0 or hero.escaped or hero.hero_class!=swing.hero_class: continue
+		var stats: Dictionary = Level.CLASSES[hero.hero_class]
+		for enemy: Dictionary in enemies:
+			if enemy.hp>0 and melee_reaches(hero.pos,swing.face,enemy.pos,stats.reach,12): damage_enemy(enemy,stats.damage)
+		for generator: Dictionary in generators:
+			if generator.hp>0 and melee_reaches(hero.pos,swing.face,generator.pos,stats.reach,19): damage_generator(generator,stats.damage)
 
 func cast_magic(id: int) -> void:
 	var hero: Dictionary = heroes[id]
 	if hero.hp<=0 or hero.escaped or hero.potions<=0: return
 	hero.potions -= 1
 	hero.magic_serial += 1
-	var damage: float = Level.CLASSES[hero.hero_class].magic
-	for enemy: Dictionary in enemies:
-		if enemy.pos.distance_to(hero.pos)<200: enemy.hp -= damage
-	for generator: Dictionary in generators:
-		if generator.pos.distance_to(hero.pos)<200: damage_generator(generator,damage)
-	sparks.append({"pos":hero.pos,"life":0.65,"kind":"magic","color":Color(Level.CLASSES[hero.hero_class].color)})
+	sparks.append({"pos":hero.pos,"life":Level.MAGIC_DURATION,"kind":"magic","color":color_for(hero),
+		"damage":Level.CLASSES[hero.hero_class].magic,"hit_enemies":{},"hit_generators":{}})
 	sound.effect("magic")
 	announce("PLAYER %02d CASTS MAGIC!" % id)
+
+func update_sparks(delta: float) -> void:
+	# Damage and rendering share one wave clock/radius. Damage may append impact sparks.
+	for spark: Dictionary in sparks.duplicate():
+		spark.life -= delta
+		if spark.kind!="magic": continue
+		var radius := Level.magic_radius(spark.life)
+		for enemy: Dictionary in enemies:
+			if enemy.hp>0 and not spark.hit_enemies.has(enemy.id) and enemy.pos.distance_to(spark.pos)<=radius:
+				spark.hit_enemies[enemy.id] = true
+				damage_enemy(enemy,spark.damage)
+		for index in generators.size():
+			var generator: Dictionary = generators[index]
+			if generator.hp>0 and not spark.hit_generators.has(index) and generator.pos.distance_to(spark.pos)<=radius:
+				spark.hit_generators[index] = true
+				damage_generator(generator,spark.damage)
+	sparks = sparks.filter(func(s): return s.life>0)
 
 func collect(hero: Dictionary) -> void:
 	for i in range(pickups.size()-1,-1,-1):
@@ -352,7 +591,7 @@ func update_generators(delta: float) -> void:
 			if not blocked(candidate,9):
 				spawn = candidate
 				break
-		enemies.append({"id":_serial,"pos":spawn,"kind":generator.kind,"hp":52.0 if generator.kind=="grunt" else 34.0,"attack":1.0})
+		enemies.append({"id":_serial,"pos":spawn,"kind":generator.kind,"hp":52.0 if generator.kind=="grunt" else 34.0,"max_hp":52.0 if generator.kind=="grunt" else 34.0,"attack":1.0})
 
 func living() -> Array:
 	return heroes.values().filter(func(h): return h.hp>0 and not h.escaped)
@@ -401,6 +640,7 @@ func hurt(hero: Dictionary, damage: float) -> void:
 	hero.hp = maxf(0,hero.hp-damage*armor)
 	hero.hurt = 0.65
 	hero.hit_serial += 1
+	hero.hit_at = elapsed
 	sound.effect("hurt")
 	if hero.hp<=0: announce("PLAYER %02d IS DOWN · STAND NEAR THEM TO REVIVE" % hero.id)
 
@@ -424,11 +664,19 @@ func update_shots(delta: float) -> void:
 				if shot.life>0:
 					for enemy: Dictionary in enemies:
 						if enemy.hp>0 and enemy.pos.distance_to(shot.pos)<14:
-							enemy.hp -= shot.damage
+							damage_enemy(enemy,shot.damage)
 							shot.life = 0
 							break
 			if shot.life<=0: break
 		if shot.life<=0: shots.remove_at(i)
+
+func damage_enemy(enemy: Dictionary, amount: float) -> void:
+	if enemy.hp<=0 or amount<=0: return
+	if not enemy.has("max_hp"): enemy.max_hp = enemy.hp
+	enemy.hp = maxf(0,enemy.hp-amount)
+	enemy.hit_at = elapsed
+	enemy.hit_serial = int(enemy.get("hit_serial",0))+1
+	sound.effect("impact")
 
 func damage_generator(generator: Dictionary, amount: float) -> void:
 	if generator.hp<=0: return
@@ -502,8 +750,10 @@ func _process(delta: float) -> void:
 	if phase=="complete":
 		return_countdown = maxf(0,return_countdown-delta)
 		if return_countdown<=0: return_to_library()
-	if is_instance_valid(board): board.queue_redraw()
+	if is_instance_valid(board):
+		sync_display()
+		board.queue_redraw()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and phase == "playing":
-		phase = "paused"
+		toggle_pause()

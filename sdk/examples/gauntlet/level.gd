@@ -1,15 +1,34 @@
 extends RefCounted
 ## An original first dungeon built around the arcade game's cooperative loop.
+const MAGIC_DURATION := 0.65
+const MAGIC_RADIUS := 200.0
+
+static func magic_radius(life: float) -> float:
+	return MAGIC_RADIUS*clampf(1.0-life/MAGIC_DURATION,0.0,1.0)
+
 const WIDTH := 40
 const HEIGHT := 20
 const TILE := 32.0
 const EXIT := Vector2(1200,80)
 const CLASSES := [
-	{"name":"WARRIOR", "color":"ed775f", "health":1000.0, "speed":100.0, "damage":44.0, "rate":0.40, "magic":95.0},
-	{"name":"VALKYRIE", "color":"81c6e2", "health":900.0, "speed":110.0, "damage":32.0, "rate":0.30, "magic":110.0},
-	{"name":"WIZARD", "color":"ba9aef", "health":700.0, "speed":105.0, "damage":30.0, "rate":0.30, "magic":220.0},
-	{"name":"ELF", "color":"a4d478", "health":750.0, "speed":125.0, "damage":25.0, "rate":0.22, "magic":120.0},
+	{"name":"WARRIOR", "color":"ed775f", "health":1000.0, "speed":100.0, "damage":82.0, "rate":0.72, "reach":44.0, "windup":0.14, "magic":95.0},
+	{"name":"VALKYRIE", "color":"81c6e2", "health":900.0, "speed":110.0, "damage":42.0, "rate":0.40, "reach":38.0, "windup":0.08, "magic":110.0},
+	{"name":"WIZARD", "color":"ba9aef", "health":700.0, "speed":105.0, "damage":38.0, "rate":0.46, "magic":220.0},
+	{"name":"ELF", "color":"a4d478", "health":750.0, "speed":125.0, "damage":18.0, "rate":0.24, "magic":120.0},
 ]
+const PLAYER_COLORS := [
+	{"name":"Coral","hex":"ed775f"}, {"name":"Sky","hex":"81c6e2"},
+	{"name":"Violet","hex":"ba9aef"}, {"name":"Lime","hex":"a4d478"},
+	{"name":"Gold","hex":"e7bf62"}, {"name":"Teal","hex":"55b7aa"},
+	{"name":"Rose","hex":"e998b2"}, {"name":"Orange","hex":"e99d58"},
+	{"name":"Cobalt","hex":"789bea"}, {"name":"Mint","hex":"9edbc0"},
+	{"name":"Magenta","hex":"ce80cc"}, {"name":"Ivory","hex":"e4ddbf"},
+	{"name":"Cyan","hex":"66d1d5"}, {"name":"Copper","hex":"c68d70"},
+	{"name":"Olive","hex":"bdc47c"}, {"name":"Slate","hex":"a2b2c8"},
+]
+static func player_color(index: int) -> Color:
+	return Color(PLAYER_COLORS[posmod(index,PLAYER_COLORS.size())].hex)
+
 static func center(cell: Vector2i) -> Vector2:
 	return (Vector2(cell)+Vector2(0.5,0.5))*TILE
 static func cell(at: Vector2) -> Vector2i:

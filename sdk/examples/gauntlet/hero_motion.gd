@@ -48,7 +48,7 @@ func configure(outfit: Node3D, player: AnimationPlayer, skeleton: Skeleton3D, he
 	tree.active = true
 	tree.set("parameters/stride/scale",2.5)
 	tree.set("parameters/spell_speed/scale",1.8)
-	tree.set("parameters/hit_speed/scale",2.8)
+	tree.set("parameters/hit_speed/scale",1.0)
 
 func clip(node_name: String, animation: String) -> void:
 	var node := AnimationNodeAnimation.new()
@@ -64,7 +64,8 @@ func upper_action(node_name: String, base: String, action: String, skeleton: Ske
 	for bone in skeleton.get_bone_count():
 		var parent := bone
 		while parent>=0 and parent!=spine: parent = skeleton.get_bone_parent(parent)
-		if parent==spine: node.set_filter_path(NodePath("Armature/Skeleton3D:"+skeleton.get_bone_name(bone)),true)
+		if parent==spine and (node_name!="hit" or skeleton.get_bone_name(bone) in ["spine_01","spine_02","Head"]):
+			node.set_filter_path(NodePath("Armature/Skeleton3D:"+skeleton.get_bone_name(bone)),true)
 	graph.add_node(node_name,node)
 	graph.connect_node(node_name,0,base)
 	graph.connect_node(node_name,1,action)
@@ -155,4 +156,31 @@ static func mage_animation(skeleton: Skeleton3D, action: String) -> Animation:
 			var target := Vector3(-0.26,1.15,0.25) if side=="r" else Vector3(0.30-pulse*0.10,1.14+pulse*(0.39 if action=="spell" else 0.25),0.13+pulse*0.29)
 			var rotations := arm_pose(skeleton,side,target)
 			for i in 2: animation.rotation_track_insert_key(tracks[i],t*animation.length,rotations[i])
+	return animation
+
+static func hit_animation(rig: Skeleton3D) -> Animation:
+	var animation := Animation.new()
+	animation.length = 0.24
+	# A few degrees through the torso and head; arms keep their current attack/casting pose.
+	for name in ["spine_01","spine_02","Head"]:
+		var index := rig.find_bone(name)
+		var rest := rig.get_bone_rest(index).basis.get_rotation_quaternion()
+		var track := animation.add_track(Animation.TYPE_ROTATION_3D)
+		animation.track_set_path(track,NodePath("Armature/Skeleton3D:"+name))
+		for key in 4:
+			var angle: float = [0.0,0.075,-0.018,0.0][key]
+			animation.rotation_track_insert_key(track,[0.0,0.055,0.14,0.24][key],rest*Quaternion(Vector3.RIGHT,angle*(0.6 if name=="Head" else 1.0)))
+	return animation
+
+static func quiet_idle(source: Animation) -> Animation:
+	# Hold the ready pose. Imported shield/lantern idles include periodic arm gestures that read as attacks.
+	var animation: Animation = source.duplicate()
+	animation.length = 2.5
+	animation.loop_mode = Animation.LOOP_LINEAR
+	for track in animation.get_track_count():
+		if animation.track_get_key_count(track)==0: continue
+		var value: Variant = animation.track_get_key_value(track,0)
+		while animation.track_get_key_count(track)>0: animation.track_remove_key(track,0)
+		animation.track_insert_key(track,0,value)
+		animation.track_insert_key(track,2.5,value)
 	return animation

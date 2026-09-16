@@ -64,7 +64,7 @@ def main():
                    else "Little World: 2 joins/jumps, sideways D-pad moves."), flush=True)
         if fleet:
             print(GAMES[args.game]["title"] + ": up to 16 Wii reader channels; physical multi-Remote testing pending. " +
-                  ("2 joins, release and press again to start; hold 2 to fire; 1 magic/class; Home pauses." if args.game == "gauntlet" else "Tilt steers; 2 gas; 1 brake."), flush=True)
+                  ("2 joins/readies, then enters when all ready; D-pad down selects lobby buttons; +/Home opens the menu; release then hold 2 to attack; 1 magic." if args.game == "gauntlet" else "Tilt steers; 2 gas; 1 brake."), flush=True)
         helper = subprocess.Popen([str(binary), state_path])
         try:
             return subprocess.call([executable, *rendering_arguments(args.game, compatibility=args.compatibility), "--path", str(ROOT / "sdk"), scene], env=environment)

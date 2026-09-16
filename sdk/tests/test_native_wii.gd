@@ -28,6 +28,8 @@ func run() -> void:
 	expect(service.consume_jump(1), "Second physical 2 press jumps")
 	reader.accept_state({"buttons":1,"updated":100}, 100)
 	expect(not service.consume_jump(1), "Repeated snapshots do not repeat jumps")
+	reader.accept_state({"buttons":0x1000,"updated":100}, 100)
+	expect(service.players[1].buttons.get(JOY_BUTTON_START,false),"Wii Plus maps to the standard Start/menu action")
 	reader.accept_state({"buttons":0x800,"updated":100}, 100)
 	expect(service.movement(1) == Vector2.LEFT, "Sideways D-pad orientation is preserved")
 	reader.accept_state({"buttons":0x800,"updated":100}, 103)

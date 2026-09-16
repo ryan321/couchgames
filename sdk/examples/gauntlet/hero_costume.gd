@@ -26,7 +26,7 @@ static func loft(parent: Node3D, profile: Array[Vector4], color: Color, folds :=
 	return item
 
 static func wizard(view: Node3D, actor: Node3D, crown: Node3D, chest: Node3D) -> void:
-	var blue := Color("303749")
+	var blue: Color = actor.garment_color
 	var trim := Color("8c7953")
 	# Fit the measured head (about 0.18 m wide), with a modest brim and soft bent crown.
 	var brim := loft(crown,[Vector4(0,1.745,0.205,0.18),Vector4(0,1.755,0.17,0.15),Vector4(0,1.77,0.105,0.12)],blue,0.018,0,TAU,-0.012)
@@ -36,12 +36,13 @@ static func wizard(view: Node3D, actor: Node3D, crown: Node3D, chest: Node3D) ->
 	view.box(crown,Vector3(-0.01,1.785,0.112),Vector3(0.032,0.023,0.01),trim,0.65)
 	# A layered beard gives the face an older silhouette without covering the eyes.
 	loft(crown,[Vector4(0,1.26,0.018,0.035),Vector4(0,1.37,0.055,0.07),Vector4(0,1.52,0.10,0.09),Vector4(0,1.62,0.11,0.055)],Color("aaa292"),0.045,-PI/2,PI/2,0.095)
-	var waist: Node3D = actor.attachment("pelvis")
 	var skirt := Node3D.new()
-	waist.add_child(skirt)
-	skirt.transform = actor.skeleton.get_bone_global_rest(actor.skeleton.find_bone("pelvis")).affine_inverse()
+	skirt.name = "RobeSkirt"
+	# Follow hip translation in present(), without pitching the entire skirt with the pelvis.
+	actor.skeleton.add_child(skirt)
+	actor.robe_skirt = skirt
 	loft(skirt,[Vector4(0,0.16,0.40,0.34),Vector4(0,0.42,0.36,0.30),Vector4(0,0.76,0.28,0.23),Vector4(0,1.03,0.225,0.18)],blue,0.05,0.16,TAU-0.16,0,0.6).name = "LongRobe"
-	loft(skirt,[Vector4(0,0.17,0.407,0.347),Vector4(0,0.20,0.405,0.345)],trim,0.05,0.16,TAU-0.16)
+	loft(skirt,[Vector4(0,0.17,0.407,0.347),Vector4(0,0.20,0.405,0.345)],trim,0.05,0.16,TAU-0.16,0,0.6).name = "RobeTrim"
 	loft(chest,[Vector4(0,1.0,0.23,0.185),Vector4(0,1.15,0.25,0.19),Vector4(0,1.39,0.28,0.18),Vector4(0,1.48,0.19,0.13),Vector4(0,1.52,0.10,0.09)],blue,0.025)
 	loft(chest,[Vector4(0,1.045,0.238,0.195),Vector4(0,1.105,0.245,0.20)],Color("4b3b2e"))
 	view.box(chest,Vector3(0,1.075,0.203),Vector3(0.075,0.05,0.018),trim,0.6)

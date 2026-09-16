@@ -1,6 +1,6 @@
 # Gauntlet — The Ember Vault
 
-A complete, original first dungeon inspired by the 1985 arcade Gauntlet, for **1–16 local players on one shared screen**. Pick a Warrior, Valkyrie, Wizard, or Elf; collect two keys, open the doors, and escape through the portal. Monster generators are optional combat/score objectives. Includes a title/class-selection lobby, victory results, defeat/retry, pause, synthesized effects, and controller disconnect recovery.
+A complete, original first dungeon inspired by the 1985 arcade Gauntlet, for **1–16 local players on one shared screen**. Pick a Warrior, Valkyrie, Wizard, or Elf; collect two keys, open the doors, and escape through the portal. Monster generators are optional combat/score objectives. Includes a dedicated join/hero-selection/ready lobby, victory results, defeat/retry, pause, synthesized effects, and controller disconnect recovery.
 
 ## Play
 
@@ -19,16 +19,28 @@ Both launchers reuse the already-installed supported Godot. The native path sele
 | Action | Xbox / PlayStation | Sideways Wii Remote | Keyboard |
 | --- | --- | --- | --- |
 | Join | A / Cross | 2 | Enter |
-| Change class in lobby | X / Square | 1 | Tab |
-| Begin | Release and press A / Cross again | Release and press 2 again | Enter again / Space |
+| Change hero (clears ready) | Left/right or X / Square | Sideways D-pad left/right or 1 | Left/right or Tab |
+| Color | Up, left/right, A / Cross to confirm | Sideways Up, left/right, 2 to confirm | Up, left/right, Enter; or C cycles |
+| Ready (tap Back to edit) | Release and press A / Cross again | Release and press 2 again | Enter again / Space |
+| Begin once everyone is ready | A / Cross again, or Menu / Options | 2 again, or + / Home | Enter again / P |
+| Lobby buttons | Down, then left/right and A / Cross | Sideways down, then left/right and 2 | Down, left/right, Enter |
 | Move and aim | Left stick / D-pad | D-pad, with 1/2 on the right | WASD / arrows |
-| Fire (hold) | A / Cross | 2 | Space |
+| Attack (release after menu, then hold) | A / Cross | 2 | Space |
 | Magic potion | X / Square | 1 | X |
-| Pause/resume | Menu / Options | Home | P |
+| Open / close game menu | Menu / Options | + / Home | Esc / P |
+| Navigate menu / select | Up/down, A / Cross | Sideways D-pad up/down, 2 | Up/down, Enter / Space |
 | Leave player | Hold B / Circle | Hold Minus | Backspace |
 | Retry after win/defeat | Menu / Options | Home | R |
 
-F1 shows help and pauses play. F11 toggles fullscreen. Escape closes the game and returns to a supervising library. Switching away from the game pauses it; press A / Cross / Wii 2 to resume. Menu / Options / Wii Home can still start or pause. There is also a clickable **Enter the vault** button. Quick confirm taps are buffered through the SDK; holding the join button cannot accidentally start. The keyboard occupies one of the sixteen slots.
+The full-screen lobby keeps all sixteen join cards visible below four animated hero previews. Each joined player chooses independently and marks themselves ready; changing class clears that player's readiness. When everyone is ready, a fresh A / Cross / Wii 2 enters the vault; the final ready press never starts automatically. Down selects the lobby button row; left/right chooses Game library, Controls, Fullscreen, or Enter the vault; confirm activates the selection. Up or B / Circle / Wii Minus returns to the hero card. Tapping back on a hero card clears readiness. Menu / Options / Wii + / Home can also start, and every button still supports the mouse. A held join button cannot mark a player ready or begin the level. Disconnects remove that player's readiness requirement; reconnecting requires joining and readying again. Mouse arrows and ready buttons operate the corresponding player card. The keyboard occupies one of the sixteen slots.
+
+Each player also chooses a color independently from sixteen color swatches. **Up** from the hero card selects color; **left/right** cycles backward/forward; confirm returns to the hero card, then confirm again to ready. Down or Back also leaves the color selector. Keyboard **C** cycles color directly, and the mouse can click the swatch. Changing class preserves color; changing color clears readiness. Returning to the lobby retains class and color for connected players. Reconnecting begins a fresh player slot with its default color. Duplicate colors are allowed; player numbers remain visible.
+
+The selected color tints clothing (including the Wizard's robe/hat and Elf's hood) and shields, while keeping skin, hair, and metal details intact. Player labels, floor rings, minimap dots, HUD bars, and magic rings match. Each class preview shows the most recently edited player of that class and shows their player number and color swatch, so choosing a color gives immediate visual feedback. The palette supplies distinct defaults across all sixteen slots; color does not change combat stats.
+
+During play, the dungeon gets a wider, taller viewport. Only joined players appear in the compact health/magic strip. The minimap is transparent over a dedicated header region outside the dungeon, so it cannot hide the portal, and can be hidden entirely from the menu. The strip grows to a second row only for parties larger than eight.
+
+**Esc / Menu / Options / Wii + / Home / P** opens the paused menu. Navigate up/down and confirm with A / Cross / Wii 2 / Enter; mouse clicks also work. Options include resume, full-dungeon/party camera, minimap visibility, cinematic/performance lighting, sound, controls, fullscreen, return to hero lobby, and return to game library. Leaving an active run requires confirmation with the safe option selected initially. Returning to the lobby resets the run and readiness while keeping the connected heroes and their class choices. Switching away from the game opens this menu and pauses all gameplay. F1 shows the controls guide; closing it returns to the menu during a run. F11 toggles fullscreen. In the lobby, Escape returns to the supervising library.
 
 ## The first level
 
@@ -38,9 +50,24 @@ F1 shows help and pauses play. F11 toggles fullscreen. Escape closes the game an
 - **Eastern vault:** open the second door, defeat the demon generator, and return north to the exit.
 - Enter the glowing portal to escape immediately. Your hero disappears from play and your HUD says **ESCAPED**. There is no generator requirement or group proximity timer.
 - Every connected hero must escape. The last standing hero stays inside if a fallen teammate still needs reviving. A disconnect removes that player from the required party.
-- Once everyone escapes, victory awards are shown and the game closes after six seconds, returning to a supervising library. Press confirm or click **Return to library** to leave sooner; **Play again** cancels the return by resetting the level.
+- Once everyone escapes, victory awards are shown and the game closes after six seconds, returning to a supervising library. Press confirm or click **Game library** to leave sooner; **Back to hero lobby** cancels the return by resetting the level.
 
-Warrior has the strongest individual shots and most health; Valkyrie absorbs more damage; Wizard has the strongest area magic; Elf moves and fires fastest. Multiple players can choose the same class. Every player has a numbered character and matching HUD entry.
+Basic attacks match the equipped weapons. All heroes still begin with two area-magic potions.
+
+Potion blasts expand over 0.65 seconds to a 200-unit radius. Damage reaches each enemy or generator with the visible ring, once per target per potion, using the casting class's magic strength. The blast stays at the cast location as the player moves; pausing freezes its expansion and damage.
+
+| Hero | Basic attack | Damage per hit | Minimum interval |
+| --- | --- | --- | --- |
+| Warrior | Axe cleave, 0.14s windup | 82 | 0.72s |
+| Valkyrie | Sword strike, 0.08s windup | 42 | 0.40s |
+| Wizard | Blue magic bolt | 38 | 0.46s |
+| Elf | Fast arrow with shaft, metal tip, and fletching | 18 | 0.24s |
+
+Melee can hit multiple enemies in a forward arc but cannot hit behind the hero, outside weapon reach, or through walls/closed doors. It also damages nearby generators. Only Wizard/Elf basic attacks create projectiles. Basic attacks never hurt teammates. Warriors have the most health, Valkyries absorb more damage, Wizards have the strongest area magic, and Elves move fastest. These are initial playtest values, not final balance. Multiple players can choose the same class. Every player has a numbered character and matching HUD entry.
+
+The imported periodic arm gestures have been replaced by quiet ready poses. Walking remains blended with attacks. Entering or resuming requires releasing the confirm/attack button before combat can begin, so menu input does not turn into a held attack.
+
+Actual damage triggers a short torso/head flinch on heroes, a slight squash/tilt on enemies, a soft sound, and a brief local tint. Enemy tint shifts from muted green to amber/red with remaining health. A small health bar appears above a damaged living enemy for 1.15 seconds, then fades over 0.40 seconds; later hits refresh it. Unhurt enemies have no visible bars, and health is also represented by bar length rather than color alone. Hit feedback pauses with the game. Sound rate limits and reserved hit voices keep crowds audible without a wall of impact sounds. Projectiles, melee, and area magic share the damage-feedback path.
 
 Health slowly drains. Contact attacks and demon projectiles cause damage with a brief recovery interval. Food heals every living hero, treasure contributes to the team score, and keys belong to the party. Potions are personal. Stand within 48 pixels of a fallen hero for 2.5 seconds to revive them with 40% health. If everyone falls, retry from the lobby. Disconnects remove only that controller's hero; mid-level recruits appear beside a standing teammate. Losing a controller cannot lose a key or leave a phantom player at the exit.
 
@@ -48,9 +75,9 @@ Generators spawn ghosts, grunts, and ranged demons. Enemy pressure scales with t
 
 ## Reference and scope
 
-The four hero archetypes, health, ranged attacks, magic, food, treasure, keys, and monster generators take their reference from [Atari's 1985 Gauntlet operator manual, mirrored at Manualzz](https://manualzz.com/doc/13044003/atari-games-gauntlet-user-manual). This is an original dungeon layout with original scenery plus CC0 character and material assets and synthesized sounds, not a reproduction of the original level map, ROM, sprites, soundtrack, or exact balance. Sixteen-player capacity, team food/keys, reviving, and individual portal escapes are adaptations for this platform.
+The four hero archetypes, health, class-specific melee/ranged attacks, magic, food, treasure, keys, and monster generators take their reference from [Atari's 1985 Gauntlet operator manual, mirrored at Manualzz](https://manualzz.com/doc/13044003/atari-games-gauntlet-user-manual). This is an original dungeon layout with original scenery plus CC0 character and material assets and synthesized sounds, not a reproduction of the original level map, ROM, sprites, soundtrack, or exact balance. Sixteen-player capacity, team food/keys, reviving, and individual portal escapes are adaptations for this platform.
 
-The renderer uses textured, rigged heroes with blended idle/walk and upper-body combat animation, scanned stone with normal/roughness/occlusion maps, metal reflections, animated torch flames, gate arches, banners, spell rings, and a glowing portal. A wider shared camera follows the party and immediately pulls back when players spread out; fallen teammates stay in view too. Camera edges never restrict movement. Press **F3** to toggle a full-dungeon overview. Zooming back in is smooth, with a wider minimum view for navigation; a minimap shows walls, locked doors, keys, and the exit. The low foreground wall keeps feet visible. Class portraits use the same animated models. Movement speed controls the stride, including easing to idle against walls. Heroes can walk while swinging, shooting, or casting. Warrior and Valkyrie alternate swings; the Elf draws a recurved bow; the Wizard holds a staff and casts with his free hand. Damage produces a separate flinch, knockdown eases into a fall, and revival restores the standing pose. Turns blend smoothly, and pausing freezes combat animation. Muted clothing, beveled axe/sword blades, wrapped grips, smaller rimmed shields, and restrained helmets distinguish the heroes. The Warrior has a broader, stockier build; the female Valkyrie has swept-back hair and paired braids, with no helmet or circlet; the Elf is 14% shorter. These visual proportions apply in portraits and gameplay without changing movement speeds or collision. The wizard wears a long indigo robe with sleeves and a narrow felt hat with a modest brim and bent tip, plus a beard and a crooked wooden staff.
+The renderer uses textured, rigged heroes with blended idle/walk and upper-body combat animation, scanned stone with normal/roughness/occlusion maps, metal reflections, animated torch flames, gate arches, banners, spell rings, and a glowing portal. A wider shared camera follows the party and immediately pulls back when players spread out; fallen teammates stay in view too. Camera edges never restrict movement. Press **F3** to toggle a full-dungeon overview. Zooming back in is smooth, with a wider minimum view for navigation; a minimap shows walls, locked doors, keys, and the exit. The low foreground wall keeps feet visible. Class portraits use the same animated models. Movement speed controls the stride, including easing to idle against walls. Heroes can walk while swinging, shooting, or casting. Warrior and Valkyrie alternate swings; the Elf draws a recurved bow; the Wizard holds a staff and casts with his free hand. Damage produces a separate flinch, knockdown eases into a fall, and revival restores the standing pose. Turns blend smoothly, and pausing freezes combat animation. Muted clothing, beveled axe/sword blades, wrapped grips, smaller rimmed shields, and restrained helmets distinguish the heroes. The Warrior has a broader, stockier build; the female Valkyrie has swept-back hair and paired braids, with no helmet or circlet; the Elf is 14% shorter. These visual proportions apply in portraits and gameplay without changing movement speeds or collision. The Wizard's robe and trim trail opposite his actual movement and settle when he stops; the skirt keeps the hip bounce without inheriting its forward pitch. The wizard wears a long robe in his selected color with sleeves and a narrow felt hat with a modest brim and bent tip, plus a beard and a crooked wooden staff.
 
 Gauntlet alone selects **Forward+** through the library and both direct launchers, using native Metal on macOS. **F2** switches cinematic/performance lighting. If that renderer will not start on your graphics hardware, add `--compatibility` to either direct play command above. This uses the project's existing Compatibility renderer. The engine is reused; no new engine/templates are downloaded. Assets are checked into the repository and require no runtime network access.
 
