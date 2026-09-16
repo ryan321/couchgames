@@ -23,7 +23,19 @@ The first V1 slice is **local package validation and installation**:
 
 **Godot is not required for package/library commands and is not installed or downloaded by them.** `doctor` probes discovered executables with `--headless --version`. Package validation executes no game code: success means that metadata and bytes match, not that a package is playable, signed, or safe.
 
-The Godot launcher, full input/save SDK, runtime installation, packaged game launch, OS sandbox, Neon API, sign-in, downloads, and sharing remain planned work. Little World is a playable source prototype, not a complete V1 platform release.
+A source-game library screen is implemented. The production desktop host, full input/save SDK, runtime installation, packaged game launch, OS sandbox, Neon API, sign-in, downloads, and sharing remain planned work. Little World is a playable source prototype, not a complete V1 platform release.
+
+## Open the game library
+
+```sh
+python3 scripts/library.py
+```
+
+Click **Little World**, **Cloudbound**, or **Pocket Rally** to play. Each game runs in its own process; closing it returns you to the library with the same card selected. Keyboard arrows + Enter and standard gamepad D-pad + A / Cross also navigate the cards. F11 toggles fullscreen.
+
+On this Mac, **Wii Remote + gamepads** uses our existing native Wii reader automatically for the selected game. Choose **Gamepads / keyboard** to play without it. Close any standalone game/reader first. See [library controls and implementation](sdk/launcher/README.md).
+
+This first library lists the three included source games. The production Rust supervisor and launching installed releases from SQLite remain planned.
 
 ## Play Little World
 

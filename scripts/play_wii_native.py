@@ -10,16 +10,8 @@ import tempfile
 from godot_tools import ROOT, godot_environment, resolve_godot
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--game", choices=["little-world", "cloudbound", "pocket-rally"], default="little-world")
-    parser.add_argument("--joycons", choices=["separate", "paired"], default="separate",
-                        help="One sideways Joy-Con per player (default), or a combined pair in a grip")
-    args = parser.parse_args()
-    if sys.platform != "darwin":
-        raise RuntimeError("The experimental native Wii reader currently requires macOS.")
-    executable = resolve_godot(None)
-    fleet = args.game == "pocket-rally"
+def build_reader(fleet=False):
+    """Build the selected helper with an existing compiler; never install tools."""
     source = ROOT / ("tools/macos/wii_fleet.m" if fleet else "tools/macos/wii_reader.m")
     app = ROOT / (".couchgames/Wii Fleet.app" if fleet else ".couchgames/Wii Reader.app")
     binary = app / "Contents/MacOS/CouchWiiReader"
@@ -37,6 +29,20 @@ def main():
         subprocess.run(["xcrun", "clang", "-fobjc-arc", "-framework", "Cocoa", "-framework", "IOKit",
                         str(source), "-o", str(binary)], check=True)
         subprocess.run(["codesign", "--force", "--sign", "-", str(app)], check=True)
+    return binary
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--game", choices=["little-world", "cloudbound", "pocket-rally"], default="little-world")
+    parser.add_argument("--joycons", choices=["separate", "paired"], default="separate",
+                        help="One sideways Joy-Con per player (default), or a combined pair in a grip")
+    args = parser.parse_args()
+    if sys.platform != "darwin":
+        raise RuntimeError("The experimental native Wii reader currently requires macOS.")
+    executable = resolve_godot(None)
+    fleet = args.game == "pocket-rally"
+    binary = build_reader(fleet)
     # Private, disposable path shared only with this helper and this game session.
     with tempfile.TemporaryDirectory(prefix="couch-wii-") as session:
         environment = godot_environment(True, args.joycons)

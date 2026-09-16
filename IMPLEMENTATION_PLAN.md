@@ -108,6 +108,10 @@ Verified locally on macOS ARM64: 32 Rust tests, formatting, Clippy, eight runtim
 
 ### 2. Desktop library and runtime management
 
+- [x] Godot library screen for the three source games, mouse/keyboard/standard gamepad navigation, controller setup options, separate game processes, Wii helper selection/cleanup, and return-to-library with selected card restoration. Development Python supervisor reuses the existing Rust runtime doctor. UI/process tests and real headless launches for all three games passed on this Mac.
+- [ ] Connect the library to playable installed releases in SQLite through the production Rust host; source catalog and private-file prototype IPC do not establish distribution or sandbox readiness.
+
+
 1. Rust desktop host owns SQLite, credentials, installation, and child processes.
 2. Godot launcher consumes a versioned local API and shares SDK UI/input components.
 3. Runtime inventory, approved artifact verification, automatic reuse, and rollback.
