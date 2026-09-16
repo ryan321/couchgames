@@ -78,6 +78,7 @@ func run() -> void:
 	game.set_physics_process(false)
 	game.dungeon_view.set_process(false)
 	game.sound.enabled = false
+	game.controller_voice.enabled = false
 	game.service.set_process_input(false)
 	game.service.set_physics_process(false)
 	for count in [1,16]:

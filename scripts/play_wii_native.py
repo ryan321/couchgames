@@ -16,7 +16,10 @@ def build_reader(fleet=False):
     source = ROOT / ("tools/macos/wii_fleet.m" if fleet else "tools/macos/wii_reader.m")
     app = ROOT / (".couchgames/Wii Fleet.app" if fleet else ".couchgames/Wii Reader.app")
     binary = app / "Contents/MacOS/CouchWiiReader"
-    if not binary.exists() or max(source.stat().st_mtime, source.with_name("wii_reports.h").stat().st_mtime) > binary.stat().st_mtime:
+    dependencies = [source, source.with_name("wii_reports.h")]
+    if fleet:
+        dependencies.append(source.with_name("wii_speaker.h"))
+    if not binary.exists() or max(path.stat().st_mtime for path in dependencies) > binary.stat().st_mtime:
         # Explicit developer command uses existing compiler/frameworks only.
         subprocess.run(["xcrun", "--find", "clang"], check=True, capture_output=True)
         binary.parent.mkdir(parents=True, exist_ok=True)

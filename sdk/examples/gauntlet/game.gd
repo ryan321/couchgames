@@ -20,6 +20,7 @@ var dungeon_view: Node3D
 var close_on_finish := true
 var return_countdown := 6.0
 var _confirm_armed: Dictionary = {}
+var controller_voice: Node
 var sound: Node
 var heroes: Dictionary = {}
 var walls: Dictionary = {}
@@ -77,6 +78,11 @@ func _ready() -> void:
 	add_child(board)
 	sound = Sounds.new()
 	add_child(sound)
+	controller_voice = preload("res://examples/gauntlet/controller_voice.gd").new()
+	controller_voice.directory = OS.get_environment("COUCH_WII_FLEET_DIR")
+	controller_voice.service = service
+	add_child(controller_voice)
+	controller_voice.fallback_requested.connect(sound.selection)
 	reset_level()
 	for id: int in service.players: join(id)
 	var directory := OS.get_environment("COUCH_WII_FLEET_DIR")
@@ -88,6 +94,7 @@ func _ready() -> void:
 		add_child(fleet)
 
 func reset_level() -> void:
+	if controller_voice: controller_voice.stop_all()
 	level_index = 0
 	load_map()
 	enemies.clear()
@@ -158,6 +165,7 @@ func advance_level() -> void:
 		_serial += 1
 		enemies.append({"id":_serial,"pos":entry.pos,"kind":entry.kind,"hp":enemy_health(entry.kind),"max_hp":enemy_health(entry.kind),"attack":1.5})
 	phase = "playing"
+	controller_voice.stop_all()
 	return_countdown = 6.0
 	dungeon_view.rebuild()
 	dungeon_view.update_camera(1.0)
@@ -190,6 +198,8 @@ func join(id: int) -> void:
 	announce("PLAYER %02d ENTERS THE VAULT" % id)
 
 func leave(id: int) -> void:
+	sound.stop_selection(id)
+	controller_voice.stop_all()
 	heroes.erase(id)
 	_action_previous.erase(id)
 	_confirm_armed.erase(id)
@@ -205,6 +215,7 @@ func leave(id: int) -> void:
 
 func start() -> void:
 	if heroes.is_empty(): return
+	controller_voice.stop_all()
 	phase = "playing"
 	combat_armed.clear()
 	announce("FIND THE KEYS. REACH THE EXIT. GET EVERY HERO OUT.")
@@ -297,6 +308,7 @@ func menu_back() -> void:
 func toggle_pause() -> void:
 	if phase=="lobby": request_start()
 	elif phase=="playing":
+		controller_voice.stop_all()
 		phase = "paused"
 		menu_index = 0
 		confirm_leave = ""
@@ -313,7 +325,7 @@ func menu_labels() -> Array[String]:
 	return ["Resume adventure", "Camera: "+("full dungeon" if dungeon_view.overview else "follow party"),
 		"Minimap: "+("shown" if show_minimap else "hidden"),
 		"Lighting: "+("cinematic" if dungeon_view.high_quality else "performance"),
-		"Sound: "+("on" if sound.enabled else "off"), "Controls & how to play", "Return to hero lobby", "Return to game library", "Toggle fullscreen"]
+		"Sound effects: "+("on" if sound.sfx_enabled else "off"), "Controls & how to play", "Return to hero lobby", "Return to game library", "Toggle fullscreen", "Music: "+("on" if sound.music_enabled else "off"), "Controller rumble: "+("on" if controller_voice.rumble_enabled else "off")]
 
 func move_menu(direction: int) -> void:
 	menu_index = posmod(menu_index+direction,menu_labels().size())
@@ -335,11 +347,17 @@ func activate_menu(index: int) -> void:
 		1: dungeon_view.toggle_overview()
 		2: show_minimap = not show_minimap
 		3: dungeon_view.toggle_quality()
-		4: sound.enabled = not sound.enabled
+		4:
+			sound.sfx_enabled = not sound.sfx_enabled
+			if not sound.sfx_enabled: controller_voice.stop_all()
 		5: help = true; menu_index = 0
 		6: confirm_leave = "lobby"; menu_index = 0
 		7: confirm_leave = "library"; menu_index = 0
 		8: toggle_fullscreen()
+		9: sound.music_enabled = not sound.music_enabled
+		10:
+			controller_voice.rumble_enabled = not controller_voice.rumble_enabled
+			if not controller_voice.rumble_enabled: controller_voice.stop_all()
 
 func cycle_class(id: int, direction := 1) -> void:
 	if phase!="lobby" or not heroes.has(id): return
@@ -348,7 +366,7 @@ func cycle_class(id: int, direction := 1) -> void:
 	color_focus.erase(id)
 	ready_players[id] = false
 	lobby_focus.erase(id)
-	sound.effect("select")
+	if sound.enabled and sound.sfx_enabled: controller_voice.choose(id,heroes[id].hero_class)
 
 func color_for(hero: Dictionary) -> Color:
 	return Level.player_color(int(hero.get("color_index",hero.hero_class)))
@@ -706,7 +724,8 @@ func hurt(hero: Dictionary, damage: float) -> void:
 	hero.hurt = 0.65
 	hero.hit_serial += 1
 	hero.hit_at = elapsed
-	sound.effect("hurt")
+	sound.hurt(hero.hero_class,hero.id)
+	controller_voice.hurt(hero.id,hero.hero_class,int(sound.hurt_variants.get(hero.id,1))-1,sound.enabled and sound.sfx_enabled)
 	if hero.hp<=0: announce("PLAYER %02d IS DOWN · STAND NEAR THEM TO REVIVE" % hero.id)
 
 func update_shots(delta: float) -> void:
@@ -741,11 +760,12 @@ func damage_enemy(enemy: Dictionary, amount: float) -> void:
 	enemy.hp = maxf(0,enemy.hp-amount)
 	enemy.hit_at = elapsed
 	enemy.hit_serial = int(enemy.get("hit_serial",0))+1
-	sound.effect("impact")
+	sound.effect("enemy_"+str(enemy.get("kind","grunt")))
 
 func damage_generator(generator: Dictionary, amount: float) -> void:
 	if generator.hp<=0: return
 	generator.hp = maxf(0,generator.hp-amount)
+	if generator.hp>0: sound.effect("stone")
 	burst(generator.pos,Color("d9b976"))
 	if generator.hp<=0:
 		score += 1000

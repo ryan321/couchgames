@@ -60,8 +60,8 @@ func _ready() -> void:
 	var controls_button := button("Controls",Rect2(270,824,200,48),func(): game.toggle_help())
 	var fullscreen := button("Fullscreen",Rect2(492,824,230,48),func(): game.toggle_fullscreen())
 	lobby_buttons = [library_button,controls_button,fullscreen,start_button]
-	for i in 9:
-		var item := button("",Rect2(510,250+i*46,580,40),func(): game.activate_menu(i))
+	for i in 11:
+		var item := button("",Rect2(510,243+i*40,580,36),func(): game.activate_menu(i))
 		item.mouse_entered.connect(func(): game.menu_index = i)
 		menu_buttons.append(item)
 	for i in 16:

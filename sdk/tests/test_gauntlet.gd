@@ -41,6 +41,7 @@ func run() -> void:
 	game.set_physics_process(false)
 	game.set_process(false)
 	game.sound.enabled = false
+	game.controller_voice.enabled = false
 	service = game.service
 	service.set_process_input(false)
 	service.set_physics_process(false)

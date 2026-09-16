@@ -90,6 +90,16 @@ Health slowly drains. Contact attacks and demon projectiles cause damage with a 
 
 Generators spawn ghosts, grunts, and ranged demons. Enemy pressure scales with the active party: caps are 20/34/46 for solo play and 96/124/128 for sixteen heroes across the three levels. Closed doors isolate rooms. Wall-aware movement and swept projectiles prevent passing through masonry; party members do not block or shoot one another.
 
+## Audio
+
+Each class has three original synthesized hurt reactions. Enemies have softer, shorter grunt/ghost/demon reactions (about 0.11–0.13 seconds). Class scrolling plays a CC0 recorded line: Warrior and Valkyrie say “Ready!”, Wizard says “Prepare yourself!”, and Elf says “Go!”. Quick scrolling keeps the latest choice and cuts off that player’s previous line without interrupting teammates. See [voice actors, source packs and licenses](assets/audio/voices/README.md). **All voices currently play through the regular speakers, including for Wii players.**
+
+Actual player damage requests a 120 ms rumble on compatible gamepads or native Wii Remotes. Passive drain and invulnerable contacts do not trigger feedback. **Controller rumble** and **Sound effects** have independent pause-menu switches. Pause, reset, leave and shutdown stop active feedback. The tested Wii Remote stayed connected but produced no felt rumble; gamepad vibration remains physically unverified.
+
+Wii speaker streaming is disabled: testing on the connected Remote produced choppy audio and connection drops, including after moving to asynchronous 4 kHz ADPCM. The experimental transport remains for development tests, but production defaults send no Wii voice data. Class selection falls back to regular speakers; native Wii hurt feedback sends only bounded motor pulses. Maintaining the controller connection takes priority over its speaker.
+
+Each vault also has a quiet original music loop that softens during pause/transitions and briefly ducks on a hero hit. **Music** has its own pause-menu switch. Settings last for the game session. See [audio assets and regeneration](assets/audio/README.md). Combat sounds/music are original synthesis; lobby voices are licensed human recordings. Playback needs no downloads.
+
 ## Reference and scope
 
 The four hero archetypes, health, class-specific melee/ranged attacks, magic, food, treasure, keys, and monster generators take their reference from [Atari's 1985 Gauntlet operator manual, mirrored at Manualzz](https://manualzz.com/doc/13044003/atari-games-gauntlet-user-manual). This is an original dungeon layout with original scenery plus CC0 character and material assets and synthesized sounds, not a reproduction of the original level map, ROM, sprites, soundtrack, or exact balance. Sixteen-player capacity, team food/keys, reviving, and individual portal escapes are adaptations for this platform.
