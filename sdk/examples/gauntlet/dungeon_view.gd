@@ -178,40 +178,43 @@ func rebuild() -> void:
 	torches.clear()
 	architecture = Node3D.new()
 	add_child(architecture)
-	box(architecture,Vector3(20,-0.42,10),Vector3(40.6,0.7,20.6),Color("283c49"))
-	box(architecture,Vector3(20,-0.06,10),Vector3(40,0.15,20),Color("202f38"))
+	if game.level_index==0:
+		box(architecture,Vector3(game.map.width*0.5,-0.42,game.map.height*0.5),Vector3(game.map.width+0.6,0.7,game.map.height+0.6),Color("283c49"))
+		box(architecture,Vector3(game.map.width*0.5,-0.06,game.map.height*0.5),Vector3(game.map.width,0.15,game.map.height),Color("202f38"))
 	for variant in 5:
 		var tiles: Array[Transform3D] = []
 		var bricks: Array[Transform3D] = []
 		var crowns: Array[Transform3D] = []
-		for y in Level.HEIGHT:
-			for x in Level.WIDTH:
+		for y in game.map.height:
+			for x in game.map.width:
 				var cell := Vector2i(x,y)
+				if game.map.has("visible_cells") and not game.map.visible_cells.has(cell): continue
 				if (x*17+y*31)%5 != variant: continue
 				var at := Vector3(x+0.5,0,y+0.5)
 				tiles.append(Transform3D(Basis.IDENTITY,at))
 				if game.walls.has(cell):
-					var wall_scale := 0.35 if y==Level.HEIGHT-1 else 1.0
+					var foreground: bool = y==game.map.height-1 or (game.map.has("floor") and game.map.floor.has(cell+Vector2i.UP) and not game.map.floor.has(cell+Vector2i.DOWN))
+					var wall_scale := 0.35 if foreground else 1.0
 					var wall_basis := Basis.from_scale(Vector3(1,wall_scale,1))
 					bricks.append(Transform3D(wall_basis,at+Vector3(0,0.27*wall_scale,0)))
 					bricks.append(Transform3D(wall_basis,at+Vector3(0,0.60*wall_scale,0)))
 					crowns.append(Transform3D(wall_basis,at+Vector3(0,0.82*wall_scale,0)))
 		batch_boxes(architecture,tiles,Vector3(1.003,0.09,1.003),Color("35434a").lightened(variant*0.013))
-		batch_boxes(architecture,bricks,Vector3(0.97,0.30,0.97),Color("475967").lightened(variant*0.017))
+		batch_boxes(architecture,bricks,Vector3(0.97,0.30,0.97),Color(game.map.stone).lightened(variant*0.017))
 		batch_boxes(architecture,crowns,Vector3(0.965,0.12,0.965),Color("6c777b").lightened(variant*0.012))
 	# Brass inlaid room emblems and broken masonry give the floor a sense of place.
-	for cell in [Vector2i(6,12),Vector2i(19,6),Vector2i(19,13),Vector2i(34,5)]:
+	for cell in game.map.emblems:
 		var at := at3(Level.center(cell),0.07)
 		ring(architecture,at,1.3,0.018,Color("988459"))
 		ring(architecture,at,1.15,0.014,Color("988459"))
 		for i in 8:
 			var spoke := box(architecture,at+Vector3(sin(i*PI/4)*0.9,0,cos(i*PI/4)*0.9),Vector3(0.08,0.02,0.26),Color("ad965f"),0.4)
 			spoke.rotation.y = i*PI/4
-	for cell in [Vector2i(4,4),Vector2i(6,5),Vector2i(8,8),Vector2i(16,4),Vector2i(23,15),Vector2i(30,8),Vector2i(35,15)]:
+	for cell in game.map.columns:
 		var at := at3(Level.center(cell),0.9)
 		cylinder(architecture,at+Vector3(0,0.16,0),0.4,0.32,Color("9babae"),0.34)
 		box(architecture,at+Vector3(0,0.37,0),Vector3(0.84,0.1,0.84),Color("c0b58d"),0.2)
-	for cell in [Vector2i(1,7),Vector2i(11,11),Vector2i(13,2),Vector2i(25,16),Vector2i(27,10),Vector2i(38,4)]:
+	for cell in game.map.torches:
 		var holder := Node3D.new()
 		holder.position = at3(Level.center(cell))
 		architecture.add_child(holder)
@@ -240,13 +243,13 @@ func rebuild() -> void:
 		light.omni_range = 6.5
 		holder.add_child(light)
 	build_set_dressing()
-	for cell in [Vector2i(3,3),Vector2i(7,6),Vector2i(9,9),Vector2i(17,8),Vector2i(23,16),Vector2i(32,10),Vector2i(36,16)]:
+	for cell in ([Vector2i(3,3),Vector2i(7,6),Vector2i(9,9),Vector2i(17,8),Vector2i(23,16),Vector2i(32,10),Vector2i(36,16)] if game.level_index==0 else game.map.emblems):
 		for i in 4:
 			var at := at3(Level.center(cell))+Vector3(sin(i*12.3)*0.32,0.06,cos(i*7.1)*0.32)
 			var rubble := box(architecture,at,Vector3(0.13+i*0.025,0.10,0.12),Color("687479"))
 			rubble.rotation.y = i*1.7
 	portal = Node3D.new()
-	portal.position = at3(Level.EXIT)
+	portal.position = at3(game.map.exit)
 	architecture.add_child(portal)
 	cylinder(portal,Vector3(0,0.11,0),1.0,0.16,Color("536d71"))
 	cylinder(portal,Vector3(0,0.22,0),0.85,0.12,Color("859a94"))
@@ -325,7 +328,7 @@ func enemy_model(kind: String) -> Node3D:
 	bake_meshes(root,"enemy-"+kind)
 	return root
 
-func pickup_model(kind: String) -> Node3D:
+func pickup_model(kind: String, key_color := "gold") -> Node3D:
 	var root := Node3D.new()
 	match kind:
 		"gold":
@@ -333,10 +336,11 @@ func pickup_model(kind: String) -> Node3D:
 			box(root,Vector3(0,0.34,0),Vector3(0.47,0.12,0.34),Color("d8ae59"),0.65)
 			box(root,Vector3(0,0.19,0.18),Vector3(0.08,0.12,0.035),Color("ffe1a1"),0.6)
 		"key":
-			var hoop := ring(root,Vector3(-0.1,0.32,0),0.14,0.045,Color("ffdc7b"),0.3)
+			var tint: Color = Level.Campaign.KEY_COLORS[key_color]
+			var hoop := ring(root,Vector3(-0.1,0.32,0),0.14,0.045,tint,0.3)
 			hoop.rotation.x = PI/2
-			box(root,Vector3(0.13,0.32,0),Vector3(0.4,0.07,0.07),Color("ffdc7b"),0.65)
-			box(root,Vector3(0.30,0.23,0),Vector3(0.07,0.18,0.07),Color("ffdc7b"),0.65)
+			box(root,Vector3(0.13,0.32,0),Vector3(0.4,0.07,0.07),tint,0.65)
+			box(root,Vector3(0.30,0.23,0),Vector3(0.07,0.18,0.07),tint,0.65)
 		"potion":
 			ball(root,Vector3(0,0.25,0),Vector3(0.3,0.36,0.3),Color("b298e6"),0.3)
 			cylinder(root,Vector3(0,0.48,0),0.06,0.12,Color("e2cfac"))
@@ -346,6 +350,17 @@ func pickup_model(kind: String) -> Node3D:
 			ball(root,Vector3(0,0.21,0),Vector3(0.43,0.26,0.35),Color("c89154"))
 			ball(root,Vector3(0.16,0.22,0.13),Vector3(0.12,0.12,0.22),Color("f1d1a0"))
 	return root
+
+func key_label(parent: Node3D, color: String, height: float, offset := Vector3.ZERO) -> void:
+	var label := Label3D.new()
+	label.text = Level.Campaign.KEY_MARKS[color]+" · "+color.to_upper()
+	label.position = offset+Vector3.UP*height
+	label.font_size = 26
+	label.pixel_size = 0.009
+	label.outline_size = 7
+	label.modulate = Level.Campaign.KEY_COLORS[color]
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	parent.add_child(label)
 
 func _process(delta: float) -> void:
 	if not architecture: return
@@ -406,23 +421,35 @@ func _process(delta: float) -> void:
 		var key := "pickup-%s-%s" % [pickup.kind,pickup.pos]
 		seen[key] = true
 		if not actors.has(key):
-			actors[key] = pickup_model(pickup.kind)
+			actors[key] = pickup_model(pickup.kind,pickup.get("key_color","gold"))
 			add_child(actors[key])
+			if pickup.kind=="key":
+				var color: String = pickup.get("key_color","gold")
+				key_label(actors[key],color,0.95)
+				for part in actors[key].get_children():
+					if part is MeshInstance3D: part.material_override = material(Level.Campaign.KEY_COLORS[color],0.5,0.4)
 		actors[key].position = at3(pickup.pos)
 		if pickup.kind in ["key","potion"]:
 			actors[key].position.y = 0.08+sin(game.clock*2+pickup.pos.x)*0.04
 			actors[key].rotation.y = game.clock*0.6
+	var labeled_doors := {}
 	for cell: Vector2i in game.doors:
 		var key := "door-%s"%cell
 		seen[key] = true
 		if not actors.has(key):
+			var color: String = game.map.door_colors.get(game.doors[cell],"gold")
+			var tint: Color = Level.Campaign.KEY_COLORS[color]
 			var door := Node3D.new()
 			add_child(door)
 			door.position = at3(Level.center(cell))
-			for bar in 4: box(door,Vector3(0,0.46,-0.4+bar*0.26),Vector3(0.19,0.9,0.07),Color("ba9253"),0.65)
+			if not game.map.get("door_axes",{}).get(game.doors[cell],true): door.rotation.y = PI/2
+			for bar in 4: box(door,Vector3(0,0.46,-0.4+bar*0.26),Vector3(0.19,0.9,0.07),tint,0.65)
 			box(door,Vector3(0,0.82,0),Vector3(0.24,0.08,0.99),Color("d5b877"),0.6)
 			box(door,Vector3(0,0.23,0),Vector3(0.24,0.08,0.99),Color("d5b877"),0.6)
+			ball(door,Vector3(0,0.65,0),Vector3.ONE*0.22,tint,1.0)
+			if not labeled_doors.has(game.doors[cell]): key_label(door,color,1.35,Vector3(0,0,0.5))
 			actors[key] = door
+		labeled_doors[game.doors[cell]] = true
 	for key: String in actors.keys():
 		if not seen.has(key):
 			actors[key].queue_free()
@@ -521,18 +548,18 @@ func update_camera(delta: float) -> void:
 			low = low.min(hero.pos/32.0)
 			high = high.max(hero.pos/32.0)
 	elif game.phase=="complete":
-		low = Level.EXIT/32.0
+		low = game.map.exit/32.0
 		high = low
 	var aspect := float(get_viewport().size.x)/maxf(1,get_viewport().size.y)
 	var desired := maxf(DEFAULT_CAMERA_SIZE,maxf((high.x-low.x)/aspect+5.0,(high.y-low.y)*0.77+5.0))
 	var center := (low+high)*0.5
 	if overview:
-		desired = maxf(22.0,44.0/aspect)
-		center = Vector2(20,10)
+		desired = maxf(game.map.height*0.77+7.0,(game.map.width+6.0)/aspect)
+		center = Vector2(game.map.width,game.map.height)*0.5
 	var half_x := desired*aspect*0.5
 	var half_z := desired/1.54
-	center.x = clampf(center.x,half_x-1,41-half_x) if half_x<21 else 20
-	center.y = clampf(center.y,half_z-1,21-half_z) if half_z<11 else 10
+	center.x = clampf(center.x,half_x-1,game.map.width+1-half_x) if half_x<(game.map.width+2)*0.5 else game.map.width*0.5
+	center.y = clampf(center.y,half_z-1,game.map.height+1-half_z) if half_z<(game.map.height+2)*0.5 else game.map.height*0.5
 	var weight := minf(1,delta*3.0)
 	camera_target = camera_target.lerp(Vector3(center.x,0.5,center.y),weight)
 	camera.size = lerpf(camera.size,desired,weight)
@@ -567,7 +594,7 @@ func toggle_quality() -> void:
 func build_set_dressing() -> void:
 	# Every tall support sits on an existing solid tile; floor ornament stays below feet.
 	var columns: Array[Transform3D] = []
-	for cell in [Vector2i(0,3),Vector2i(0,8),Vector2i(0,13),Vector2i(12,13),Vector2i(12,16),Vector2i(26,4),Vector2i(26,7),Vector2i(39,3),Vector2i(39,8),Vector2i(39,13)]:
+	for cell in ([Vector2i(0,3),Vector2i(0,8),Vector2i(0,13),Vector2i(12,13),Vector2i(12,16),Vector2i(26,4),Vector2i(26,7),Vector2i(39,3),Vector2i(39,8),Vector2i(39,13)] if game.level_index==0 else game.map.columns):
 		var at := at3(Level.center(cell))
 		columns.append(Transform3D(Basis.IDENTITY,at+Vector3(0,1.05,0)))
 		for y in [0.14,1.86,2.03]:
@@ -576,13 +603,16 @@ func build_set_dressing() -> void:
 			ring(architecture,at+Vector3(0,y,0),0.35,0.04,Color("a89563"))
 	batch_boxes(architecture,columns,Vector3(0.62,1.65,0.62),Color.WHITE)
 	# Segmented stone arches frame the two keyed gateways.
-	for center in [Vector3(12.5,1.8,15),Vector3(26.5,1.8,6)]:
+	for entry in game.map.arches:
+		var center: Vector3 = entry.pos if entry is Dictionary else entry
+		var turn := Basis(Vector3.UP,PI/2) if entry is Dictionary and not entry.vertical else Basis.IDENTITY
 		var voussoirs: Array[Transform3D] = []
 		for i in 13:
 			var angle := i*PI/12
-			var at: Vector3 = center+Vector3(0,sin(angle)*1.45,cos(angle)*1.45)
-			voussoirs.append(Transform3D(Basis(Vector3.RIGHT,-angle),at))
+			var at: Vector3 = center+turn*Vector3(0,sin(angle)*1.45,cos(angle)*1.45)
+			voussoirs.append(Transform3D(turn*Basis(Vector3.RIGHT,-angle),at))
 		batch_boxes(architecture,voussoirs,Vector3(0.63,0.38,0.38),Color.WHITE)
+	if game.level_index>0: return
 	# Worn runner and embroidered borders distinguish the entrance hall.
 	var cloth := material(Color("522b32"))
 	cloth.roughness = 1.0

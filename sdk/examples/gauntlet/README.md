@@ -1,6 +1,6 @@
-# Gauntlet — The Ember Vault
+# Gauntlet — Three Vaults
 
-A complete, original first dungeon inspired by the 1985 arcade Gauntlet, for **1–16 local players on one shared screen**. Pick a Warrior, Valkyrie, Wizard, or Elf; collect two keys, open the doors, and escape through the portal. Monster generators are optional combat/score objectives. Includes a dedicated join/hero-selection/ready lobby, victory results, defeat/retry, pause, synthesized effects, and controller disconnect recovery.
+An original three-level campaign inspired by the 1985 arcade Gauntlet, for **1–16 local players on one shared screen**. Pick a Warrior, Valkyrie, Wizard, or Elf; find shared keys, open matching gates, and bring the whole party through each portal to advance. Monster generators are optional combat/score objectives. Includes a dedicated join/hero-selection/ready lobby, victory results, defeat/retry, pause, synthesized effects, and controller disconnect recovery.
 
 ## Play
 
@@ -30,7 +30,8 @@ Both launchers reuse the already-installed supported Godot. The native path sele
 | Open / close game menu | Menu / Options | + / Home | Esc / P |
 | Navigate menu / select | Up/down, A / Cross | Sideways D-pad up/down, 2 | Up/down, Enter / Space |
 | Leave player | Hold B / Circle | Hold Minus | Backspace |
-| Retry after win/defeat | Menu / Options | Home | R |
+| Continue after a level (after the opening animation) | A / Cross or Menu / Options | 2 or + / Home | Enter / Space |
+| Retry after defeat | A / Cross or Menu / Options | 2 or + / Home | R / Space |
 
 The full-screen lobby keeps all sixteen join cards visible below four animated hero previews. Each joined player chooses independently and marks themselves ready; changing class clears that player's readiness. When everyone is ready, a fresh A / Cross / Wii 2 enters the vault; the final ready press never starts automatically. Down selects the lobby button row; left/right chooses Game library, Controls, Fullscreen, or Enter the vault; confirm activates the selection. Up or B / Circle / Wii Minus returns to the hero card. Tapping back on a hero card clears readiness. Menu / Options / Wii + / Home can also start, and every button still supports the mouse. A held join button cannot mark a player ready or begin the level. Disconnects remove that player's readiness requirement; reconnecting requires joining and readying again. Mouse arrows and ready buttons operate the corresponding player card. The keyboard occupies one of the sixteen slots.
 
@@ -50,7 +51,23 @@ During play, the dungeon gets a wider, taller viewport. Only joined players appe
 - **Eastern vault:** open the second door, defeat the demon generator, and return north to the exit.
 - Enter the glowing portal to escape immediately. Your hero disappears from play and your HUD says **ESCAPED**. There is no generator requirement or group proximity timer.
 - Every connected hero must escape. The last standing hero stays inside if a fallen teammate still needs reviving. A disconnect removes that player from the required party.
-- Once everyone escapes, victory awards are shown and the game closes after six seconds, returning to a supervising library. Press confirm or click **Game library** to leave sooner; **Back to hero lobby** cancels the return by resetting the level.
+- Once everyone escapes, an animated portal screen celebrates the party and introduces the next vault. The next level starts after six seconds; after the first two seconds, confirm or click **Continue** to enter sooner. After the third vault, the final victory screen returns to the supervising library.
+
+## Three increasingly difficult vaults
+
+| Level | Bounds (tiles) | Generators | Initial enemies | Locks |
+| --- | --- | --- | --- | --- |
+| The Ember Vault | 40 × 20 | 4 | 0; generators spawn them | Two gold-key gates |
+| The Sunken Archive | 56 × 34 | 6 | 12 | Ruby, sapphire, emerald |
+| The Crown Labyrinth | 76 × 48 | 12 | 24 | Ruby, sapphire, emerald, amber, amethyst |
+
+Bounds describe the enclosing area, not a filled rectangle. The two later maps use individually placed rooms with different proportions, L-shaped extensions, cut corners, pillar loops, crooked two-tile passages, staggered gate locations, and optional dead ends with supplies. The Archive has a broad entrance, a hooked western archive, a narrow gallery and a detached eastern treasury. The Labyrinth adds offset towers, a ring chamber, a reliquary and longer return routes. Only carved floors and their bordering walls render; solid void cannot be crossed.
+
+Keys are shared and consumed by gates of the matching color. Gate and key labels use a color name and letter as well as hue; the HUD shows the party's held keys, and the minimap colors both keys and gates. Keys are in distant branches, so finding the next key can require returning to an earlier junction. Each map has an authored, deterministic key sequence, with no randomly placed or unreachable required keys.
+
+Progression retains connected players, classes, chosen colors, score and cumulative kills. Each hero recovers 35% of their maximum health (at least 65% health, capped at full) and starts the next chapter with at least two potions. Level-specific keys, projectiles, pending attacks and escape flags reset. All connected heroes must exit; fallen allies still need rescue. New recruits and disconnects use the existing party handling. Returning to the hero lobby or retrying starts a fresh run at level one. Campaign progress is not saved between launches.
+
+Enemy health increases by 12% and then 25% relative to level one, contact/projectile damage by 10% and then 20%, and movement speed by 4.5% and then 9%. Generators spawn faster, and larger parties allow more active enemies. These are initial balance values; later-map puzzle routes are verified separately from combat difficulty.
 
 Basic attacks match the equipped weapons. All heroes still begin with two area-magic potions.
 
@@ -71,7 +88,7 @@ Actual damage triggers a short torso/head flinch on heroes, a slight squash/tilt
 
 Health slowly drains. Contact attacks and demon projectiles cause damage with a brief recovery interval. Food heals every living hero, treasure contributes to the team score, and keys belong to the party. Potions are personal. Stand within 48 pixels of a fallen hero for 2.5 seconds to revive them with 40% health. If everyone falls, retry from the lobby. Disconnects remove only that controller's hero; mid-level recruits appear beside a standing teammate. Losing a controller cannot lose a key or leave a phantom player at the exit.
 
-Generators spawn ghosts, grunts, and ranged demons. Enemy pressure scales with the active party and is capped at 96 enemies. Closed doors isolate rooms. Wall-aware movement and swept projectiles prevent passing through masonry; party members do not block or shoot one another.
+Generators spawn ghosts, grunts, and ranged demons. Enemy pressure scales with the active party: caps are 20/34/46 for solo play and 96/124/128 for sixteen heroes across the three levels. Closed doors isolate rooms. Wall-aware movement and swept projectiles prevent passing through masonry; party members do not block or shoot one another.
 
 ## Reference and scope
 
@@ -81,7 +98,7 @@ The renderer uses textured, rigged heroes with blended idle/walk and upper-body 
 
 Gauntlet alone selects **Forward+** through the library and both direct launchers, using native Metal on macOS. **F2** switches cinematic/performance lighting. If that renderer will not start on your graphics hardware, add `--compatibility` to either direct play command above. This uses the project's existing Compatibility renderer. The engine is reused; no new engine/templates are downloaded. Assets are checked into the repository and require no runtime network access.
 
-Movement, collisions, and damage remain in the deterministic 2D simulation. Shared meshes/animations, batched masonry, pooled effects, mipmaps, GPU texture compression, and 1K character texture import limits control rendering cost. See [art assets, performance evidence, and remaining AA work](../../../docs/gauntlet-art.md). This is a substantial art foundation, with prototype monsters and some equipment still awaiting custom art. Only this first dungeon is implemented; no online multiplayer, progression saves, additional levels, or original arcade emulation is included.
+Movement, collisions, and damage remain in the deterministic 2D simulation. Shared meshes/animations, batched masonry, pooled effects, mipmaps, GPU texture compression, and 1K character texture import limits control rendering cost. See [art assets, performance evidence, and remaining AA work](../../../docs/gauntlet-art.md). This is a substantial art foundation, with prototype monsters and some equipment still awaiting custom art. Three local campaign levels are implemented; online multiplayer, progression saves and original arcade emulation are not included.
 
 ## Verification
 
@@ -92,7 +109,8 @@ Movement, collisions, and damage remain in the deterministic 2D simulation. Shar
 - Sixteen synthetic native Wii packets exercise the existing fleet adapter, sideways D-pad, held 2 firing, and stale-channel removal.
 - Controller-start regression tests cover a quick press/release of A and a held join followed by a fresh native Wii 2 press. Exit tests cover staggered escapes, safety after escape, fallen teammates, disconnects, single awards, and the return countdown.
 - Imported rig playback must change the leg pose; the shared camera must keep all sixteen spread-out heroes and their labels on screen.
-- `test_gauntlet_return.gd` verifies that the victory countdown actually terminates the game process successfully.
+- `test_gauntlet_campaign.gd` traverses the key/door/exit routes with one and sixteen heroes using real movement collision and inventory. It checks wrong-key rejection, supplies, irregular footprints, gate orientation, increasing map/enemy counts, camera bounds, transitions and state carry-over. Combat is disabled in these puzzle-route checks.
+- `test_gauntlet_return.gd` verifies that the first two exits advance and only the third victory countdown terminates the game process successfully.
 - Rendered 3D gameplay and class-selection captures inspected on macOS ARM64 with Godot 4.7.2. Optional `--stress` capture exercises 16 heroes and 96 monsters. Performance and TV/controller behavior on other hardware need qualification.
 
 These are synthetic controller tests. Physical Gauntlet gameplay, sixteen simultaneous wireless connections, other Wii variants, Switch drivers, PlayStation hardware, and TV readability still require hands-on qualification. The game's native Wii path reuses the observed `04e8:7021` variant and existing Pocket Rally fleet adapter; it does not extend hardware compatibility. The flying and driving game files are unchanged.

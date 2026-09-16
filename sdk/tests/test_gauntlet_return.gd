@@ -17,7 +17,15 @@ func run() -> void:
 	event.pressed = true
 	game.service.handle_event(event)
 	game.start()
-	game.heroes[1].pos = game.Level.EXIT
+	for chapter in 2:
+		game.heroes[1].pos = game.map.exit
+		game.check_finish(0.01)
+		game._process(6.1)
+		if game.level_index!=chapter+1 or game.phase!="playing":
+			push_error("An intermediate exit failed to advance the campaign")
+			quit(1)
+			return
+	game.heroes[1].pos = game.map.exit
 	game.check_finish(0.01)
 	if game.phase!="complete" or game.escaped_count()!=1:
 		push_error("Final hero did not complete the level")

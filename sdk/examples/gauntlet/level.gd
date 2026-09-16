@@ -2,6 +2,18 @@ extends RefCounted
 ## An original first dungeon built around the arcade game's cooperative loop.
 const MAGIC_DURATION := 0.65
 const MAGIC_RADIUS := 200.0
+const Campaign = preload("res://examples/gauntlet/campaign.gd")
+const COUNT := 3
+
+static func definition(index: int) -> Dictionary:
+	if index>0: return Campaign.create(index)
+	return {"name":Campaign.NAMES[0],"width":WIDTH,"height":HEIGHT,"exit":EXIT,
+		"walls":walls(),"doors":doors(),"door_colors":{0:"gold",1:"gold"},"generators":generators(),"pickups":pickups(),"enemies":[],
+		"enemy_scale":1.0,"spawn_rate":1.0,"enemy_cap":14,"stone":Color("475967"),
+		"columns":[Vector2i(4,4),Vector2i(6,5),Vector2i(8,8),Vector2i(16,4),Vector2i(23,15),Vector2i(30,8),Vector2i(35,15)],
+		"emblems":[Vector2i(6,12),Vector2i(19,6),Vector2i(19,13),Vector2i(34,5)],
+		"torches":[Vector2i(1,7),Vector2i(11,11),Vector2i(13,2),Vector2i(25,16),Vector2i(27,10),Vector2i(38,4)],
+		"arches":[Vector3(12.5,1.8,15),Vector3(26.5,1.8,6)]}
 
 static func magic_radius(life: float) -> float:
 	return MAGIC_RADIUS*clampf(1.0-life/MAGIC_DURATION,0.0,1.0)
@@ -33,8 +45,9 @@ static func center(cell: Vector2i) -> Vector2:
 	return (Vector2(cell)+Vector2(0.5,0.5))*TILE
 static func cell(at: Vector2) -> Vector2i:
 	return Vector2i(floori(at.x/TILE),floori(at.y/TILE))
-static func spawn(id: int) -> Vector2:
-	return Vector2(96+((id-1)%4)*64,392+((id-1)/4)*64)
+static func spawn(id: int, index := 0) -> Vector2:
+	var y := 392.0 if index==0 else (25.5 if index==1 else 39.5)*32.0
+	return Vector2(96+((id-1)%4)*64,y+((id-1)/4)*64)
 static func walls() -> Dictionary:
 	var result := {}
 	for y in HEIGHT:

@@ -50,7 +50,9 @@ func button(label: String, rect: Rect2, action: Callable) -> Button:
 
 func _ready() -> void:
 	start_button = button("Enter the vault",Rect2(1240,824,336,48),func(): game.request_start())
-	retry_button = button("Back to hero lobby",Rect2(600,550,400,50),func(): game.reset_level())
+	retry_button = button("Back to hero lobby",Rect2(600,550,400,50),func():
+		if game.phase=="complete" and game.level_index<Level.COUNT-1: game.finish_screen_action()
+		else: game.reset_level())
 	library_button = button("Game library",Rect2(24,824,224,48),func(): game.return_to_library())
 	pause_button = button("Menu  ·  Esc / Home",Rect2(1380,22,196,44),func(): game.toggle_pause())
 	pause_button.add_theme_font_size_override("font_size",17)
@@ -120,8 +122,12 @@ func _process(_delta: float) -> void:
 	start_button.disabled = not game.all_ready()
 	start_button.text = "A / Cross / Wii 2: Enter vault" if game.all_ready() else "Waiting for everyone to ready"
 	start_button.add_theme_font_size_override("font_size",18)
+	var transition: bool = game.phase=="complete" and game.level_index<Level.COUNT-1
+	retry_button.text = "Continue  ·  A / Cross / Wii 2" if transition else "Back to hero lobby"
+	retry_button.position.y = 716 if transition else 550
+	retry_button.disabled = transition and game.return_countdown>4.0
 	retry_button.visible = game.phase in ["complete","defeat"] and not game.help
-	library_button.visible = (lobby or game.phase in ["complete","defeat"]) and not game.help
+	library_button.visible = (lobby or game.phase=="defeat" or (game.phase=="complete" and not transition)) and not game.help
 	pause_button.visible = game.phase=="playing" and not game.help
 	help_button.visible = game.help
 	for i in 16:
@@ -183,12 +189,13 @@ func _draw() -> void:
 	else: draw_hud()
 	if game.help: draw_help()
 	elif game.phase=="paused": draw_menu()
+	elif game.phase=="complete" and game.level_index<Level.COUNT-1: draw_transition()
 	elif game.phase in ["complete","defeat"]: draw_results()
 
 func draw_lobby() -> void:
 	draw_rect(Rect2(0,0,1600,900),Color("111e28"))
 	draw_rect(Rect2(0,0,1600,128),Color("192f3c"))
-	text("GAUNTLET  /  THE EMBER VAULT",Vector2(26,33),16,GOLD)
+	text("GAUNTLET  /  THREE VAULTS",Vector2(26,33),16,GOLD)
 	text("Build your party",Vector2(24,90),44)
 	text("01  JOIN     /     02  CHOOSE A HERO     /     03  READY UP",Vector2(650,84),21,MUTED)
 	text("%02d / 16 joined"%game.heroes.size(),Vector2(1370,35),20,GOLD)
@@ -233,10 +240,17 @@ func draw_hud() -> void:
 	draw_rect(Rect2(0,0,1600,88),Color("111e28"))
 	draw_rect(Rect2(0,bottom,1600,900-bottom),Color("111e28"))
 	text("GAUNTLET",Vector2(24,41),30,GOLD)
-	text("THE EMBER VAULT",Vector2(25,66),13,MUTED)
-	text("%06d treasure    ·    %02d keys"%[game.score,game.keys],Vector2(255,37),20)
-	text("%d / %d escaped    ·    %d / 4 generators    ·    %02d:%02d"%[game.escaped_count(),game.heroes.size(),game.destroyed(),int(game.elapsed)/60,int(game.elapsed)%60],Vector2(255,65),16,MUTED)
-	if game.message_time>0: text(game.message.left(52),Vector2(690,49),14,GOLD)
+	text("%d / 3 · %s"%[game.level_index+1,game.map.name.to_upper()],Vector2(25,66),12,MUTED)
+	text("%06d treasure"%game.score,Vector2(275,37),20)
+	var key_x := 475.0
+	for color: String in Level.Campaign.KEY_COLORS:
+		var count: int = game.keyring.get(color,0)
+		if count<=0: continue
+		draw_circle(Vector2(key_x,29),9,Level.Campaign.KEY_COLORS[color])
+		text("%s %d"%[Level.Campaign.KEY_MARKS[color],count],Vector2(key_x+13,35),14)
+		key_x += 61
+	text("%d / %d escaped    ·    %d / %d generators    ·    %02d:%02d"%[game.escaped_count(),game.heroes.size(),game.destroyed(),game.generators.size(),int(game.elapsed)/60,int(game.elapsed)%60],Vector2(275,65),16,MUTED)
+	if game.message_time>0: text(game.message.left(56),Vector2(740,49),13,GOLD)
 	if game.show_minimap: draw_minimap()
 	var ids: Array = game.heroes.keys()
 	ids.sort()
@@ -267,19 +281,56 @@ func draw_help() -> void:
 	var lines := ["LOBBY: left / right chooses a hero. Up selects color; left / right changes it. Confirm color, then ready up.",
 		"Everyone ready? Press A / Cross / Wii 2 again to enter. Down selects lobby buttons; left / right chooses.",
 		"MOVE: stick / D-pad / WASD. ATTACK: A / Cross / Wii 2 / Space. MAGIC: X / Square / Wii 1.",
-		"Keys and food are shared. Destroy generators to stop the horde and earn bonus treasure.",
-		"Enter the glowing portal to escape. Every connected hero must make it out.",
+		"Match key colors/letters to locks; keys can be in distant branches. Keys and food are shared.",
+		"All heroes through the portal advances the party. Conquer three increasingly difficult vaults.",
 		"Stand near a fallen teammate to revive them before the last hero escapes.",
 		"MENU: Esc / Menu / Options / Wii + / Home / P. Change options or return to the lobby or library.",
 		"F1: help · F2: lighting · F3: full-dungeon view · F11: fullscreen · F1 / Esc / confirm: close guide."]
 	for i in lines.size(): centered(lines[i],263+i*55,19,MUTED)
+
+func draw_transition() -> void:
+	var progress: float = clampf((6.0-game.return_countdown)/6.0,0,1)
+	var age := progress*6.0
+	draw_rect(Rect2(0,0,1600,900),Color("0d1b28"))
+	# Expanding portal rings and motes carry the party into the next chapter.
+	var portal_center := Vector2(800,340)
+	for i in 5:
+		var cycle := fmod(age*0.28+i*0.2,1.0)
+		draw_arc(portal_center,65+cycle*245,0,TAU,100,Color(0.36,0.79,0.72,(1-cycle)*0.28),2,true)
+	for i in 48:
+		var angle := i*2.399+age*0.16
+		var radius := 75+fmod(i*21.7+age*44.0,240.0)
+		draw_circle(portal_center+Vector2(cos(angle),sin(angle))*radius,1.0+(i%3)*0.6,Color(0.62,0.91,0.81,0.38))
+	centered("LEVEL %d COMPLETE"%(game.level_index+1),115,20,Color("8fdbc3"))
+	centered(game.map.name,170,46,GOLD)
+	centered("Everybody made it out",223,23)
+	var ids: Array = game.heroes.keys()
+	ids.sort()
+	for i in ids.size():
+		var x := 800+(i-(ids.size()-1)*0.5)*46
+		var y := 334+sin(age*3.5+i*0.6)*7
+		var color: Color = game.color_for(game.heroes[ids[i]])
+		draw_circle(Vector2(x,y),16,color)
+		text("%02d"%ids[i],Vector2(x-10,y+6),14,Color("10212a"))
+	centered("%d heroes safe   ·   %06d treasure   ·   %d foes defeated"%[ids.size(),game.score,game.kills],418,21,MUTED)
+	for chapter in 3:
+		var at := Vector2(580+chapter*220,508)
+		if chapter<2: draw_line(at,at+Vector2(220,0),Color("334d5a"),3)
+		draw_circle(at,14,Color("90dcc2") if chapter<=game.level_index else Color("344d60"))
+		if chapter==game.level_index+1: draw_arc(at,21+sin(age*3)*2,0,TAU,48,GOLD,2,true)
+		text(str(chapter+1),at+Vector2(-5,6),16,Color("13232b") if chapter<=game.level_index else INK)
+	centered("NEXT · "+Level.Campaign.NAMES[game.level_index+1].to_upper(),587,29,GOLD)
+	centered("Health restored · At least two potions each · Heroes, colors and treasure carried forward",628,18,MUTED)
+	draw_rect(Rect2(500,673,600,3),Color("304954"))
+	draw_rect(Rect2(500,673,600*progress,3),Color("90dcc2"))
+	centered("Entering in %d…"%maxi(1,ceili(game.return_countdown)),811,18,MUTED)
 
 func draw_results() -> void:
 	draw_rect(Rect2(0,88,1600,700),Color(0.02,0.05,0.08,0.72))
 	panel_box(Rect2(285,158,1030,530),Color("152935"),Color("728477"),18)
 	var won: bool = game.phase=="complete"
 	centered("Everybody made it out!" if won else "The vault claimed the party",263,40,GOLD)
-	centered("THE EMBER VAULT  /  LEVEL COMPLETE" if won else "Regroup, revive one another, and try again.",311,20,MUTED)
+	centered("ALL THREE VAULTS CONQUERED" if won else "Regroup, revive one another, and try again.",311,20,MUTED)
 	centered("%d / %d escaped    ·    %06d treasure"%[game.escaped_count(),game.heroes.size(),game.score],384,29)
 	centered("%d monsters defeated    ·    %d generators destroyed"%[game.kills,game.destroyed()],432,21,MUTED)
 	centered("Returning to your library in %d…"%maxi(1,ceili(game.return_countdown)) if won else "A / Cross / Wii 2: retry · B / Circle / Wii Minus: game library",492,22,GOLD)
@@ -287,13 +338,14 @@ func draw_results() -> void:
 func draw_minimap() -> void:
 	# Dedicated header space, outside the game viewport: no dungeon or portal can be obscured.
 	var origin := Vector2(1200,10)
-	var scale := 3.4
+	var scale: float = minf(150.0/game.map.width,68.0/game.map.height)
 	for cell: Vector2i in game.walls:
+		if game.map.has("visible_cells") and not game.map.visible_cells.has(cell): continue
 		draw_rect(Rect2(origin+Vector2(cell)*scale,Vector2.ONE*scale),Color(0.5,0.64,0.69,0.48))
 	for cell: Vector2i in game.doors:
-		draw_rect(Rect2(origin+Vector2(cell)*scale,Vector2.ONE*scale),GOLD)
+		draw_rect(Rect2(origin+Vector2(cell)*scale,Vector2.ONE*scale),Level.Campaign.KEY_COLORS[game.map.door_colors.get(game.doors[cell],"gold")])
 	for pickup: Dictionary in game.pickups:
-		if pickup.kind=="key": draw_circle(origin+pickup.pos/32*scale,2,GOLD)
-	draw_circle(origin+Level.EXIT/32*scale,3.5,Color("8ff2cb"))
+		if pickup.kind=="key": draw_circle(origin+pickup.pos/32*scale,2,Level.Campaign.KEY_COLORS[pickup.get("key_color","gold")])
+	draw_circle(origin+game.map.exit/32*scale,3.5,Color("8ff2cb"))
 	for hero: Dictionary in game.heroes.values():
 		if not hero.escaped: draw_circle(origin+hero.pos/32*scale,2.5,game.color_for(hero))

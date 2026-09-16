@@ -33,6 +33,10 @@ var combat_armed: Dictionary = {}
 var sparks: Array = []
 var flow: Dictionary = {}
 var phase := "lobby"
+var level_index := 0
+var map: Dictionary = Level.definition(0)
+var keyring: Dictionary = {}
+var level_started_at := 0.0
 var keys := 0
 var score := 0
 var elapsed := 0.0
@@ -84,10 +88,8 @@ func _ready() -> void:
 		add_child(fleet)
 
 func reset_level() -> void:
-	walls = Level.walls()
-	doors = Level.doors()
-	generators = Level.generators()
-	pickups = Level.pickups()
+	level_index = 0
+	load_map()
 	enemies.clear()
 	shots.clear()
 	melee_swings.clear()
@@ -95,6 +97,8 @@ func reset_level() -> void:
 	sparks.clear()
 	flow.clear()
 	keys = 0
+	keyring.clear()
+	level_started_at = 0
 	score = 0
 	kills = 0
 	elapsed = 0
@@ -117,9 +121,56 @@ func reset_level() -> void:
 	_end_guard = 0.7
 	if dungeon_view: dungeon_view.rebuild()
 
+func load_map() -> void:
+	map = Level.definition(level_index)
+	walls = map.walls
+	doors = map.doors
+	generators = map.generators
+	pickups = map.pickups
+
+func enemy_health(kind: String) -> float:
+	return (52.0 if kind=="grunt" else 34.0)*float(map.enemy_scale)
+
+func advance_level() -> void:
+	if phase!="complete" or level_index>=Level.COUNT-1: return
+	level_index += 1
+	load_map()
+	enemies.clear()
+	shots.clear()
+	melee_swings.clear()
+	sparks.clear()
+	flow.clear()
+	keyring.clear()
+	keys = 0
+	_flow_clock = 0
+	level_started_at = elapsed
+	combat_armed.clear()
+	_confirm_armed.clear()
+	for id: int in heroes:
+		var old: Dictionary = heroes[id]
+		var next := make_hero(id,old.hero_class,old.color_index)
+		var maximum: float = Level.CLASSES[old.hero_class].health
+		next.hp = clampf(old.hp+maximum*0.35,maximum*0.65,maximum)
+		next.potions = maxi(2,old.potions)
+		heroes[id] = next
+	for entry: Dictionary in map.enemies:
+		_serial += 1
+		enemies.append({"id":_serial,"pos":entry.pos,"kind":entry.kind,"hp":enemy_health(entry.kind),"max_hp":enemy_health(entry.kind),"attack":1.5})
+	phase = "playing"
+	return_countdown = 6.0
+	dungeon_view.rebuild()
+	dungeon_view.update_camera(1.0)
+	announce("LEVEL %d · %s · MATCH COLORED KEYS TO DOORS"%[level_index+1,map.name.to_upper()])
+	sound.effect("key")
+
+func finish_screen_action() -> void:
+	if phase!="complete": return
+	if level_index<Level.COUNT-1: advance_level()
+	else: return_to_library()
+
 func make_hero(id: int, hero_class: int, color_index := -1) -> Dictionary:
 	var stats: Dictionary = Level.CLASSES[hero_class]
-	return {"id":id,"hero_class":hero_class,"color_index":posmod(id-1 if color_index<0 else color_index,Level.PLAYER_COLORS.size()),"pos":Level.spawn(id),"face":Vector2.DOWN,
+	return {"id":id,"hero_class":hero_class,"color_index":posmod(id-1 if color_index<0 else color_index,Level.PLAYER_COLORS.size()),"pos":Level.spawn(id,level_index),"face":Vector2.DOWN,
 		"attack_serial":0,"magic_serial":0,"hit_serial":0,"hp":stats.health,"cooldown":0.0,"hurt":0.0,"potions":2,"revive":0.0,"escaped":false,"walk":0.0}
 
 func join(id: int) -> void:
@@ -210,6 +261,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				var id: int = service.player_for_device(service.KEYBOARD_DEVICE)
 				if id and _confirm_armed.get(id,false): confirm_lobby(id)
 			elif phase=="paused": activate_menu(menu_index)
+			elif phase=="complete" and _end_guard<=0: finish_screen_action()
 		KEY_UP:
 			if phase=="paused": move_menu(-1)
 		KEY_DOWN:
@@ -230,6 +282,7 @@ func toggle_help() -> void:
 	if help:
 		help = false
 		return
+	if phase=="complete": return
 	if phase=="playing": toggle_pause()
 	help = true
 
@@ -238,6 +291,7 @@ func menu_back() -> void:
 	elif not confirm_leave.is_empty(): confirm_leave = ""; menu_index = 0
 	elif phase in ["playing","paused"]: toggle_pause()
 	elif phase=="lobby": return_to_library()
+	elif phase=="complete" and _end_guard<=0: finish_screen_action()
 
 func toggle_pause() -> void:
 	if phase=="lobby": request_start()
@@ -390,7 +444,7 @@ func step(delta: float) -> void:
 	if back_pressed and phase=="paused":
 		menu_back()
 		return
-	if back_pressed and phase in ["complete","defeat"] and _end_guard<=0:
+	if back_pressed and phase=="defeat" and _end_guard<=0:
 		return_to_library()
 		return
 	if phase=="lobby" and not help and lobby_action>=0:
@@ -399,7 +453,9 @@ func step(delta: float) -> void:
 	if start_pressed:
 		if help or not confirm_leave.is_empty(): menu_back()
 		elif phase=="lobby": request_start()
-		elif phase in ["complete","defeat"]:
+		elif phase=="complete":
+			if _end_guard<=0: finish_screen_action()
+		elif phase=="defeat":
 			if _end_guard<=0: reset_level()
 		else: toggle_pause()
 		return
@@ -410,7 +466,8 @@ func step(delta: float) -> void:
 		reset_level()
 		return
 	if confirm_pressed and phase == "complete" and _end_guard<=0:
-		return_to_library()
+		finish_screen_action()
+		return
 	if phase != "playing": return
 	elapsed += delta
 	for id: int in heroes:
@@ -444,7 +501,7 @@ func step(delta: float) -> void:
 func blocked(at: Vector2, radius: float) -> bool:
 	for corner in [Vector2(-radius,-radius),Vector2(radius,-radius),Vector2(-radius,radius),Vector2(radius,radius)]:
 		var cell := Level.cell(at+corner)
-		if cell.x<0 or cell.y<0 or cell.x>=Level.WIDTH or cell.y>=Level.HEIGHT or walls.has(cell) or doors.has(cell): return true
+		if cell.x<0 or cell.y<0 or cell.x>=map.width or cell.y>=map.height or walls.has(cell) or doors.has(cell): return true
 	return false
 
 func slide(at: Vector2, movement: Vector2, radius: float, open_doors := false) -> Vector2:
@@ -462,10 +519,13 @@ func slide(at: Vector2, movement: Vector2, radius: float, open_doors := false) -
 	return at
 
 func unlock(group: int) -> void:
-	if keys<=0:
-		if message_time<=0: announce("FIND A GOLD KEY TO OPEN THIS DOOR")
+	var color: String = map.door_colors.get(group,"gold")
+	var available: int = keys if color=="gold" else keyring.get(color,0)
+	if available<=0:
+		if message_time<=0: announce("FIND THE %s KEY · EXPLORE THE OTHER CHAMBERS"%color.to_upper())
 		return
 	keys -= 1
+	keyring[color] = maxi(0,int(keyring.get(color,0))-1)
 	for cell: Vector2i in doors.keys():
 		if doors[cell]==group: doors.erase(cell)
 	_flow_clock = 0
@@ -541,7 +601,11 @@ func collect(hero: Dictionary) -> void:
 		var pickup: Dictionary = pickups[i]
 		if pickup.pos.distance_to(hero.pos)>23: continue
 		match pickup.kind:
-			"key": keys += 1; announce("KEY FOUND · ANY HERO CAN OPEN THE NEXT DOOR")
+			"key":
+				var color: String = pickup.get("key_color","gold")
+				keys += 1
+				keyring[color] = int(keyring.get(color,0))+1
+				announce("%s KEY FOUND · SHARED BY THE PARTY"%color.to_upper())
 			"gold": score += 250
 			"potion": hero.potions += 1; announce("MAGIC POTION · X / SQUARE / WII 1 TO CAST")
 			"food":
@@ -571,7 +635,7 @@ func build_flow() -> void:
 		cursor += 1
 		for direction: Vector2i in DIRECTIONS:
 			var next := cell+direction
-			if next.x<=0 or next.y<=0 or next.x>=39 or next.y>=19 or walls.has(next) or doors.has(next) or flow.has(next): continue
+			if next.x<=0 or next.y<=0 or next.x>=map.width-1 or next.y>=map.height-1 or walls.has(next) or doors.has(next) or flow.has(next): continue
 			flow[next] = int(flow[cell])+1
 			queue.append(next)
 
@@ -580,10 +644,10 @@ func update_generators(delta: float) -> void:
 	for generator: Dictionary in generators:
 		if generator.hp<=0: continue
 		generator.clock -= delta
-		if generator.clock>0 or enemies.size()>=mini(96,14+active*6): continue
+		if generator.clock>0 or enemies.size()>=mini(96 if level_index==0 else 128,int(map.enemy_cap)+active*6): continue
 		# Closed doors isolate the rooms until the party can reach them.
 		if not flow.has(Level.cell(generator.pos)): continue
-		generator.clock = maxf(0.65,2.6/(1.0+active*0.14))
+		generator.clock = maxf(0.55,2.6*float(map.spawn_rate)/(1.0+active*0.14))
 		_serial += 1
 		var spawn: Vector2 = generator.pos
 		for offset: Vector2i in DIRECTIONS:
@@ -591,7 +655,7 @@ func update_generators(delta: float) -> void:
 			if not blocked(candidate,9):
 				spawn = candidate
 				break
-		enemies.append({"id":_serial,"pos":spawn,"kind":generator.kind,"hp":52.0 if generator.kind=="grunt" else 34.0,"max_hp":52.0 if generator.kind=="grunt" else 34.0,"attack":1.0})
+		enemies.append({"id":_serial,"pos":spawn,"kind":generator.kind,"hp":enemy_health(generator.kind),"max_hp":enemy_health(generator.kind),"attack":1.0})
 
 func living() -> Array:
 	return heroes.values().filter(func(h): return h.hp>0 and not h.escaped)
@@ -620,13 +684,13 @@ func update_enemies(delta: float) -> void:
 			var center := Level.center(cell)
 			if next.x!=cell.x and absf(enemy.pos.y-center.y)>3: aim = center
 			if next.y!=cell.y and absf(enemy.pos.x-center.x)>3: aim = center
-		var speed := 53.0 if enemy.kind=="grunt" else 65.0
+		var speed: float = (53.0 if enemy.kind=="grunt" else 65.0)*(1.0+level_index*0.045)
 		enemy.pos = slide(enemy.pos,(aim-enemy.pos).normalized()*speed*delta,9)
 		enemy.attack -= delta
-		if distance<23: hurt(target,24.0 if enemy.kind=="grunt" else 18.0)
+		if distance<23: hurt(target,(24.0 if enemy.kind=="grunt" else 18.0)*(1.0+level_index*0.1))
 		if enemy.kind=="demon" and distance<250 and enemy.attack<=0:
 			enemy.attack = 2.4
-			shots.append({"pos":enemy.pos,"velocity":(target.pos-enemy.pos).normalized()*160,"damage":30.0,"life":2.0,"owner":0,"hero_class":0})
+			shots.append({"pos":enemy.pos,"velocity":(target.pos-enemy.pos).normalized()*160,"damage":30.0*(1.0+level_index*0.1),"life":2.0,"owner":0,"hero_class":0})
 	for i in range(enemies.size()-1,-1,-1):
 		if enemies[i].hp<=0:
 			burst(enemies[i].pos,Color("dfa679"))
@@ -685,8 +749,8 @@ func damage_generator(generator: Dictionary, amount: float) -> void:
 	if generator.hp<=0:
 		score += 1000
 		sound.effect("destroy")
-		announce("GENERATOR DESTROYED · %d / 4" % destroyed())
-		if destroyed()==4: announce("ALL GENERATORS DESTROYED! BONUS SECURED. HEAD FOR THE EXIT.")
+		announce("GENERATOR DESTROYED · %d / %d" % [destroyed(),generators.size()])
+		if destroyed()==generators.size(): announce("ALL GENERATORS DESTROYED! BONUS SECURED. HEAD FOR THE EXIT.")
 
 func destroyed() -> int:
 	return generators.filter(func(g): return g.hp<=0).size()
@@ -713,7 +777,7 @@ func escaped_count() -> int:
 	return heroes.values().filter(func(h): return h.escaped).size()
 
 func try_exit(hero: Dictionary) -> void:
-	if hero.escaped or hero.hp<=0 or hero.pos.distance_to(Level.EXIT)>30: return
+	if hero.escaped or hero.hp<=0 or hero.pos.distance_to(map.exit)>30: return
 	# Keep a rescuer inside if a teammate is down; nobody is silently left behind.
 	if living().size()==1:
 		for ally: Dictionary in heroes.values():
@@ -722,10 +786,10 @@ func try_exit(hero: Dictionary) -> void:
 				return
 	hero.escaped = true
 	hero.exit_at = clock
-	hero.pos = Level.EXIT
+	hero.pos = map.exit
 	score += 1000
 	sound.effect("pickup")
-	burst(Level.EXIT,Color("84f5d1"))
+	burst(map.exit,Color("84f5d1"))
 	announce("PLAYER %02d ESCAPED!  %d / %d SAFE" % [hero.id,escaped_count(),heroes.size()])
 	_flow_clock = 0
 
@@ -734,7 +798,7 @@ func check_finish(_delta: float) -> void:
 	for hero: Dictionary in heroes.values(): try_exit(hero)
 	if escaped_count()==heroes.size():
 		phase = "complete"
-		_end_guard = 0.8
+		_end_guard = 2.0
 		return_countdown = 6.0
 		_confirm_armed.clear()
 		sound.effect("win")
@@ -749,7 +813,7 @@ func return_to_library() -> void:
 func _process(delta: float) -> void:
 	if phase=="complete":
 		return_countdown = maxf(0,return_countdown-delta)
-		if return_countdown<=0: return_to_library()
+		if return_countdown<=0: finish_screen_action()
 	if is_instance_valid(board):
 		sync_display()
 		board.queue_redraw()
