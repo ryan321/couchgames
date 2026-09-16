@@ -1,0 +1,457 @@
+[
+  {
+    "name": "Mario.gif",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/Mario.gif",
+    "sha256": "38d194fd86802c8ad2ad2167b4354c072f191ed82310a2adfdc115a13ba40cb0",
+    "frames": [
+      "Mario_0.png",
+      "Mario_1.png",
+      "Mario_2.png"
+    ],
+    "size": [
+      15,
+      16
+    ],
+    "count": 3
+  },
+  {
+    "name": "MarioStanding.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/MarioStanding.png",
+    "sha256": "9140ea25743a04b90077a0313a03d8506f6d8b3d1b300612996b0aca68d49481",
+    "frames": [
+      "MarioStanding.png"
+    ],
+    "size": [
+      12,
+      16
+    ],
+    "count": 1
+  },
+  {
+    "name": "MarioJumping.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/MarioJumping.png",
+    "sha256": "e06554d34c24f404abce1199088dda3db77c9a53e914494fdb2d31e8388f4cb0",
+    "frames": [
+      "MarioJumping.png"
+    ],
+    "size": [
+      16,
+      16
+    ],
+    "count": 1
+  },
+  {
+    "name": "MarioSkidding.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/MarioSkidding.png",
+    "sha256": "3ef4c94eff45d6e9e21eb938036b7d1f02e3f2a63c433c6766181be648880e20",
+    "frames": [
+      "MarioSkidding.png"
+    ],
+    "size": [
+      13,
+      16
+    ],
+    "count": 1
+  },
+  {
+    "name": "SuperMario.gif",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/SuperMario.gif",
+    "sha256": "a7f33ec6b174e152950d1453676efc24f22d6d125b2df930130afba221142f91",
+    "frames": [
+      "SuperMario_0.png",
+      "SuperMario_1.png",
+      "SuperMario_2.png"
+    ],
+    "size": [
+      16,
+      32
+    ],
+    "count": 3
+  },
+  {
+    "name": "SuperMarioStanding.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/SuperMarioStanding.png",
+    "sha256": "c045cadc6612cda88cc350efad3af30b046d93f22f3b56c5eacf9a3cfb76a959",
+    "frames": [
+      "SuperMarioStanding.png"
+    ],
+    "size": [
+      16,
+      32
+    ],
+    "count": 1
+  },
+  {
+    "name": "SuperMarioJumping.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/SuperMarioJumping.png",
+    "sha256": "186cdb94c0aa7811eb7030b7f08d0e7f935cffb170913fb495c88b7041d064a9",
+    "frames": [
+      "SuperMarioJumping.png"
+    ],
+    "size": [
+      16,
+      32
+    ],
+    "count": 1
+  },
+  {
+    "name": "SuperMarioSkidding.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/SuperMarioSkidding.png",
+    "sha256": "58375a256c7334120322f233a679303187f41275ce37823e06672e8437030503",
+    "frames": [
+      "SuperMarioSkidding.png"
+    ],
+    "size": [
+      16,
+      32
+    ],
+    "count": 1
+  },
+  {
+    "name": "SuperMarioCrouching.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/SuperMarioCrouching.png",
+    "sha256": "e510bcb35d03a53d8609d07620c7cad9d89e83a365d7584d69fedbea4490da7e",
+    "frames": [
+      "SuperMarioCrouching.png"
+    ],
+    "size": [
+      16,
+      22
+    ],
+    "count": 1
+  },
+  {
+    "name": "FieryMario.gif",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/FieryMario.gif",
+    "sha256": "31319af37f141db21f8e78107a81c82a672bfbb846e22465045c89bf6bf22265",
+    "frames": [
+      "FieryMario_0.png",
+      "FieryMario_1.png",
+      "FieryMario_2.png"
+    ],
+    "size": [
+      16,
+      32
+    ],
+    "count": 3
+  },
+  {
+    "name": "FieryMarioStanding.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/FieryMarioStanding.png",
+    "sha256": "87228bd17d8477b3308d6fe483715079aa70d21c984f77e00de7b8881f554519",
+    "frames": [
+      "FieryMarioStanding.png"
+    ],
+    "size": [
+      16,
+      32
+    ],
+    "count": 1
+  },
+  {
+    "name": "FieryMarioJumping.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/FieryMarioJumping.png",
+    "sha256": "611d53447da7ad342a665e68ceb5fa9f8d0358e18a46e97dde95972d931ca73e",
+    "frames": [
+      "FieryMarioJumping.png"
+    ],
+    "size": [
+      16,
+      32
+    ],
+    "count": 1
+  },
+  {
+    "name": "FieryMarioSkidding.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/FieryMarioSkidding.png",
+    "sha256": "1aa899800154e1fbc64c91f8f364739bfa78c2aaf99dffb2866753083d88ec95",
+    "frames": [
+      "FieryMarioSkidding.png"
+    ],
+    "size": [
+      16,
+      32
+    ],
+    "count": 1
+  },
+  {
+    "name": "FieryMarioCrouching.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/FieryMarioCrouching.png",
+    "sha256": "b95b7ff634fef9b1cd1b120265e32abf0da396e722896d260842a9584777b4b9",
+    "frames": [
+      "FieryMarioCrouching.png"
+    ],
+    "size": [
+      16,
+      22
+    ],
+    "count": 1
+  },
+  {
+    "name": "MagicMushroom.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/MagicMushroom.png",
+    "sha256": "65f1e77edade9a753e8fc82710416b35f88fb1303318cddb491071eae953b2e4",
+    "frames": [
+      "MagicMushroom.png"
+    ],
+    "size": [
+      16,
+      16
+    ],
+    "count": 1
+  },
+  {
+    "name": "1upMushroom.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/1upMushroom.png",
+    "sha256": "0aa35d38861f248fe95c31a3fa54f2028320b6bd2fd7c0876517136d00b13400",
+    "frames": [
+      "1upMushroom.png"
+    ],
+    "size": [
+      16,
+      16
+    ],
+    "count": 1
+  },
+  {
+    "name": "FireFlower.gif",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/FireFlower.gif",
+    "sha256": "4d0ae60c5b491cc16d10b914dd0604f6c254b3fde535c51f9de4dfce7f0687ed",
+    "frames": [
+      "FireFlower_0.png",
+      "FireFlower_1.png",
+      "FireFlower_2.png",
+      "FireFlower_3.png"
+    ],
+    "size": [
+      16,
+      16
+    ],
+    "count": 4
+  },
+  {
+    "name": "Starman.gif",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/Starman.gif",
+    "sha256": "2698ad5f24b49a77f3de43865ee6450aad22832f3a9745e0d9f0dd37eda6a677",
+    "frames": [
+      "Starman_0.png",
+      "Starman_1.png",
+      "Starman_2.png",
+      "Starman_3.png"
+    ],
+    "size": [
+      14,
+      16
+    ],
+    "count": 4
+  },
+  {
+    "name": "LittleGoomba.gif",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/LittleGoomba.gif",
+    "sha256": "f8622e30e45cbb1f42f9a168944205e500a353fbed9498de00499dcef1301f0e",
+    "frames": [
+      "LittleGoomba_0.png",
+      "LittleGoomba_1.png"
+    ],
+    "size": [
+      16,
+      16
+    ],
+    "count": 2
+  },
+  {
+    "name": "KoopaTroopaGreen.gif",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/KoopaTroopaGreen.gif",
+    "sha256": "593f6ad9ff37650c06d83d0afa44575fc4aa26b6406d39e012b674af3b82a72d",
+    "frames": [
+      "KoopaTroopaGreen_0.png",
+      "KoopaTroopaGreen_1.png"
+    ],
+    "size": [
+      16,
+      24
+    ],
+    "count": 2
+  },
+  {
+    "name": "KoopaTroopaShellGreen.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/KoopaTroopaShellGreen.png",
+    "sha256": "058321f2c9efae9732c5b13b1ef9a1bd1c31502af8fbf47ed4c0bba011eb5ffa",
+    "frames": [
+      "KoopaTroopaShellGreen.png"
+    ],
+    "size": [
+      16,
+      14
+    ],
+    "count": 1
+  },
+  {
+    "name": "BrickBlockBrown.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/BrickBlockBrown.png",
+    "sha256": "03ce0050024251a9404b2f98897a432e48e3e75c03c901a29e4142e3fe9314e6",
+    "frames": [
+      "BrickBlockBrown.png"
+    ],
+    "size": [
+      16,
+      16
+    ],
+    "count": 1
+  },
+  {
+    "name": "BrickBlockDark.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/BrickBlockDark.png",
+    "sha256": "2d015f06255d23a6080d967814c76c61c240ad23c8973e1a0772d512a7b243ec",
+    "frames": [
+      "BrickBlockDark.png"
+    ],
+    "size": [
+      16,
+      16
+    ],
+    "count": 1
+  },
+  {
+    "name": "EmptyBlock.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/EmptyBlock.png",
+    "sha256": "d222f7fd02ee9dcd3cc3bb45ac3b80f6f0653639698990f8d4c95ea94faf0f08",
+    "frames": [
+      "EmptyBlock.png"
+    ],
+    "size": [
+      16,
+      16
+    ],
+    "count": 1
+  },
+  {
+    "name": "QuestionBlock.gif",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/QuestionBlock.gif",
+    "sha256": "189adac94960e4d9078b7de31af66b911aaf7a91a20bdf0eb1c96d9b8baa201d",
+    "frames": [
+      "QuestionBlock_0.png",
+      "QuestionBlock_1.png",
+      "QuestionBlock_2.png",
+      "QuestionBlock_3.png",
+      "QuestionBlock_4.png",
+      "QuestionBlock_5.png"
+    ],
+    "size": [
+      16,
+      16
+    ],
+    "count": 6
+  },
+  {
+    "name": "FireBall.gif",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/FireBall.gif",
+    "sha256": "3548cabd3d1ec9133e407022c342e8dab0332ba2dd4f61d07448dab4a16b22a7",
+    "frames": [
+      "FireBall_0.png",
+      "FireBall_1.png",
+      "FireBall_2.png",
+      "FireBall_3.png"
+    ],
+    "size": [
+      8,
+      8
+    ],
+    "count": 4
+  },
+  {
+    "name": "FireBallHit.gif",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/FireBallHit.gif",
+    "sha256": "f571e6376842ce318df082de38e3970d0819afa4f2e24c47676fa1c00732d647",
+    "frames": [
+      "FireBallHit_0.png",
+      "FireBallHit_1.png",
+      "FireBallHit_2.png",
+      "FireBallHit_3.png",
+      "FireBallHit_4.png",
+      "FireBallHit_5.png",
+      "FireBallHit_6.png",
+      "FireBallHit_7.png",
+      "FireBallHit_8.png",
+      "FireBallHit_9.png",
+      "FireBallHit_10.png",
+      "FireBallHit_11.png",
+      "FireBallHit_12.png",
+      "FireBallHit_13.png",
+      "FireBallHit_14.png",
+      "FireBallHit_15.png"
+    ],
+    "size": [
+      16,
+      16
+    ],
+    "count": 16
+  },
+  {
+    "name": "FlagFromPole.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/FlagFromPole.png",
+    "sha256": "67ff8c0aafbfe638055b9593f77651d169d8089833160fd6e1ef47bfb1f70a3d",
+    "frames": [
+      "FlagFromPole.png"
+    ],
+    "size": [
+      16,
+      16
+    ],
+    "count": 1
+  },
+  {
+    "name": "FlagOnCastle.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/FlagOnCastle.png",
+    "sha256": "7c594c2bd5dfcfe8413ef00cd144e06a3bd34551fe3e7e0ca1f68e5903c8414a",
+    "frames": [
+      "FlagOnCastle.png"
+    ],
+    "size": [
+      13,
+      16
+    ],
+    "count": 1
+  },
+  {
+    "name": "CoinForBlueBG.gif",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/CoinForBlueBG.gif",
+    "sha256": "b3ad97b005df35f5055dcbd93ffeb10094c33fbd99233e47c79dce29da01ef2d",
+    "frames": [
+      "CoinForBlueBG_0.png",
+      "CoinForBlueBG_1.png",
+      "CoinForBlueBG_2.png",
+      "CoinForBlueBG_3.png",
+      "CoinForBlueBG_4.png",
+      "CoinForBlueBG_5.png"
+    ],
+    "size": [
+      10,
+      14
+    ],
+    "count": 6
+  },
+  {
+    "name": "CoinForBlackBG.gif",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/sprites/CoinForBlackBG.gif",
+    "sha256": "94658bb5e06bf65dae3e6caf14e623cd365ae10e1d686421efab7fae506d8453",
+    "frames": [
+      "CoinForBlackBG_0.png",
+      "CoinForBlackBG_1.png",
+      "CoinForBlackBG_2.png",
+      "CoinForBlackBG_3.png",
+      "CoinForBlackBG_4.png",
+      "CoinForBlackBG_5.png"
+    ],
+    "size": [
+      10,
+      14
+    ],
+    "count": 6
+  },
+  {
+    "name": "World1-1.png",
+    "url": "https://www.nesmaps.com/maps/SuperMarioBrothers/SuperMarioBrosMap1-1.png",
+    "sha256": "758cfc7f236f599c4d5d82c0647d356eaa0ecbf3d6087b361823d036867b4ac1"
+  }
+]

@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Run Little World using the platform-selected Godot. Downloads no engine/templates."""
+"""Run a source game using the platform-selected Godot. Downloads no engine/templates."""
 import argparse
 import subprocess
 import sys
 
 from godot_tools import ROOT, godot_environment, resolve_godot
+from game_catalog import GAMES
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--game", choices=["little-world", "cloudbound", "pocket-rally"], default="little-world")
+    parser.add_argument("--game", choices=list(GAMES), default="little-world")
     parser.add_argument("--godot", help="Explicit executable or macOS .app")
     parser.add_argument("--wii", action="store_true", help="Enable experimental SDL Wii/Remote Plus/Nunchuk/Classic/Wii U Pro input (pairing required)")
     parser.add_argument("--joycons", choices=["separate", "paired"], default="separate",
@@ -27,7 +28,7 @@ def main():
     if imported.returncode or "ERROR:" in imported.stderr:
         print(imported.stdout + imported.stderr, file=sys.stderr)
         return 1
-    scene = "res://examples/cloudbound/flight.tscn" if args.game == "cloudbound" else "res://examples/little_world/world.tscn"
+    scene = GAMES[args.game]["scene"]
     if args.game == "pocket-rally":
         scene = "res://examples/pocket_rally/rally.tscn"
     return subprocess.call([executable, "--path", str(ROOT / "sdk"), scene], cwd=ROOT, env=environment)
@@ -37,7 +38,7 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except (OSError, RuntimeError, ValueError, KeyError, subprocess.TimeoutExpired) as error:
-        print(f"Could not start Little World: {error}", file=sys.stderr)
+        print(f"Could not start game: {error}", file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:
         sys.exit(130)

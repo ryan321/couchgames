@@ -108,7 +108,8 @@ Verified locally on macOS ARM64: 32 Rust tests, formatting, Clippy, eight runtim
 
 ### 2. Desktop library and runtime management
 
-- [x] Godot library screen for the three source games, mouse/keyboard/standard gamepad navigation, controller setup options, separate game processes, Wii helper selection/cleanup, and return-to-library with selected card restoration. Development Python supervisor reuses the existing Rust runtime doctor. UI/process tests and real headless launches for all three games passed on this Mac.
+- [x] Godot library screen for the source games, mouse/keyboard/standard gamepad navigation, controller setup options, separate game processes, Wii helper selection/cleanup, and return-to-library with selected card restoration. Development Python supervisor reuses the existing Rust runtime doctor. UI/process tests and real headless launches for all three games passed on this Mac.
+- [x] Add single-player World 1-1 recreation with original captured NES artwork, tile layout, item/enemy mechanics, underground room, flag/castle completion, and SDK input. Source provenance and deviations documented; game and library checks pass with synthetic input, rendered views inspected, physical playthrough/frame comparison pending. Four-game library uses a 2×2 card layout and all launchers share one catalog. Jump tuning after user feedback increases standing/running height and short-hop height; tests cover all pipe heights without the run button and overhead block hits.
 - [ ] Connect the library to playable installed releases in SQLite through the production Rust host; source catalog and private-file prototype IPC do not establish distribution or sandbox readiness.
 
 

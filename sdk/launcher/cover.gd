@@ -6,6 +6,7 @@ var tint := Color("a5cfa1")
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	resized.connect(queue_redraw)
+	if game_id == "world-1-1": texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 func oval(center: Vector2, radius: Vector2, color: Color) -> void:
 	var points := PackedVector2Array()
@@ -46,6 +47,10 @@ func _draw() -> void:
 		poly([Vector2(91,164),Vector2(211,149),Vector2(207,161)],"d79472")
 		poly([Vector2(183,196),Vector2(213,93),Vector2(230,115),Vector2(211,196)],"de795f")
 		poly([Vector2(152,203),Vector2(192,180),Vector2(247,198),Vector2(205,209)],"f9edd1")
+	elif game_id == "world-1-1":
+		var map := preload("res://examples/world_1_1/assets/World1-1.png")
+		draw_texture_rect_region(map,Rect2(0,0,440,270),Rect2(192,48,256,192))
+		draw_texture_rect(preload("res://examples/world_1_1/assets/MarioStanding.png"),Rect2(54,202,20,23),false)
 	else:
 		oval(Vector2(221,161),Vector2(193,101),Color("b0806b"))
 		oval(Vector2(221,153),Vector2(191,100),Color("f4e7c6"))

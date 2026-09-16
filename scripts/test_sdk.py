@@ -28,6 +28,7 @@ def main():
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_controller_motion.gd"], "Controller motion checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_rally.gd"], "Rally checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_library.gd"], "Library checks passed:"),
+        (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_world_1_1.gd"], "World 1-1 checks passed:"),
     ]:
         result = subprocess.run([executable, *arguments], cwd=root, text=True, capture_output=True, timeout=60, env=environment)
         print(result.stdout, end="")

@@ -12,8 +12,7 @@ import time
 from godot_tools import ROOT, godot_environment, resolve_godot
 from play_wii_native import build_reader
 
-CATALOG = json.loads((ROOT / "sdk/launcher/games.json").read_text())
-GAMES = {game["id"]: game for game in CATALOG}
+from game_catalog import CATALOG, GAMES
 
 
 def clean_environment():

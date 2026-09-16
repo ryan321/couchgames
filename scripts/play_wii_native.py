@@ -8,6 +8,7 @@ import sys
 import tempfile
 
 from godot_tools import ROOT, godot_environment, resolve_godot
+from game_catalog import GAMES
 
 
 def build_reader(fleet=False):
@@ -34,7 +35,7 @@ def build_reader(fleet=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--game", choices=["little-world", "cloudbound", "pocket-rally"], default="little-world")
+    parser.add_argument("--game", choices=list(GAMES), default="little-world")
     parser.add_argument("--joycons", choices=["separate", "paired"], default="separate",
                         help="One sideways Joy-Con per player (default), or a combined pair in a grip")
     args = parser.parse_args()
@@ -54,10 +55,11 @@ def main():
                                   capture_output=True, text=True, timeout=60, env=godot_environment(True, args.joycons))
         if imported.returncode or "ERROR:" in imported.stderr:
             raise RuntimeError(imported.stdout + imported.stderr)
-        scene = "res://examples/cloudbound/flight.tscn" if args.game == "cloudbound" else "res://examples/little_world/world.tscn"
+        scene = GAMES[args.game]["scene"]
         if not fleet:
             print("Native Wii reader enabled for one 04e8:7021 Remote. " +
                   ("Cloudbound: hold sideways, press 2, then tilt to fly; B boosts." if args.game == "cloudbound"
+                   else "World 1-1: 2 joins/jumps, 1 runs/fires, sideways D-pad moves." if args.game == "world-1-1"
                    else "Little World: 2 joins/jumps, sideways D-pad moves."), flush=True)
         if fleet:
             scene = "res://examples/pocket_rally/rally.tscn"

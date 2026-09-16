@@ -1,5 +1,38 @@
 [
-  {"id":"little-world","title":"Little World","players":"1–16 players","description":"A tiny island. A whole couch of friends.","controls":"Run, jump, and explore together.","scene":"res://examples/little_world/world.tscn","color":"a5cfa1"},
-  {"id":"cloudbound","title":"Cloudbound","players":"1 player","description":"A scenic flight through the clouds.","controls":"Tilt to fly. Chase the golden rings.","scene":"res://examples/cloudbound/flight.tscn","color":"9acbd8"},
-  {"id":"pocket-rally","title":"Pocket Rally","players":"1–16 players · Split-screen","description":"Your car. Your corner of the screen.","controls":"Tilt to steer. Race your friends.","scene":"res://examples/pocket_rally/rally.tscn","color":"efba87"}
+  {
+    "id": "little-world",
+    "title": "Little World",
+    "players": "1–16 players",
+    "description": "A tiny island. A whole couch of friends.",
+    "controls": "Run, jump, and explore together.",
+    "scene": "res://examples/little_world/world.tscn",
+    "color": "a5cfa1"
+  },
+  {
+    "id": "cloudbound",
+    "title": "Cloudbound",
+    "players": "1 player",
+    "description": "A scenic flight through the clouds.",
+    "controls": "Tilt to fly. Chase the golden rings.",
+    "scene": "res://examples/cloudbound/flight.tscn",
+    "color": "9acbd8"
+  },
+  {
+    "id": "pocket-rally",
+    "title": "Pocket Rally",
+    "players": "1–16 players · Split-screen",
+    "description": "Your car. Your corner of the screen.",
+    "controls": "Tilt to steer. Race your friends.",
+    "scene": "res://examples/pocket_rally/rally.tscn",
+    "color": "efba87"
+  },
+  {
+    "id": "world-1-1",
+    "title": "Super Mario Bros.",
+    "players": "1 player · World 1-1",
+    "description": "The original first level, recreated.",
+    "controls": "Run, jump, and find the secret pipe.",
+    "scene": "res://examples/world_1_1/world.tscn",
+    "color": "e8ba87"
+  }
 ]

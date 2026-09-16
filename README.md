@@ -31,11 +31,11 @@ A source-game library screen is implemented. The production desktop host, full i
 python3 scripts/library.py
 ```
 
-Click **Little World**, **Cloudbound**, or **Pocket Rally** to play. Each game runs in its own process; closing it returns you to the library with the same card selected. Keyboard arrows + Enter and standard gamepad D-pad + A / Cross also navigate the cards. F11 toggles fullscreen.
+Click **Little World**, **Cloudbound**, **Pocket Rally**, or **Super Mario Bros. — World 1-1** to play. Each game runs in its own process; closing it returns you to the library with the same card selected. Keyboard arrows + Enter and standard gamepad D-pad + A / Cross also navigate the cards. F11 toggles fullscreen.
 
 On this Mac, **Wii Remote + gamepads** uses our existing native Wii reader automatically for the selected game. Choose **Gamepads / keyboard** to play without it. Close any standalone game/reader first. See [library controls and implementation](sdk/launcher/README.md).
 
-This first library lists the three included source games. The production Rust supervisor and launching installed releases from SQLite remain planned.
+This first library lists the four included source games. The production Rust supervisor and launching installed releases from SQLite remain planned.
 
 ## Play Little World
 
@@ -82,6 +82,14 @@ A separate **1–16 player 3D driving game**, with a chase camera for every car.
 For keyboard or regular controllers: `python3 scripts/play.py --game pocket-rally`. Enter joins; WASD/arrows drive. Xbox A / PlayStation Cross joins and accelerates; left stick steers, X / Square brakes. F11 toggles fullscreen.
 
 Pocket Rally uses a separate native helper with sixteen independent channels for the observed Wii variant. Physical multi-Remote and sixteen-player performance tests remain pending. Cloudbound's game and existing reader are preserved. See [Pocket Rally controls and verification](sdk/examples/pocket_rally/README.md).
+
+## Play Super Mario Bros. — World 1-1
+
+Choose its card in the library, or run `python3 scripts/play_wii_native.py --game world-1-1` on this Mac. For ordinary gamepads and keyboard: `python3 scripts/play.py --game world-1-1`.
+
+The single-player recreation uses original NES sprite captures and the World 1-1 layout, with enemies, power-ups, hidden 1-up, the underground coin room, and the flagpole/castle finish. Wii: sideways D-pad moves, **2 jumps**, **1 runs/fires**; hold jump for height. Xbox/PlayStation: A/Cross jumps, B/Circle runs. Keyboard: arrows + Space/Shift. Esc returns to the library.
+
+The gameplay is recreated, not frame-perfect NES emulation. Synthesized effects replace the original audio; music and fireworks are absent. See [controls, asset credits, tests, and fidelity limits](sdk/examples/world_1_1/README.md).
 
 ## Prerequisites
 

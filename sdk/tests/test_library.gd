@@ -17,7 +17,7 @@ func run() -> void:
 	current_scene = library
 	library.set_process(false)
 	OS.unset_environment("COUCH_LIBRARY_SESSION")
-	expect(library.cards.size()==3,"All three source games appear")
+	expect(library.cards.size()==4,"All four source games appear")
 	for game in library.games:
 		expect(FileAccess.file_exists(game.scene),"Catalog scene exists")
 	library.controller.select(0)

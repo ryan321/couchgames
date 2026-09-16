@@ -58,12 +58,13 @@ func _build() -> void:
 	label_at("Tonight, we play.",Vector2(65,94),64)
 	label_at("Pick a world. Grab a controller. Make room on the couch.",Vector2(68,175),24,MUTED)
 	label_at("YOUR GAMES",Vector2(68,250),18,MUTED)
-	label_at("03  /  READY TO PLAY",Vector2(1280,250),18,MUTED)
+	label_at("%02d  /  READY TO PLAY" % games.size(),Vector2(1280,250),18,MUTED)
+	var compact := games.size()>3
 	for i in games.size():
 		var game: Dictionary = games[i]
 		var card := Button.new()
-		card.position = Vector2(68+i*497,295)
-		card.size = Vector2(470,420)
+		card.position = Vector2(68+(i%2)*745,295+floori(i/2.0)*221) if compact else Vector2(68+i*497,295)
+		card.size = Vector2(720,204) if compact else Vector2(470,420)
 		card.add_theme_stylebox_override("normal",style(Color("21494f")))
 		card.add_theme_stylebox_override("hover",style(Color("2b5960"),Color("8aafa5")))
 		card.add_theme_stylebox_override("pressed",style(Color("34626a")))
@@ -72,19 +73,21 @@ func _build() -> void:
 		add_child(card)
 		var crop := Control.new()
 		crop.position = Vector2(12,12)
-		crop.size = Vector2(446,240)
+		crop.size = Vector2(252,180) if compact else Vector2(446,240)
 		crop.clip_contents = true
 		crop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(crop)
 		var cover := Cover.new()
 		cover.game_id = game.id
 		cover.tint = Color(game.color)
-		cover.size = Vector2(446,240)
+		cover.size = crop.size
 		crop.add_child(cover)
-		label_at(game.players.to_upper(),Vector2(24,270),16,Color(game.color),card)
-		label_at(game.title,Vector2(22,297),34,INK,card)
-		label_at(game.description,Vector2(24,347),18,MUTED,card)
-		label_at("PLAY  →",Vector2(24,380),18,INK,card)
+		label_at(game.players.to_upper(),Vector2(284,20) if compact else Vector2(24,270),16,Color(game.color),card)
+		label_at(game.title,Vector2(282,53) if compact else Vector2(22,297),30 if compact else 34,INK,card)
+		var description := label_at(game.description,Vector2(284,99) if compact else Vector2(24,347),18,MUTED,card)
+		description.size = Vector2(411 if compact else 422,50)
+		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label_at("PLAY  →",Vector2(284,161) if compact else Vector2(24,380),18,INK,card)
 		card.pressed.connect(func(): launch_game(i))
 		card.focus_entered.connect(func(): selected = i)
 		cards.append(card)
