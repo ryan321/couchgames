@@ -38,57 +38,6 @@ func run() -> void:
 	sight.update({},"lobby",Vector2.ZERO)
 	expect(not sight.active,"Lobby is never covered by gameplay fog")
 
-	var occluded := Sight.new()
-	var barrier := {}
-	for y in 24: barrier[Vector2i(12,y)] = true
-	occluded.configure(Vector2i(24,24),barrier)
-	var party := {1:{"pos":Vector2(10.5,10.5)*32,"hp":100,"escaped":false}}
-	occluded.update(party,"playing",Vector2.ZERO)
-	expect(occluded.visibility_at(Vector2(11.5,10.5))==1,"Visible room remains clear up to a wall")
-	expect(occluded.visibility_at(Vector2(12.5,10.5))>0,"Blocking wall itself stays visible")
-	expect(occluded.visibility_at(Vector2(13.5,10.5))==0,"Even nearby floor behind the wall stays hidden")
-	barrier.erase(Vector2i(12,10))
-	var doors := {Vector2i(12,10):0}
-	occluded.update(party,"playing",Vector2.ZERO,doors)
-	expect(occluded.visibility_at(Vector2(12.5,10.5))>0 and occluded.visibility_at(Vector2(13.5,10.5))==0,"Closed door is visible but blocks the room beyond")
-	var closed_revision: int = occluded.revision
-	doors.clear()
-	occluded.update(party,"playing",Vector2.ZERO,doors)
-	expect(occluded.revision>closed_revision and occluded.visibility_at(Vector2(13.5,10.5))>0,"Opening the door immediately invalidates the cached mask and reveals the passage")
-	expect(occluded.visibility_at(Vector2(13.5,14.5))==0,"An open door does not reveal around the adjacent wall corner")
-	doors[Vector2i(12,10)] = 0
-	occluded.update(party,"playing",Vector2.ZERO,doors)
-	expect(occluded.visibility_at(Vector2(13.5,10.5))==0,"Closing the door conceals the room again without retained exploration")
-	party[2] = {"pos":Vector2(14.5,10.5)*32,"hp":0,"escaped":false}
-	occluded.update(party,"playing",Vector2.ZERO,doors)
-	expect(occluded.visibility_at(Vector2(13.5,10.5))==1,"A teammate on the other side contributes independent sight even when fallen")
-	party.erase(2)
-	occluded.update(party,"playing",Vector2.ZERO,doors)
-	expect(occluded.visibility_at(Vector2(13.5,10.5))==0,"Removing the other teammate removes that room's visibility")
-	var unchanged: int = occluded.revision
-	occluded.update(party,"paused",Vector2.ZERO,doors)
-	expect(occluded.revision==unchanged,"Unchanged positions and obstacles reuse the mask during pause")
-	occluded.configure(Vector2i(24,24),{Vector2i(11,10):true,Vector2i(10,11):true})
-	occluded.update(party,"playing",Vector2.ZERO)
-	expect(occluded.visibility_at(Vector2(11.5,11.5))==0,"Sight cannot leak through diagonally touching walls")
-	occluded.configure(Vector2i(24,24),{})
-	occluded.update(party,"playing",Vector2.ZERO)
-	expect(occluded.visibility_at(Vector2(13.5,10.5))==1,"Loading a different map discards old occluders and mask")
-
-	# Compare wedge shadows with independent supercover grid rays on all three real maps.
-	const Level = preload("res://examples/gauntlet/level.gd")
-	for index in 3:
-		var map: Dictionary = Level.definition(index)
-		var oracle := Sight.new()
-		oracle.configure(Vector2i(map.width,map.height),map.walls)
-		oracle.closed_doors = map.doors
-		var leaks := 0
-		for pickup: Dictionary in map.pickups:
-			var origin := Vector2i(pickup.pos/32)
-			if oracle.opaque(origin): continue
-			for target in oracle.field(origin):
-				if not oracle.opaque(Vector2i(target)) and not oracle.clear_line(Vector2(origin)+Vector2.ONE*.5,target): leaks += 1
-		expect(leaks==0,"Chapter %d shadow masks never reveal floor behind an intersected wall or door"%(index+1))
 	for asset: String in Props.NAMES:
 		var a := Props.instance(asset)
 		var b := Props.instance(asset)
@@ -125,14 +74,21 @@ func run() -> void:
 	game.enemies = [{"id":9901,"pos":Vector2(13.5,14.5)*32,"kind":"grunt","hp":50.0,"max_hp":50.0,"attack":1.0}]
 	game.pickups = [{"kind":"key","key_color":"sapphire","pos":Vector2(14.5,14.5)*32}]
 	game.dungeon_view._process(0)
-	expect(not game.dungeon_view.actors["enemy-9901"].visible,"Unseen enemies and their health bars are culled behind the closed Ruby gate")
+	expect(game.dungeon_view.actors["enemy-9901"].visible,"Nearby enemies stay visible across a closed Ruby gate")
 	var pickup_key: String = "pickup-key-%s"%game.pickups[0].pos
-	expect(not game.dungeon_view.actors[pickup_key].visible,"Unseen key models and raised labels are also concealed")
+	expect(game.dungeon_view.actors[pickup_key].visible,"Nearby key models and labels remain visible through walls and doors")
 	game.keyring.ruby = 1
 	game.keys = 1
 	game.unlock(0)
 	game.dungeon_view._process(0)
-	expect(game.dungeon_view.actors["enemy-9901"].visible and game.dungeon_view.actors[pickup_key].visible,"Unlocking the real gate reveals enemies and keys through its opening")
+	expect(game.dungeon_view.actors["enemy-9901"].visible and game.dungeon_view.actors[pickup_key].visible,"Opening the gate leaves nearby visibility unchanged")
+	game.heroes[1].pos = Vector2(30,3)*32
+	game.dungeon_view._process(0)
+	expect(not game.dungeon_view.actors["enemy-9901"].visible and not game.dungeon_view.actors[pickup_key].visible,"Moving away hides enemies and keys outside the current radius")
+	game.heroes[1].pos = Vector2(11.5,12.5)*32
+	game.enemies[0].pos = Vector2(13.5,12.5)*32
+	game.dungeon_view._process(0)
+	expect(game.dungeon_view.actors["enemy-9901"].visible,"Nearby enemies across a solid wall remain visible inside the radius")
 	game.reset_level()
 	game.dungeon_view._process(0)
 	expect(not fog.screen.visible,"Returning to lobby removes the overlay")

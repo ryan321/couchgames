@@ -2,6 +2,8 @@
 
 Status: design direction, September 15, 2026. Multiplayer networking is not implemented or verified. Transport choices and commercial terms below are proposals. The existing V1 sequence remains unchanged; this document defines the multiplayer workstream when scheduled.
 
+Commercial follow-up, September 16, 2026: [pricing strategy options](pricing-strategy.md) explores a paid play-and-create platform, universal membership, and an optional marketplace. The developer subscription below remains one option; the payer and price are not selected. These alternatives do not change the relay architecture.
+
 ## 1. The product
 
 CouchGames should let people play the same game across multiple computers and screens, with one or several local players on each computer.

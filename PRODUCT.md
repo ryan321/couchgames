@@ -1,5 +1,7 @@
 # AI-Native Living Room Game Platform
 
+Creator delivery specification: [Couch Games Game Development Kit](GDK.md), covering what developers get, how they run it and the remaining release work.
+
 ## Product Vision
 
 Build a gaming platform for a world where ordinary people can create real games with AI.

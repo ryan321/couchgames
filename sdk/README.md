@@ -1,5 +1,7 @@
 # Couch Games SDK
 
+For the complete creator product definition, planned starters/tools and delivery milestones, see [Game Development Kit](../GDK.md). This page documents the currently implemented addon API.
+
 This addon checks runtime compatibility and provides per-player movement, jump, join, leave, and reconnect handling for sixteen local player slots. Save APIs, full lifecycle handling, remapping, and haptics are still planned.
 
 ## Shared supported-version policy

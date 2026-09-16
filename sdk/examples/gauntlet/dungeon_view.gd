@@ -183,7 +183,6 @@ func batch_boxes(parent: Node3D, transforms: Array[Transform3D], size: Vector3, 
 	parent.add_child(instance)
 
 func rebuild() -> void:
-	visibility.configure(Vector2i(game.map.width,game.map.height),game.walls)
 	if architecture:
 		remove_child(architecture)
 		architecture.queue_free()
@@ -336,7 +335,7 @@ func key_label(parent: Node3D, color: String, height: float, offset := Vector3.Z
 func _process(delta: float) -> void:
 	if not architecture: return
 	update_camera(delta)
-	visibility.update(game.heroes,game.phase,game.map.exit,game.doors)
+	visibility.update(game.heroes,game.phase,game.map.exit)
 	party_fog.present(camera,game.clock)
 	var seen := {}
 	for id: int in game.heroes:

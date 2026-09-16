@@ -2,6 +2,8 @@
 
 Status: target architecture, based on [PRODUCT.md](PRODUCT.md). See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the execution checklist and [README.md](README.md) for what is currently implemented.
 
+Creator-facing deliverables and the current/proposed workflows are defined in [GDK.md](GDK.md). The GDK includes the SDK, starter projects, tools and documentation.
+
 Updated: September 15, 2026.
 
 ## 1. Architecture decisions

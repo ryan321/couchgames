@@ -3,9 +3,11 @@
 A controller-first platform for playing and privately sharing Godot games on your own computer, displayed on a TV through a direct connection or screen sharing.
 
 - [Product vision](PRODUCT.md)
+- [Game Development Kit: contents, workflow, and delivery plan](GDK.md)
 - [Technical architecture and stack](TECH_STACK.md)
 - [V1 implementation plan](IMPLEMENTATION_PLAN.md)
 - [Multiplayer design: LAN and managed online relaying](docs/multiplayer.md)
+- [Pricing strategy options: paid platform, subscriptions, and creator marketplace](docs/pricing-strategy.md)
 - [Package manifest schema](schemas/manifest.schema.json)
 
 ## Current implementation
@@ -233,4 +235,4 @@ GitHub Actions runs only through **workflow_dispatch** (manual invocation). Push
 
 Editable models and props live in [`art/`](art/README.md), with GLB exports for Godot. The first Blender study includes a treasure chest, jade potion flask and ember brazier. Blender is a development tool; players do not need it.
 
-Gauntlet's latest art pass adds detailed Blender props and beveled dungeon masonry, varied floor motifs, articulated enemy movement and an authored Warrior axe cleave with matching visible contact and damage. Temporary fog follows all players (seven clear tiles plus a three-tile fade), including fallen teammates; walls and closed doors block sight, and the minimap follows the same rules. Previously visited rooms become hidden again after the party leaves. [Art and visibility details](docs/gauntlet-art.md#dungeon-polish-and-temporary-party-fog).
+Gauntlet's latest art pass adds detailed Blender props and beveled dungeon masonry, varied floor motifs, articulated enemy movement and an authored Warrior axe cleave with matching visible contact and damage. Temporary fog follows all players (seven clear tiles plus a three-tile fade), including fallen teammates; visibility depends only on distance, including through walls and doors, and the minimap follows the same rules. Previously visited rooms become hidden again after the party leaves. [Art and visibility details](docs/gauntlet-art.md#dungeon-polish-and-temporary-party-fog).

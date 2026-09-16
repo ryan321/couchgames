@@ -3,8 +3,6 @@ extends Node3D
 var policy: RefCounted
 var screen := MeshInstance3D.new()
 var fog := ShaderMaterial.new()
-var texture: ImageTexture
-var uploaded_revision := -1
 
 func _ready() -> void:
 	fog.shader = preload("res://examples/gauntlet/shaders/party_fog.gdshader")
@@ -27,14 +25,8 @@ func floor_point(camera: Camera3D, pixel: Vector2) -> Vector2:
 
 func present(camera: Camera3D, clock: float) -> void:
 	global_transform = camera.global_transform
-	screen.visible = policy.active and policy.image!=null
+	screen.visible = policy.active
 	if not screen.visible: return
-	if uploaded_revision!=policy.revision:
-		if not texture or texture.get_size()!=Vector2(policy.size): texture = ImageTexture.create_from_image(policy.image)
-		else: texture.update(policy.image)
-		uploaded_revision = policy.revision
-		fog.set_shader_parameter("sight_map",texture)
-		fog.set_shader_parameter("map_size",Vector2(policy.size))
 	var viewport_size := Vector2(camera.get_viewport().size)
 	var origin := floor_point(camera,Vector2.ZERO)
 	fog.set_shader_parameter("ground_origin",origin)

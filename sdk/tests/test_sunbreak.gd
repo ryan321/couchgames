@@ -2,6 +2,14 @@ extends SceneTree
 var checks := 0
 var failures := 0
 
+class ControlledPlayer:
+	extends "res://examples/sunbreak/player.gd"
+	var axes: Dictionary = {}
+	func pad_axis(axis: int) -> float:
+		return axes.get(axis,0.0)
+	func pad_button(_button: int) -> bool:
+		return false
+
 func _initialize() -> void:
 	call_deferred("run")
 
@@ -305,6 +313,44 @@ func run() -> void:
 		await physics_frame
 		walker.tick(0.05)
 	expect(walker.position.distance_to(starting)>5 and walker.position.y>-0.2,"Actual enemy body navigates past building cover instead of sticking to its wall")
+	# Feed movement/fire through the player's real tick and physics, with neutral
+	# right-stick axes. This isolates camera presentation from hardware reports.
+	var original_player = game.player
+	var controlled := ControlledPlayer.new()
+	controlled.game = game
+	game.add_child(controlled)
+	game.player = controlled
+	game.control_mode = "controller"
+	controlled.reset()
+	controlled.camera.rotation.x = 0.3
+	controlled.look_ready = true
+	var max_distance := 0.0
+	var jumped := false
+	var pitch_stable := true
+	for i in 180:
+		controlled.axes[JOY_AXIS_LEFT_X] = 0.7 if i<90 else -0.7
+		controlled.axes[JOY_AXIS_TRIGGER_RIGHT] = 0.0 if i==0 else 1.0
+		if i in [20,100]: controlled.jump_queued = true
+		await physics_frame
+		controlled.tick(1.0/60)
+		max_distance = maxf(max_distance,absf(controlled.position.x))
+		jumped = jumped or controlled.velocity.y>4
+		pitch_stable = pitch_stable and absf(controlled.camera.rotation.x-0.3)<0.00001
+	expect(max_distance>1 and jumped and controlled.ammo<30,"Controller simulation actually moves, jumps, and fires through the normal player tick")
+	expect(pitch_stable,"Moving, jumping, and firing together cannot change camera pitch with a neutral right stick")
+	controlled.axes[JOY_AXIS_RIGHT_Y] = -0.7
+	controlled.tick(1.0/60)
+	expect(controlled.camera.rotation.x>0.3,"Deliberate look still works while moving and firing")
+	controlled.axes[JOY_AXIS_RIGHT_Y] = 0.0
+	var stopped_pitch := controlled.camera.rotation.x
+	for i in 60:
+		await physics_frame
+		controlled.tick(1.0/60)
+	expect(absf(controlled.camera.rotation.x-stopped_pitch)<0.00001,"Releasing look stops pitch changes while movement and fire continue")
+	game.player = original_player
+	controlled.free()
+	original_player.camera.current = true
+	game.control_mode = "mouse"
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--capture="):
 			game.start_match()
