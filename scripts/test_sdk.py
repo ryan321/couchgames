@@ -30,6 +30,7 @@ def main():
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_library.gd"], "Library checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_world_1_1.gd"], "World 1-1 checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_gauntlet.gd"], "Gauntlet checks passed:"),
+        (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_gauntlet_return.gd"], "Gauntlet return checks passed:"),
     ]:
         result = subprocess.run([executable, *arguments], cwd=root, text=True, capture_output=True, timeout=60, env=environment)
         print(result.stdout, end="")

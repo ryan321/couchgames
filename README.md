@@ -45,9 +45,9 @@ python3 scripts/play_wii_native.py --game gauntlet
 python3 scripts/play.py --game gauntlet
 ```
 
-The first dungeon, **The Ember Vault**, is complete: four classes, ranged attacks, magic, monster generators, keys/doors, shared food and treasure, ally revival, and a team exit. It uses original artwork and a new level inspired by arcade Gauntlet. Everyone plays on the same screen.
+The first dungeon, **The Ember Vault**, is complete: four classes, ranged attacks, magic, monster generators, keys/doors, shared food and treasure, ally revival, and a team exit. It uses original artwork and a new level inspired by arcade Gauntlet. Everyone plays on the same screen. The upgraded 3D dungeon has modeled heroes, textured stone, torch lighting, shadows, spell effects, and a glowing portal. Each player escapes individually; once everyone is out, the game shows victory and returns to the library after six seconds.
 
-Wii: **2** joins/fires, **1** changes class in the lobby or casts magic in play, **Home** starts/pauses, and the sideways **D-pad** moves. Xbox/PlayStation: **A/Cross** joins/fires, **X/Square** selects a class/casts magic, **Menu/Options** starts/pauses. Keyboard: **Enter** joins, **Tab** changes class, **Enter again** starts, **WASD/arrows** move, **Space** fires, **X** casts. **Esc** returns to the library.
+Wii: **2** joins; release and press **2 again** to start, then hold it to fire. **1** changes class in the lobby or casts magic in play, **Home** pauses, and the sideways **D-pad** moves. Xbox/PlayStation: **A/Cross** joins/fires, **X/Square** selects a class/casts magic, press **A/Cross again** to start; **Menu/Options** pauses. Keyboard: **Enter** joins, **Tab** changes class, **Enter again** starts, **WASD/arrows** move, **Space** fires, **X** casts. **Esc** returns to the library.
 
 Full one-player and sixteen-player routes pass automated input/gameplay tests; physical multiplayer testing is pending. See [Gauntlet controls, level guide, and verification](sdk/examples/gauntlet/README.md).
 

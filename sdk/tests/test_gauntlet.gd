@@ -37,7 +37,9 @@ func run() -> void:
 	game = load("res://examples/gauntlet/dungeon.tscn").instantiate()
 	root.add_child(game)
 	current_scene = game
+	game.close_on_finish = false
 	game.set_physics_process(false)
+	game.set_process(false)
 	game.sound.enabled = false
 	service = game.service
 	service.set_process_input(false)
@@ -51,6 +53,14 @@ func run() -> void:
 	expect(positions.size()==16,"All sixteen players have distinct starting positions")
 	join(16)
 	expect(game.heroes.size()==16,"Seventeenth controller cannot take a player slot")
+	expect(game.phase=="lobby","Joining never accidentally begins the dungeon")
+	tick(0.1)
+	button(0,JOY_BUTTON_A,true); button(0,JOY_BUTTON_A,false); tick(0.1)
+	expect(game.phase=="playing","A quick press and release of A after joining starts the dungeon")
+	game.phase = "paused"
+	button(0,JOY_BUTTON_A,true); button(0,JOY_BUTTON_A,false); tick(0.1)
+	expect(game.phase=="playing","The same confirm button resumes from focus pause")
+	game.reset_level()
 	button(0,JOY_BUTTON_X,true); tick(0.1); button(0,JOY_BUTTON_X,false)
 	expect(game.heroes[1].hero_class==1 and game.heroes[2].hero_class==1,"Class selection changes only its owner")
 	button(0,JOY_BUTTON_START,true); button(1,JOY_BUTTON_START,true); tick(0.1)
@@ -123,7 +133,13 @@ func run() -> void:
 		fleet.accept_packet(slot,{"generation":"test-%d"%slot,"buttons":0,"updated":100.0},100.0)
 		fleet.accept_packet(slot,{"generation":"test-%d"%slot,"buttons":1,"updated":100.0},100.0)
 	expect(game.heroes.size()==16,"Sixteen synthetic native Wii channels join the dungeon")
-	game.start()
+	tick(0.1)
+	expect(game.phase=="lobby","Holding native Wii 2 to join does not auto-start")
+	fleet.accept_packet(0,{"generation":"test-0","buttons":0,"updated":100.05},100.05)
+	tick(0.1)
+	fleet.accept_packet(0,{"generation":"test-0","buttons":1,"updated":100.06},100.06)
+	tick(0.1)
+	expect(game.phase=="playing","Releasing and pressing native Wii 2 starts the real scene")
 	var p1: Vector2 = game.heroes[1].pos
 	fleet.accept_packet(0,{"generation":"test-0","buttons":0x401,"updated":100.1},100.1)
 	tick(0.2)
@@ -146,28 +162,59 @@ func run() -> void:
 	bot_count = 16
 	game.start()
 	expect(play_level(),"Sixteen heroes traverse the complete dungeon using isolated movement and fire actions")
-	expect(game.living().size()==16 and game.phase=="complete","The full party survives and gathers at the exit")
+	expect(game.escaped_count()==16 and game.phase=="complete","The full party individually escapes and completes the level")
 	clear_players(); join(0)
 	bot_count = 1
-	# Completion requires every standing hero; disconnect never leaves a phantom requirement.
+	# The exit is always usable; generators are optional bonus objectives.
 	game.reset_level(); join(1); game.start()
-	for generator: Dictionary in game.generators: generator.hp=0
 	game.heroes[1].pos = Level.EXIT
 	game.heroes[2].pos = Level.EXIT-Vector2(200,0)
-	game.check_finish(2)
-	expect(game.phase=="playing","A distant teammate prevents premature level completion")
+	game.check_finish(0.1)
+	expect(game.heroes[1].escaped and game.destroyed()==0,"Entering the portal escapes immediately without a generator checklist")
+	expect(game.phase=="playing" and game.escaped_count()==1,"The first escape waits for the other connected hero")
+	var escaped_health: float = game.heroes[1].hp
+	stick(0,Vector2.LEFT); tick(1); stick(0,Vector2.ZERO)
+	expect(game.heroes[1].pos==Level.EXIT and game.heroes[1].hp==escaped_health,"Escaped heroes cannot move, drain health or be attacked")
+	game.heroes[2].pos = Level.EXIT
+	game.check_finish(0.1)
+	expect(game.phase=="complete" and game.escaped_count()==2,"The last hero entering the portal wins the game")
+	var complete_score: int = game.score
+	game.check_finish(1)
+	expect(game.score==complete_score,"Completion cannot award the escape bonus twice")
+	game._process(2)
+	expect(game.return_countdown==4,"Victory advances the return-to-library countdown")
+	game.reset_level(); game.start()
+	game.heroes[1].pos = Level.EXIT
+	game.heroes[2].hp = 0
+	game.check_finish(0.1)
+	expect(not game.heroes[1].escaped and game.phase=="playing","The last rescuer cannot leave a fallen teammate stranded")
+	game.heroes[2].hp = 500
+	game.check_finish(0.1)
 	service.device_connection_changed(1,false)
-	game.check_finish(2)
-	expect(game.phase=="complete","Disconnected teammate does not block the exit")
+	game.check_finish(0.1)
+	expect(game.phase=="complete","A disconnected teammate cannot leave a phantom exit requirement")
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--capture="):
 			game.reset_level()
 			for device in range(1,16): join(device)
-			game.start()
+			if "--lobby" not in OS.get_cmdline_user_args(): game.start()
 			game.message_time = 0
 			tick(3)
 			game.board.queue_redraw()
 			await process_frame
+			if "--stress" in OS.get_cmdline_user_args():
+				game.enemies.clear()
+				for n in 96:
+					game.enemies.append({"id":2000+n,"pos":Level.center(Vector2i(14+n%11,2+(n/11))),"hp":52.0,"kind":["ghost","grunt","demon"][n%3],"attack":1.0})
+				var started := Time.get_ticks_msec()
+				for frame in 120:
+					game.clock += 1.0/60
+					await process_frame
+				print("Rendered stress: 16 heroes + 96 monsters, 120 frames in %d ms." % (Time.get_ticks_msec()-started))
+			# A focus change during the stress wait must not make the capture inconsistent.
+			game.phase = "lobby" if "--lobby" in OS.get_cmdline_user_args() else "playing"
+			game.board._process(0)
+			game.board.queue_redraw()
 			await RenderingServer.frame_post_draw
 			expect(root.get_texture().get_image().save_png(argument.trim_prefix("--capture="))==OK,"Sixteen-player render saved")
 	if not failures: print("Gauntlet checks passed: %d gameplay/input assertions; synthetic controllers." % checks)
@@ -209,6 +256,7 @@ func walk_to(target: Vector2) -> bool:
 				stick(device,difference.normalized() if difference.length()>3 else Vector2.ZERO)
 			game.step(1.0/60)
 			frames += 1
+			if game.phase=="complete": return true
 			if game.phase!="playing": return false
 		if frames>=360:
 			print("Route blocked: ",game.heroes[1].pos," -> ",waypoint)
@@ -249,5 +297,5 @@ func play_level() -> bool:
 
 func party_at(at: Vector2) -> bool:
 	for device in bot_count:
-		if game.heroes[device+1].pos.distance_to(at)>3: return false
+		if not game.heroes[device+1].escaped and game.heroes[device+1].pos.distance_to(at)>3: return false
 	return true

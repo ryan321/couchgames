@@ -1,11 +1,16 @@
 extends Node2D
 const Level = preload("res://examples/gauntlet/level.gd")
+const DungeonView = preload("res://examples/gauntlet/dungeon_view.gd")
 const Board = preload("res://examples/gauntlet/board.gd")
 const Fleet = preload("res://examples/pocket_rally/wii_fleet.gd")
 const Sounds = preload("res://examples/gauntlet/sound.gd")
 const DIRECTIONS := [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN]
 var service: Node
 var board: Node2D
+var dungeon_view: Node3D
+var close_on_finish := true
+var return_countdown := 6.0
+var _confirm_armed: Dictionary = {}
 var sound: Node
 var heroes: Dictionary = {}
 var walls: Dictionary = {}
@@ -38,6 +43,21 @@ func _ready() -> void:
 	service.keyboard_enabled = true
 	service.player_joined.connect(join)
 	service.player_left.connect(leave)
+	var display := SubViewportContainer.new()
+	display.position = Vector2(40,104)
+	display.size = Vector2(1520,632)
+	display.stretch = true
+	display.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(display)
+	var viewport := SubViewport.new()
+	viewport.size = Vector2i(1520,632)
+	viewport.own_world_3d = true
+	viewport.msaa_3d = Viewport.MSAA_2X
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	display.add_child(viewport)
+	dungeon_view = DungeonView.new()
+	dungeon_view.game = self
+	viewport.add_child(dungeon_view)
 	board = Board.new()
 	board.game = self
 	add_child(board)
@@ -69,16 +89,19 @@ func reset_level() -> void:
 	exit_time = 0
 	_flow_clock = 0
 	phase = "lobby"
+	return_countdown = 6.0
+	_confirm_armed.clear()
 	for id: int in heroes:
 		var chosen: int = heroes[id].hero_class
 		heroes[id] = make_hero(id,chosen)
-	message = "CHOOSE YOUR HERO, THEN PRESS START TO ENTER."
+	message = "JOIN, CHOOSE YOUR HERO, THEN PRESS FIRE AGAIN TO START."
 	message_time = 8
 	_end_guard = 0.7
+	if dungeon_view: dungeon_view.rebuild()
 
 func make_hero(id: int, hero_class: int) -> Dictionary:
 	var stats: Dictionary = Level.CLASSES[hero_class]
-	return {"id":id,"hero_class":hero_class,"pos":Level.spawn(id),"face":Vector2.UP,
+	return {"id":id,"hero_class":hero_class,"pos":Level.spawn(id),"face":Vector2.DOWN,
 		"hp":stats.health,"cooldown":0.0,"hurt":0.0,"potions":2,"revive":0.0,"escaped":false,"walk":0.0}
 
 func join(id: int) -> void:
@@ -91,12 +114,14 @@ func join(id: int) -> void:
 				heroes[id].pos = other.pos
 				break
 	_action_previous[id] = {}
+	_confirm_armed[id] = false
 	if phase == "lobby": _end_guard = 0.25
 	announce("PLAYER %02d ENTERS THE VAULT" % id)
 
 func leave(id: int) -> void:
 	heroes.erase(id)
 	_action_previous.erase(id)
+	_confirm_armed.erase(id)
 	if heroes.is_empty():
 		reset_level()
 	else:
@@ -105,7 +130,7 @@ func leave(id: int) -> void:
 func start() -> void:
 	if heroes.is_empty(): return
 	phase = "playing"
-	announce("DESTROY THE FOUR GENERATORS. FIND THE EXIT.")
+	announce("FIND THE KEYS. REACH THE EXIT. GET EVERY HERO OUT.")
 	sound.effect("start")
 
 func announce(text: String) -> void:
@@ -152,7 +177,7 @@ func actions(id: int) -> Dictionary:
 		attack = attack or bool(buttons.get(button,false))
 	return {"attack":attack,
 		"magic":bool(keyboard.get(KEY_X,false)) or bool(buttons.get(JOY_BUTTON_X,false)),
-		"start":bool(buttons.get(JOY_BUTTON_GUIDE if wii else JOY_BUTTON_START,false))}
+		"start":bool(buttons.get(JOY_BUTTON_START,false)) or (wii and bool(buttons.get(JOY_BUTTON_GUIDE,false)))}
 
 func _physics_process(delta: float) -> void:
 	step(delta)
@@ -163,9 +188,14 @@ func step(delta: float) -> void:
 	message_time = maxf(0,message_time-delta)
 	_end_guard = maxf(0,_end_guard-delta)
 	var start_pressed := false
+	var confirm_pressed := false
 	for id: int in heroes:
 		var act := actions(id)
 		var previous: Dictionary = _action_previous.get(id,{})
+		if not act.get("attack",false): _confirm_armed[id] = true
+		var queued_confirm: bool = service.consume_jump(id)
+		var confirm_edge: bool = (queued_confirm or (act.get("attack",false) and not previous.get("attack",false))) and _confirm_armed.get(id,false)
+		confirm_pressed = confirm_pressed or confirm_edge
 		var magic_edge: bool = act.get("magic",false) and not previous.get("magic",false)
 		var start_edge: bool = act.get("start",false) and not previous.get("start",false)
 		start_pressed = start_pressed or start_edge
@@ -173,11 +203,16 @@ func step(delta: float) -> void:
 			if magic_edge: cycle_class(id)
 		elif phase == "playing" and magic_edge: cast_magic(id)
 		_action_previous[id] = act
-	if start_pressed and not help:
-		if phase == "lobby": start()
+	if not help and (start_pressed or (confirm_pressed and phase in ["lobby","paused","defeat"])):
+		if phase == "lobby":
+			start()
+			# Starting never consumes a potion or fires a stray projectile.
+			return
 		elif phase in ["complete","defeat"]:
 			if _end_guard<=0: reset_level()
 		else: toggle_pause()
+	if confirm_pressed and phase == "complete" and _end_guard<=0:
+		return_to_library()
 	if phase != "playing": return
 	elapsed += delta
 	for id: int in heroes:
@@ -195,6 +230,7 @@ func step(delta: float) -> void:
 		if actions(id).get("attack",false) and hero.cooldown<=0:
 			fire(hero)
 		collect(hero)
+		try_exit(hero)
 	_flow_clock -= delta
 	if _flow_clock<=0:
 		build_flow()
@@ -269,10 +305,10 @@ func collect(hero: Dictionary) -> void:
 				# A feast heals every living hero; supplies scale fairly to sixteen players.
 				var hungry := false
 				for ally: Dictionary in heroes.values():
-					if ally.hp>0 and ally.hp<Level.CLASSES[ally.hero_class].health-5: hungry = true
+					if ally.hp>0 and not ally.escaped and ally.hp<Level.CLASSES[ally.hero_class].health-5: hungry = true
 				if not hungry: continue
 				for ally: Dictionary in heroes.values():
-					if ally.hp>0: ally.hp = minf(Level.CLASSES[ally.hero_class].health,ally.hp+220)
+					if ally.hp>0 and not ally.escaped: ally.hp = minf(Level.CLASSES[ally.hero_class].health,ally.hp+220)
 				announce("FOOD! THE PARTY RECOVERS 220 HEALTH")
 		pickups.remove_at(i)
 		sound.effect("pickup")
@@ -397,7 +433,7 @@ func damage_generator(generator: Dictionary, amount: float) -> void:
 		score += 1000
 		sound.effect("destroy")
 		announce("GENERATOR DESTROYED · %d / 4" % destroyed())
-		if destroyed()==4: announce("THE EXIT IS OPEN! BRING EVERY SURVIVING HERO.")
+		if destroyed()==4: announce("ALL GENERATORS DESTROYED! BONUS SECURED. HEAD FOR THE EXIT.")
 
 func destroyed() -> int:
 	return generators.filter(func(g): return g.hp<=0).size()
@@ -420,23 +456,48 @@ func update_revives(delta: float) -> void:
 			announce("PLAYER %02d IS BACK IN THE FIGHT" % hero.id)
 			sound.effect("pickup")
 
-func check_finish(delta: float) -> void:
-	if heroes.is_empty(): return
-	var active := living()
-	if active.is_empty():
+func escaped_count() -> int:
+	return heroes.values().filter(func(h): return h.escaped).size()
+
+func try_exit(hero: Dictionary) -> void:
+	if hero.escaped or hero.hp<=0 or hero.pos.distance_to(Level.EXIT)>30: return
+	# Keep a rescuer inside if a teammate is down; nobody is silently left behind.
+	if living().size()==1:
+		for ally: Dictionary in heroes.values():
+			if not ally.escaped and ally.hp<=0:
+				if message_time<=0 or not message.begins_with("REVIVE PLAYER"): announce("REVIVE PLAYER %02d BEFORE THE LAST HERO EXITS" % ally.id)
+				return
+	hero.escaped = true
+	hero.exit_at = clock
+	hero.pos = Level.EXIT
+	score += 1000
+	sound.effect("pickup")
+	burst(Level.EXIT,Color("84f5d1"))
+	announce("PLAYER %02d ESCAPED!  %d / %d SAFE" % [hero.id,escaped_count(),heroes.size()])
+	_flow_clock = 0
+
+func check_finish(_delta: float) -> void:
+	if heroes.is_empty() or phase!="playing": return
+	for hero: Dictionary in heroes.values(): try_exit(hero)
+	if escaped_count()==heroes.size():
+		phase = "complete"
+		_end_guard = 0.8
+		return_countdown = 6.0
+		_confirm_armed.clear()
+		sound.effect("win")
+	elif living().is_empty():
 		phase = "defeat"
 		_end_guard = 0.8
 		sound.effect("defeat")
-		return
-	var gathered := destroyed()==4
-	for hero: Dictionary in active:
-		if hero.pos.distance_to(Level.EXIT)>65: gathered = false
-	exit_time = exit_time+delta if gathered else 0.0
-	if exit_time>=1.5:
-		phase = "complete"
-		_end_guard = 0.8
-		score += active.size()*1000
-		sound.effect("win")
+
+func return_to_library() -> void:
+	if close_on_finish: get_tree().quit()
+
+func _process(delta: float) -> void:
+	if phase=="complete":
+		return_countdown = maxf(0,return_countdown-delta)
+		if return_countdown<=0: return_to_library()
+	if is_instance_valid(board): board.queue_redraw()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and phase == "playing":
