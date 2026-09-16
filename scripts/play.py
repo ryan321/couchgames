@@ -4,23 +4,27 @@ import argparse
 import subprocess
 import sys
 
-from godot_tools import ROOT, resolve_godot
+from godot_tools import ROOT, godot_environment, resolve_godot
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--godot", help="Explicit executable or macOS .app")
+    parser.add_argument("--wii", action="store_true", help="Enable experimental SDL Wii/Remote Plus/Nunchuk/Classic/Wii U Pro input (pairing required)")
     args = parser.parse_args()
     executable = resolve_godot(args.godot)
+    environment = godot_environment(args.wii)
+    if args.wii:
+        print("Experimental Wii input enabled. Pair controllers with the computer; press F3 for profiles. See docs/wii-controllers.md.", flush=True)
     # Cold checkouts need an import pass before running scripts/resources.
     imported = subprocess.run(
         [executable, "--headless", "--editor", "--path", str(ROOT / "sdk"), "--quit"],
-        text=True, capture_output=True, timeout=60,
+        text=True, capture_output=True, timeout=60, env=environment,
     )
     if imported.returncode or "ERROR:" in imported.stderr:
         print(imported.stdout + imported.stderr, file=sys.stderr)
         return 1
-    return subprocess.call([executable, "--path", str(ROOT / "sdk")], cwd=ROOT)
+    return subprocess.call([executable, "--path", str(ROOT / "sdk")], cwd=ROOT, env=environment)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ extends Node
 
 const RuntimeCheck = preload("res://addons/couchgames/runtime_check.gd")
 const PlayerInput = preload("res://addons/couchgames/player_input.gd")
+const NativeWii = preload("res://addons/couchgames/native_wii.gd")
 
 var runtime_status: Dictionary = {}
 var input: PlayerInput
@@ -15,6 +16,12 @@ func _enter_tree() -> void:
 	input = PlayerInput.new()
 	input.name = "PlayerInput"
 	add_child(input)
+	var native_state := OS.get_environment("COUCH_WII_NATIVE_STATE")
+	if native_state.is_absolute_path():
+		var reader := NativeWii.new()
+		reader.service = input
+		reader.state_path = native_state
+		add_child(reader)
 
 
 func is_runtime_supported() -> bool:

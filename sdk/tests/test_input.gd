@@ -1,6 +1,7 @@
 extends SceneTree
 ## Synthetic mapped events test SDK routing, not Bluetooth/USB hardware.
 
+const DEVICE_OFFSET := 100
 const PlayerInput = preload("res://addons/couchgames/player_input.gd")
 var failures := 0
 var checks := 0
@@ -20,7 +21,7 @@ func _run() -> void:
 		button(device, JOY_BUTTON_A, true)
 	expect(service.players.size() == 16, "All sixteen controller slots join")
 	button(16, JOY_BUTTON_A, true)
-	expect(service.players.size() == 16 and service.player_for_device(16) == 0, "A seventeenth device cannot steal a slot")
+	expect(service.players.size() == 16 and service.player_for_device(DEVICE_OFFSET + 16) == 0, "A seventeenth device cannot steal a slot")
 	for device in 16:
 		axis(device, JOY_AXIS_LEFT_X, 1.0)
 		button(device, JOY_BUTTON_A, false)
@@ -36,42 +37,38 @@ func _run() -> void:
 	expect(is_equal_approx(service.movement(1).length(), 1.0), "Diagonal movement is bounded")
 	button(1, JOY_BUTTON_DPAD_LEFT, true)
 	expect(service.movement(2) == Vector2.LEFT, "Mapped D-pad works")
-	service.device_connection_changed(0, false)
+	service.device_connection_changed(DEVICE_OFFSET + 0, false)
 	expect(service.movement(1) == Vector2.ZERO and not service.consume_jump(1), "Disconnect clears held actions")
-	expect(service.players.size() == 16 and not service.players[1]["connected"], "Disconnect reserves the character")
+	expect(service.players.size() == 15 and not service.players.has(1), "Disconnect immediately frees the player slot")
+	expect(service.player_for_device(DEVICE_OFFSET + 0) == 0, "Disconnect removes device ownership")
+	service.device_connection_changed(DEVICE_OFFSET + 0, true)
+	expect(service.players.size() == 15, "Connecting alone does not create a character")
+	button(50, JOY_BUTTON_START, true)
+	expect(service.player_for_device(DEVICE_OFFSET + 50) == 0, "Display shortcut cannot create an extra player")
 	button(0, JOY_BUTTON_A, true)
-	expect(service.pending_claims.has(0) and service.player_for_device(0) == 0, "Reused device ID must explicitly reclaim")
-	button(0, JOY_BUTTON_A, true)
-	expect(service.player_for_device(0) == 1, "Explicit confirmation reclaims original character")
-	service.device_connection_changed(0, false)
-	service.device_connection_changed(1, false)
+	expect(service.player_for_device(DEVICE_OFFSET + 0) == 1 and service.players.size() == 16, "One button rejoins the free slot")
+	expect(service.movement(1) == Vector2.ZERO and not service.consume_jump(1), "Rejoining starts with fresh input")
+	service.device_connection_changed(DEVICE_OFFSET + 0, false)
+	service.device_connection_changed(DEVICE_OFFSET + 1, false)
 	button(30, JOY_BUTTON_A, true)
-	button(30, JOY_BUTTON_DPAD_RIGHT, true)
-	expect(service.claim_selection(30) == 2, "Identical controllers can choose the correct reserved slot")
-	button(32, JOY_BUTTON_A, true)
-	button(32, JOY_BUTTON_DPAD_RIGHT, true)
-	button(30, JOY_BUTTON_A, true)
-	expect(service.player_for_device(30) == 2 and not service.players[1]["connected"], "Reclaim does not capture a different disconnected player")
-	button(32, JOY_BUTTON_A, true)
-	expect(service.claim_selection(32) == -1 and service.player_for_device(32) == 0,
-		"Concurrent claim does not silently switch to a different reserved character")
-	button(32, JOY_BUTTON_B, true)
-	service.leave(16)
 	button(31, JOY_BUTTON_A, true)
-	button(31, JOY_BUTTON_DPAD_RIGHT, true)
-	expect(service.claim_selection(31) == 0, "New player is an explicit alternative to reclaim")
-	button(31, JOY_BUTTON_A, true)
-	expect(service.player_for_device(31) == 16, "New player fills only an unreserved slot")
+	expect(service.players.size() == 16 and service.player_for_device(DEVICE_OFFSET + 30) == 1 and service.player_for_device(DEVICE_OFFSET + 31) == 2,
+		"New device IDs reuse only vacant slots")
+	expect(service.player_for_device(DEVICE_OFFSET + 2) == 3, "Other players keep their assignments")
+	for cycle in 5:
+		service.device_connection_changed(DEVICE_OFFSET + 30, false)
+		service.device_connection_changed(DEVICE_OFFSET + 30, false)
+		expect(service.players.size() == 15, "Repeated disconnect notifications do not remove other players")
+		button(30, JOY_BUTTON_A, true)
+		expect(service.players.size() == 16 and service.player_for_device(DEVICE_OFFSET + 30) == 1, "Reconnect cycles do not accumulate ghost players")
 	service.clear_actions()
 	for id: int in service.players:
 		expect(service.movement(id) == Vector2.ZERO and not service.consume_jump(id), "Focus loss cannot leave stuck actions")
-	button(30, JOY_BUTTON_B, true)
+	button(31, JOY_BUTTON_B, true)
 	service._physics_process(1.3)
 	expect(not service.players.has(2), "Hold east face button releases a slot")
 	# Keyboard is opt-in, occupies one of the same sixteen slots, and is isolated.
 	service.keyboard_enabled = true
-	key(KEY_ENTER, true)
-	key(KEY_RIGHT, true) # Select new player instead of the remaining reserved slot.
 	key(KEY_ENTER, true)
 	expect(service.player_for_device(PlayerInput.KEYBOARD_DEVICE) == 2, "Keyboard joins a free slot")
 	key(KEY_W, true)
@@ -89,7 +86,7 @@ func _run() -> void:
 
 func button(device: int, index: int, pressed: bool) -> void:
 	var event := InputEventJoypadButton.new()
-	event.device = device
+	event.device = DEVICE_OFFSET + device
 	event.button_index = index
 	event.pressed = pressed
 	service.handle_event(event)
@@ -97,7 +94,7 @@ func button(device: int, index: int, pressed: bool) -> void:
 
 func axis(device: int, index: int, value: float) -> void:
 	var event := InputEventJoypadMotion.new()
-	event.device = device
+	event.device = DEVICE_OFFSET + device
 	event.axis = index
 	event.axis_value = value
 	service.handle_event(event)

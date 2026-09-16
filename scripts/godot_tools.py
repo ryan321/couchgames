@@ -1,9 +1,24 @@
 """Select an installed supported engine through the platform's own doctor."""
 import json
+import os
 from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def godot_environment(wii=False):
+    """Enable the experimental Wii driver only for the child engine process."""
+    environment = os.environ.copy()
+    if wii:
+        environment["SDL_JOYSTICK_HIDAPI_WII"] = "1"
+        # Godot 4.7.2's SDL maps the bare Remote D-pad to a nonexistent hat.
+        # Supply button mappings only for Nintendo's two Remote HIDAPI IDs.
+        # Preserve caller mappings, with their entries last so they take priority.
+        mappings = (ROOT / "sdk/addons/couchgames/wii_sdl_mappings.txt").read_text()
+        mappings = "\n".join(line for line in mappings.splitlines() if line and not line.startswith("#"))
+        environment["SDL_GAMECONTROLLERCONFIG"] = mappings + "\n" + environment.get("SDL_GAMECONTROLLERCONFIG", "")
+    return environment
 
 
 def resolve_godot(override=None):

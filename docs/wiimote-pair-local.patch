@@ -1,0 +1,18 @@
+--- a/WiimotePair/ViewController.m
++++ b/WiimotePair/ViewController.m
+@@ -834,0 +835,2 @@
++    // Couch Games local diagnostic patch: serialize duplicate discovery callbacks.
++    if (_devicePair != nil || _pairedDevice != nil) { return; }
+@@ -858,0 +861,2 @@
++    [self transitionToState:WiimoteConnectionStateConnecting];
++    [self setConnectionStatus:@"Bluetooth: starting one pairing attempt"];
+@@ -869 +873 @@
+-    if (!aborted && _pairedDevice == nil) {
++    if (!aborted && _pairedDevice == nil && _devicePair == nil) {
+@@ -877,0 +882,3 @@
++    if (sender != _devicePair) { return; }
++    [self setConnectionStatus:@"Bluetooth: binary PIN callback received"];
++    NSLog(@"CouchPair: binary PIN callback received");
+@@ -899,0 +907,2 @@
++    if (sender != _devicePair) { return; }
++    NSLog(@"CouchPair: pairing completed with status %u", (unsigned)error);

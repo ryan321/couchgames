@@ -1,0 +1,7 @@
+# Godot 4.7.2 / SDL 3.2.28: bare Wii Remote D-pad is buttons 11–14, not hat 0.
+# GUID: bus USB/Bluetooth, Nintendo 057e, product 0306/0330, HIDAPI h, no extension 80.
+# CRC/version-independent matching is supplied by SDL. Do not apply to OS raw devices.
+030000007e0500000603000000006880,Nintendo Wii Remote,a:b0,b:b1,x:b2,y:b3,back:b4,guide:b5,start:b6,dpup:b11,dpdown:b12,dpleft:b13,dpright:b14,
+050000007e0500000603000000006880,Nintendo Wii Remote,a:b0,b:b1,x:b2,y:b3,back:b4,guide:b5,start:b6,dpup:b11,dpdown:b12,dpleft:b13,dpright:b14,
+030000007e0500003003000000006880,Nintendo Wii Remote Plus,a:b0,b:b1,x:b2,y:b3,back:b4,guide:b5,start:b6,dpup:b11,dpdown:b12,dpleft:b13,dpright:b14,
+050000007e0500003003000000006880,Nintendo Wii Remote Plus,a:b0,b:b1,x:b2,y:b3,back:b4,guide:b5,start:b6,dpup:b11,dpdown:b12,dpleft:b13,dpright:b14,

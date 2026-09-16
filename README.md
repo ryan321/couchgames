@@ -5,6 +5,7 @@ A controller-first platform for playing and privately sharing Godot games on you
 - [Product vision](PRODUCT.md)
 - [Technical architecture and stack](TECH_STACK.md)
 - [V1 implementation plan](IMPLEMENTATION_PLAN.md)
+- [Multiplayer design: LAN and managed online relaying](docs/multiplayer.md)
 - [Package manifest schema](schemas/manifest.schema.json)
 
 ## Current implementation
@@ -35,8 +36,14 @@ The script uses `couch doctor` to find a supported installed Godot, imports the 
 - Pair wireless Xbox or PlayStation controllers to the **computer**, then press **A / Cross** to join.
 - Use the **left stick or D-pad** to move; **A / Cross** jumps. Hold **B / Circle** for 1.25 seconds to leave.
 - Keyboard: **Enter** joins, **WASD / arrows** move, **Space** jumps, and **Backspace** leaves. The keyboard consumes one player slot.
-- **F11** toggles fullscreen; **F3** shows detected controller names, IDs, and mapping status.
-- A disconnected character remains reserved. Press a face button, select a slot with D-pad left/right, then press A / Cross to reclaim it; choose “New player” to use a free slot. Keyboard reclaim uses arrows and Enter.
+- The game opens maximized with a 16:9 layout. **F11**, Xbox **Menu (☰)**, PlayStation **Options**, or the on-screen button toggles fullscreen; **F3** shows controller diagnostics. Fullscreen returns to the previous window mode.
+- For a compatible Roku TV, use macOS AirPlay to share just the game window. See [TV display and window sharing](docs/tv-display.md).
+- Disconnecting a controller removes its character and frees the slot immediately. Reconnect and press A / Cross once to join again; other players keep their characters.
+
+For experimental Wii Remote/Remote Plus, Nunchuk, Classic/Classic Pro, and Wii U Pro profiles, run `python3 scripts/play.py --wii`. F3 includes per-device layout selection. Physical Wii pairing and play remain unverified; see [Wii setup and coverage](docs/wii-controllers.md).
+
+The tested `Nintendo RVL-CNT-01` variant (`04e8:7021`) needs our native macOS reader. After closing the current game and standalone probe, use **`python3 scripts/play_wii_native.py`**. It builds the small reader with the existing Xcode compiler if needed, launches the reader and game together, and cleans up the reader on exit. One Wii Remote was physically verified for movement/jumping; other Wii variants and multiple native Remotes remain unverified. The native path currently supports one Remote alongside the regular SDK player slots.
+
 
 See [the game README](sdk/examples/little_world/README.md) and [wireless setup and hardware tests](docs/controller-test-matrix.md). The software supports sixteen slots. Physical wireless compatibility and simultaneous controller counts still need testing on the listed hardware.
 
@@ -129,7 +136,7 @@ scripts/test_sdk.py         explicit SDK checks using our own Godot discovery
 migrations/sqlite/         embedded, checksummed SQLx migrations
 schemas/                   JSON Schema for creator/agent tooling
 tests/fixtures/package/    tiny non-playable package fixture
-.github/workflows/         Rust checks; no Godot installation
+.github/workflows/         manually dispatched Rust checks; no automatic triggers
 ```
 
 Schema validation is useful for editor feedback. The Rust validator also enforces cross-field rules such as player-count ordering and unique artifact targets/filenames, and verifies actual content bytes.
@@ -142,6 +149,8 @@ cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-Rust tests use temporary directories, synthetic content, and test executables. They do not install Godot, run games, need a database server, or access cloud services. CI is configured to run the same checks on Windows, macOS, and Linux; Linux is a development/test environment, not a declared V1 game target. `scripts/test_sdk.py` is a separate explicit check that runs GDScript in an already-installed supported engine.
+Rust tests use temporary directories, synthetic content, and test executables. They do not install Godot, run games, need a database server, or access cloud services. The manually dispatched GitHub Actions workflow runs the same checks on Windows, macOS, and Linux; Linux is a development/test environment, not a declared V1 game target. `scripts/test_sdk.py` is a separate explicit check that runs GDScript in an already-installed supported engine.
 
 The source sample has rendered and passed scene/physics checks on macOS ARM64. Shared-PCK runtime execution, other graphics/OS targets, physical controller hardware, and sandbox validation remain required before distribution is ready.
+
+GitHub Actions runs only through **workflow_dispatch** (manual invocation). Pushes and pull requests do not start workflows.

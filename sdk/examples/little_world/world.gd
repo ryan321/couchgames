@@ -12,8 +12,10 @@ var camera: Camera3D
 var _input_service: Node
 var _count: Label
 var _join: Label
-var _claims: Label
-var _diagnostics: Label
+var _diagnostics: PanelContainer
+var _diagnostic_rows: VBoxContainer
+var _fullscreen_button: Button
+var _previous_window_mode := DisplayServer.WINDOW_MODE_MAXIMIZED
 var _slots: Array[Label] = []
 var _flag: MeshInstance3D
 var _elapsed := 0.0
@@ -42,8 +44,22 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_diagnostics.visible = not _diagnostics.visible
 		_refresh_ui()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
-		var fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if fullscreen else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		_toggle_fullscreen()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_START:
+		_toggle_fullscreen()
+		get_viewport().set_input_as_handled()
+
+
+func _toggle_fullscreen() -> void:
+	var mode := DisplayServer.window_get_mode()
+	if mode in [DisplayServer.WINDOW_MODE_FULLSCREEN, DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]:
+		DisplayServer.window_set_mode(_previous_window_mode)
+	else:
+		_previous_window_mode = mode
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 
 func _build_world() -> void:
@@ -159,7 +175,7 @@ func _build_ui() -> void:
 	_count = _label("00 / 16 PLAYERS", 30, Color("294d56"))
 	_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	status.add_child(_count)
-	var connection := _label("Xbox + PlayStation  ·  wireless or USB", 18, Color("50777b"))
+	var connection := _label("Xbox + PlayStation · Wii experimental", 18, Color("50777b"))
 	status.add_child(connection)
 	_join = _label("Press A / Cross to join\nKeyboard: press Enter", 25, Color("365d64"))
 	_join.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -167,12 +183,29 @@ func _build_ui() -> void:
 	var pairing := _label("Pair in your computer's Bluetooth settings.", 18, Color("50777b"))
 	pairing.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	status.add_child(pairing)
-	_claims = _label("", 22, Color("294d56"))
-	_claims.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	_claims.position = Vector2(55, 205)
-	root.add_child(_claims)
-	_diagnostics = _label("", 18, Color("294d56"))
-	_diagnostics.position = Vector2(55, 235)
+	_fullscreen_button = Button.new()
+	_fullscreen_button.text = "Fullscreen · F11 / Menu / Options"
+	_fullscreen_button.focus_mode = Control.FOCUS_NONE
+	_fullscreen_button.add_theme_font_size_override("font_size", 19)
+	_fullscreen_button.custom_minimum_size.y = 42
+	_fullscreen_button.pressed.connect(_toggle_fullscreen)
+	status.add_child(_fullscreen_button)
+	_diagnostics = PanelContainer.new()
+	_diagnostics.position = Vector2(55, 220)
+	_diagnostics.custom_minimum_size = Vector2(1100, 420)
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("edf0de")
+	panel_style.set_content_margin_all(18)
+	panel_style.set_corner_radius_all(12)
+	_diagnostics.add_theme_stylebox_override("panel", panel_style)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(1064, 384)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_diagnostics.add_child(scroll)
+	_diagnostic_rows = VBoxContainer.new()
+	_diagnostic_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_diagnostic_rows.add_theme_constant_override("separation", 12)
+	scroll.add_child(_diagnostic_rows)
 	_diagnostics.visible = false
 	root.add_child(_diagnostics)
 	var bottom := VBoxContainer.new()
@@ -183,7 +216,7 @@ func _build_ui() -> void:
 	bottom.offset_bottom = -30
 	bottom.add_theme_constant_override("separation", 12)
 	root.add_child(bottom)
-	var instructions := _label("LEFT STICK / D-PAD   move       A / CROSS   jump       HOLD B / CIRCLE   leave", 23, Color("294d56"))
+	var instructions := _label("STICK / D-PAD  move     A / CROSS  jump     B / CIRCLE (hold)  leave     WII: F3 for controls", 21, Color("294d56"))
 	instructions.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bottom.add_child(instructions)
 	var grid := GridContainer.new()
@@ -198,7 +231,7 @@ func _build_ui() -> void:
 		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		grid.add_child(slot)
 		_slots.append(slot)
-	var keyboard := _label("Keyboard: WASD / arrows + Space   ·   Backspace to leave   ·   F11 fullscreen   ·   F3 controllers", 18, Color("50777b"))
+	var keyboard := _label("Fullscreen: F11 / Menu / Options   ·   Keyboard: WASD + Space   ·   Backspace to leave   ·   F3 controllers", 18, Color("50777b"))
 	keyboard.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bottom.add_child(keyboard)
 
@@ -211,7 +244,7 @@ func _refresh_ui() -> void:
 		if state["connected"]:
 			connected += 1
 	_count.text = "%02d / 16 PLAYERS" % connected
-	_join.text = "Press A / Cross to join\nKeyboard: press Enter" if _input_service.players.size() < 16 else "All 16 places taken"
+	_join.text = "Join: A / Cross · Wii Remote: 2\nKeyboard: press Enter" if _input_service.players.size() < 16 else "All 16 places taken"
 	for id in range(1, 17):
 		var slot := _slots[id - 1]
 		if _input_service.players.has(id):
@@ -221,26 +254,47 @@ func _refresh_ui() -> void:
 		else:
 			slot.text = "%02d  ·  JOIN" % id
 			slot.add_theme_color_override("font_color", Color("658186"))
-	var lines := PackedStringArray()
-	for device: int in _input_service.pending_claims:
-		var selection: int = _input_service.claim_selection(device)
-		var device_name := "Keyboard" if device == -100 else Input.get_joy_name(device)
-		if device_name.is_empty():
-			device_name = "Controller %d" % (device + 1)
-		var choice := "New player" if selection == 0 else "Reclaim player %02d" % selection
-		if selection < 0:
-			choice = "Slot taken — choose another"
-		lines.append("%s → %s" % [device_name, choice])
-	if not lines.is_empty():
-		lines.append("D-pad ← → to choose · A / Cross to confirm · B / Circle to cancel")
-	_claims.text = "\n".join(lines)
-	var diagnostics := PackedStringArray(["CONTROLLERS REPORTED BY GODOT: %d" % Input.get_connected_joypads().size()])
-	for device: int in Input.get_connected_joypads():
-		diagnostics.append("Device %d · %s · %s · Player %d" % [device, Input.get_joy_name(device),
-			"mapped" if Input.is_joy_known(device) else "unknown mapping", _input_service.player_for_device(device)])
-	_diagnostics.text = "\n".join(diagnostics)
-	_diagnostics.position.y = 235 if lines.is_empty() else 235 + _claims.get_minimum_size().y
+	_refresh_diagnostics()
 
+
+func _refresh_diagnostics() -> void:
+	if not _diagnostics.visible:
+		return
+	for child in _diagnostic_rows.get_children():
+		_diagnostic_rows.remove_child(child)
+		child.queue_free()
+	_diagnostic_rows.add_child(_label("CONTROLLERS: %d   ·   F3 to close" % Input.get_connected_joypads().size(), 24, Color("294d56")))
+	var hint := "Wii driver requested: %s · Pairing and physical Wii compatibility still need testing." % ("ON" if OS.get_environment("SDL_JOYSTICK_HIDAPI_WII") == "1" else "OFF (launch with --wii)")
+	_diagnostic_rows.add_child(_label(hint, 17, Color("50777b")))
+	for device: int in Input.get_connected_joypads():
+		_add_device_controls(device)
+
+
+func _add_device_controls(device: int) -> void:
+	var profile: Dictionary = _input_service.profile_for_device(device)
+	var heading := "Device %d · %s · Player %d" % [device, Input.get_joy_name(device), _input_service.player_for_device(device)]
+	var device_label := _label(heading, 20, Color("294d56"))
+	device_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_diagnostic_rows.add_child(device_label)
+	var identity := _label("%s · GUID: %s" % [profile["label"], Input.get_joy_guid(device)], 16, Color("50777b"))
+	identity.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_diagnostic_rows.add_child(identity)
+	var selector := OptionButton.new()
+	selector.add_theme_font_size_override("font_size", 18)
+	selector.add_item("Auto-detect controller layout")
+	selector.set_item_metadata(0, "auto")
+	for id: String in _input_service.Profiles.IDS:
+		var option: Dictionary = _input_service.Profiles.get_profile(id)
+		selector.add_item(option["label"] + (" (experimental)" if option["experimental"] else ""))
+		selector.set_item_metadata(selector.item_count - 1, id)
+		if id == _input_service.device_profile_override(device):
+			selector.select(selector.item_count - 1)
+	selector.item_selected.connect(func(index: int) -> void:
+		_input_service.set_device_profile(device, selector.get_item_metadata(index)))
+	_diagnostic_rows.add_child(selector)
+	var controls := _label(profile["prompt"], 18, Color("50777b"))
+	controls.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_diagnostic_rows.add_child(controls)
 
 func _label(text: String, size: int, color: Color) -> Label:
 	var label := Label.new()

@@ -36,7 +36,7 @@ The initial package contract is provisional until shared-runtime feasibility is 
 - [x] Staged local installation, idempotent retry, immutable-release conflict detection, and preservation of the previous active release on failure.
 - [x] CLI: `doctor`, `validate`, `install`, and `library`, with structured operational JSON output.
 - [x] Tests for invalid packages, simulated interrupted/retried installation, update failures, persistence, and CLI behavior.
-- [x] Windows/macOS/Linux CI configuration that does not install Godot; remote runs remain pending.
+- [x] Manually dispatched Windows/macOS/Linux checks that do not install Godot; push/pull-request triggers removed at user request. Remote runs remain pending.
 - [x] README with a small, explicitly non-playable fixture workflow.
 
 Unsigned local imports are developer tooling only. They do not authorize public or private distribution. This slice does not download, install, or launch a runtime.
@@ -73,7 +73,7 @@ Verification after this slice: 31 Rust tests passed on macOS ARM64, along with f
 ### 1. SDK and sixteen-player sample
 
 1. GDScript addon, `Platform` autoload, starter project, and documented API.
-2. Per-player input state; join, leave, disconnect, and reclaim-slot flow.
+2. Per-player input state; join, leave, disconnect removal, and fresh rejoin flow.
 3. Action remapping, analog dead zones, glyph fallback, and basic rumble.
 4. Controller-driven menus, pause, TV-safe layout, and quit-to-platform.
 5. Asynchronous local save/load with explicit errors, atomic replacement, and schema migration hooks.
@@ -85,15 +85,22 @@ Verification after this slice: 31 Rust tests passed on macOS ARM64, along with f
 - [x] A 3D island with original procedural characters, steps, platforms, a shared camera, movement, jumping, and fall recovery.
 - [x] Sixteen player slots in the SDK, package validator, and JSON Schema.
 - [x] Device-isolated left-stick/D-pad movement, radial dead zone, and mapped south-button jump (Xbox A / PlayStation Cross).
-- [x] Join, hold-to-leave, reserve on disconnect, and explicit slot selection on reconnect; keyboard fallback uses one of the same sixteen slots.
+- [x] Join, hold-to-leave, immediate character/slot removal on disconnect, and one-button rejoin; keyboard fallback uses one of the same sixteen slots.
 - [x] Clear held input on focus loss/disconnect; normalize diagonal movement.
 - [x] Source-project launch through the platform's installed-engine discovery; no export template downloads.
 - [x] Engine-backed synthetic routing tests and actual scene/physics tests; rendered visual inspection on this Mac.
 - [x] Wireless setup instructions and a hardware test matrix with untested cases marked pending.
+- [x] Maximized startup, 16:9 scaling, and keyboard/controller/button fullscreen toggle; native maximized → fullscreen → maximized verified on this Mac.
+- [x] Roku/AirPlay window-sharing instructions using the existing OS flow. Actual TV compatibility, window selection, and latency still need a physical test.
+- [x] Experimental Wii family action profiles, per-device F3 layout selection, explicit SDL driver startup, and scoped bare-Remote D-pad mappings; 53 synthetic profile assertions pass.
+- [x] Install and open the small Wii pairing helper on this Mac after the Remote Plus hit the standard Bluetooth PIN prompt; archive digest and bundle signature checked. Release, local diagnostic, and game-closed pairing attempts failed; Bluetooth compatibility is a recorded blocker for this Mac/Remote Plus setup.
+- [x] User-confirmed movement/jump with one `04e8:7021` Remote via the native macOS report reader. Saved `play_wii_native.py` with private session state and SDK input expiry handling; broader hardware coverage remains pending.
+- [ ] Physical Wii Remote/Plus, Nunchuk, Classic/Pro, and Wii U Pro pairing, driver mapping, reconnect, and mixed-controller tests; integrate verified setup into the desktop host.
+- [ ] Specialty Wii accessories, GameCube adapters, Wii U GamePad connection path, motion/IR APIs, and third-party variants. Track individually in `docs/wii-controllers.md`.
 - [ ] Physical wireless Xbox, PlayStation, and mixed-controller sessions at 1, 2, 4, 8, and 16 players.
 - [ ] Full pause/menu, remapping, haptics, persistence, host lifecycle, and packaged launch.
 
-Verified locally on macOS ARM64: 32 Rust tests, formatting, Clippy, eight runtime checks, 547 synthetic input assertions, and 25 headless scene/physics assertions passed. A rendered run passed the same scene tests plus screenshot capture. This validates source-game behavior, not physical wireless connections or a packaged distribution runtime.
+Verified locally on macOS ARM64: 32 Rust tests, formatting, Clippy, eight runtime checks, 557 synthetic input assertions, 53 Wii profile assertions, 16 native-reader assertions, and 31 headless scene/physics assertions passed. A rendered run passed the same scene tests plus screenshot capture. This validates source-game behavior, not physical wireless connections or a packaged distribution runtime.
 
 ### 2. Desktop library and runtime management
 
@@ -130,8 +137,17 @@ Verified locally on macOS ARM64: 32 Rust tests, formatting, Clippy, eight runtim
 
 Run Rust formatting, tests, and Clippy locally. Cover actual package corruption, path containment, idempotency, conflicting immutable releases, database persistence, and failed updates. Use subprocess tests for the CLI contract and failure exit codes.
 
-CI repeats engine-independent checks on Windows and macOS. Add headless Godot checks only in an explicitly separate workflow once a runtime is selected; never make local tests install an engine. Real-device testing remains necessary even after headless checks pass.
+The manually dispatched GitHub Actions workflow repeats engine-independent checks on Windows and macOS. Add headless Godot checks only in an explicitly separate workflow once a runtime is selected; never make local tests install an engine. Real-device testing remains necessary even after headless checks pass.
 
 ## Deferred scope
 
 Payments, public discovery, cloud saves, online multiplayer infrastructure, custom streaming, additional engines, and marketplace recommendations remain outside this first V1 build sequence.
+
+### Multiplayer workstream — documented, implementation pending
+
+See [Multiplayer: LAN and managed online relaying](docs/multiplayer.md). Online servers forward messages; a player's computer owns game simulation. Scheduling this work does not change the V1 exit criteria above.
+
+- [ ] Session roster and LAN Little World proof: two computers, two players each, independent views.
+- [ ] Authenticated online room and relay prototype with bounded routing and queues.
+- [ ] Real-network latency, transport, controller, cross-OS, and sandbox qualification.
+- [ ] Reusable SDK templates, usage metering, and a measured monthly developer-service proposal.

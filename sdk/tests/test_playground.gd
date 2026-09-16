@@ -3,6 +3,8 @@ extends SceneTree
 
 var failures := 0
 var checks := 0
+# Keep synthetic dispatch separate from controllers used during live dogfooding.
+const DEVICE_OFFSET := 100
 
 
 func _initialize() -> void:
@@ -44,14 +46,31 @@ func _run() -> void:
 	first.position.y = -9.0
 	await frames(3)
 	expect(first.position.distance_to(first.spawn) < 0.2, "Falling respawns at the player's own spawn")
-	service.device_connection_changed(0, false)
+	service.device_connection_changed(DEVICE_OFFSET, false)
 	axis(0, 1.0)
 	expect(service.movement(1) == Vector2.ZERO, "A disconnected device cannot keep moving")
-	button(40, true)
-	button(40, false)
+	await frames(2)
+	expect(world.characters.size() == 15 and not world.characters.has(1), "Disconnect removes the character from the scene")
+	expect(not is_instance_valid(first), "Disconnected character node is freed")
+	expect(world.characters[2] == second, "Disconnect leaves other characters untouched")
 	button(40, true)
 	await frames(2)
-	expect(service.player_for_device(40) == 1 and world.characters.size() == 16, "Reclaim keeps the existing character")
+	expect(service.player_for_device(DEVICE_OFFSET + 40) == 1 and world.characters.size() == 16, "One button rejoins with a fresh character")
+	# Exercise the actual layout selector callback with two synthetic device rows.
+	world._diagnostics.visible = true
+	world._refresh_ui()
+	world._add_device_controls(DEVICE_OFFSET + 40)
+	world._add_device_controls(DEVICE_OFFSET + 1)
+	var selectors: Array[OptionButton] = []
+	for child in world._diagnostic_rows.get_children():
+		if child is OptionButton:
+			selectors.append(child)
+	selectors[-2].item_selected.emit(2) # Auto, standard, Wii Remote.
+	expect(service.device_profile_override(DEVICE_OFFSET + 40) == "wii_remote", "UI selector updates its own device")
+	expect(service.device_profile_override(DEVICE_OFFSET + 1) == "auto", "UI selector leaves the other device alone")
+	service.set_device_profile(DEVICE_OFFSET + 40, "auto")
+	expect(world.characters.size() == 16 and world.characters[2] == second, "Changing profiles preserves active characters")
+	world._diagnostics.visible = false
 	# Optional rendered capture is for visual inspection, separate from headless tests.
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--capture="):
@@ -72,7 +91,7 @@ func frames(count: int) -> void:
 
 func button(device: int, pressed: bool) -> void:
 	var event := InputEventJoypadButton.new()
-	event.device = device
+	event.device = DEVICE_OFFSET + device
 	event.button_index = JOY_BUTTON_A
 	event.pressed = pressed
 	Input.parse_input_event(event)
@@ -80,7 +99,7 @@ func button(device: int, pressed: bool) -> void:
 
 func axis(device: int, value: float) -> void:
 	var event := InputEventJoypadMotion.new()
-	event.device = device
+	event.device = DEVICE_OFFSET + device
 	event.axis = JOY_AXIS_LEFT_X
 	event.axis_value = value
 	Input.parse_input_event(event)

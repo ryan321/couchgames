@@ -136,7 +136,7 @@ Provide `addons/couchgames/`, a `Platform` autoload, reusable UI scenes, and a s
 
 Godot already supplies controller input and uses SDL 3 on desktop starting with 4.5. Build player ownership and console behavior on top of that foundation. Do not promise identical haptics or reliable controller-brand identification for every device. [Godot controller documentation](https://docs.godotengine.org/en/stable/tutorials/inputs/controllers_gamepads_joysticks.html)
 
-Device IDs belong to the current process/session. Do not persist them as player identities or assume they survive reconnects. When two identical controllers are ambiguous, ask the player to press a button to reclaim their slot.
+Device IDs belong to the current process/session. Do not persist them as player identities or assume they survive reconnects. In the current playground, disconnecting removes the player and frees the slot. Reconnecting requires a join button and assigns a fresh character to a vacant slot, leaving other players unchanged. Persistent player profiles remain future work.
 
 Global Godot input actions can combine devices. The SDK must filter input by assigned device and maintain per-player action state so Player 2 cannot accidentally control Player 1.
 
@@ -156,6 +156,8 @@ Freeze public API names after the sample game validates them. Document accepted 
 
 ### TV and controller behavior
 
+- Experimental Wii profiles cover Remote/Remote Plus, Nunchuk, Classic/Classic Pro, and Wii U Pro. Enable SDL's Wii driver and scoped bare-Remote D-pad corrections before engine startup (`scripts/play.py --wii`). Auto-detect named layouts with per-device session overrides; unknown Wii accessories do not join automatically. Physical pairing, motion/IR, specialty accessories, and future desktop-host integration remain pending. See [Wii controller design and setup](docs/wii-controllers.md).
+
 - Support one to sixteen local players. The SDK and manifest validator now accept sixteen; physical sixteen-controller wireless sessions remain a hardware acceptance requirement.
 - Target Bluetooth-capable Xbox One/Series controllers, DualShock 4, and DualSense, paired to the computer. Use Godot/SDL's mapped stick, D-pad, and face-button events for both wireless and USB input. Record tested configurations in [the controller matrix](docs/controller-test-matrix.md).
 - Provide complete controller navigation, including error dialogs and install failures.
@@ -163,7 +165,7 @@ Freeze public API names after the sample game validates them. Document accepted 
 - Restore focus and the selected library item when a game exits.
 - Test ordinary rumble, Bluetooth/USB reconnects, sleep/wake, TV resolution changes, and audio routing.
 - Connect controllers to the computer for the V1 baseline. Controller forwarding through a TV or streaming receiver depends on the external solution.
-- Support existing screen-sharing arrangements without building a streaming protocol. Publish tested setups and their limitations; do not promise every mirroring system will have acceptable latency.
+- Support existing screen-sharing arrangements without building a streaming protocol. The initial Mac/Roku path is AirPlay window sharing where supported; see [TV display instructions](docs/tv-display.md). Publish tested setups and their limitations; do not promise every mirroring system will have acceptable latency.
 
 ## 6. Local data and saves
 
@@ -415,5 +417,7 @@ Acceptance: an unfamiliar creator can follow the starter documentation to build,
 | Supported screen-sharing and controller test matrix | Milestone 4 |
 
 Defer payment processing, public discovery, cloud saves, online multiplayer services, game streaming infrastructure, other engines, and recommendation systems until the create-play-share loop works.
+
+The future [multiplayer design](docs/multiplayer.md) uses direct LAN connections and a managed online message relay, with game simulation on player-owned computers. It describes the SDK, room protocol, transport experiments, and proposed developer subscription; these are not implemented V1 capabilities.
 
 The first deliverable should be two small games sharing one installed runtime, launched from the controller-driven library, with reliable return-to-platform and local saves. Every later service should support that working experience.

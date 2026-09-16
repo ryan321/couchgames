@@ -6,6 +6,7 @@ signal player_joined(player_id: int)
 signal player_left(player_id: int)
 signal roster_changed
 
+const Profiles = preload("res://addons/couchgames/controller_profiles.gd")
 const MAX_PLAYERS := 16
 const KEYBOARD_DEVICE := -100
 const DEAD_ZONE := 0.2
@@ -13,8 +14,8 @@ const LEAVE_HOLD_SECONDS := 1.25
 
 var keyboard_enabled := false
 var players: Dictionary = {}
-var pending_claims: Dictionary = {}
 var _devices: Dictionary = {}
+var _profile_overrides: Dictionary = {}
 
 
 func _ready() -> void:
@@ -33,7 +34,7 @@ func _notification(what: int) -> void:
 func _physics_process(delta: float) -> void:
 	for id: int in players.keys():
 		var state: Dictionary = players[id]
-		if state["buttons"].get(JOY_BUTTON_B, false):
+		if state["buttons"].get(state["profile"]["leave"], false):
 			state["leave_time"] += delta
 			if state["leave_time"] >= LEAVE_HOLD_SECONDS:
 				leave(id)
@@ -51,10 +52,8 @@ func handle_event(event: InputEvent) -> void:
 	var device := event.device
 	if not _devices.has(device):
 		if event is InputEventJoypadButton and event.pressed:
-			if pending_claims.has(device):
-				_claim_event(device, event.button_index)
-			elif event.button_index in [JOY_BUTTON_A, JOY_BUTTON_X, JOY_BUTTON_Y, JOY_BUTTON_START]:
-				_request_join(device)
+			if event.button_index in profile_for_device(device)["join"]:
+				_assign(device)
 		return
 	var state: Dictionary = players[_devices[device]]
 	if event is InputEventJoypadMotion:
@@ -65,7 +64,7 @@ func handle_event(event: InputEvent) -> void:
 	else:
 		var was_pressed: bool = state["buttons"].get(event.button_index, false)
 		state["buttons"][event.button_index] = event.pressed
-		if event.button_index == JOY_BUTTON_A and event.pressed and not was_pressed:
+		if event.button_index in state["profile"]["jump"] and event.pressed and not was_pressed:
 			state["jump"] = true
 
 
@@ -77,6 +76,8 @@ func movement(player_id: int) -> Vector2:
 	var digital := Vector2(
 		float(buttons.get(JOY_BUTTON_DPAD_RIGHT, false)) - float(buttons.get(JOY_BUTTON_DPAD_LEFT, false)),
 		float(buttons.get(JOY_BUTTON_DPAD_DOWN, false)) - float(buttons.get(JOY_BUTTON_DPAD_UP, false)))
+	if state["profile"]["sideways"]:
+		digital = Vector2(digital.y, -digital.x)
 	if state["device"] == KEYBOARD_DEVICE:
 		var keys: Dictionary = state["keys"]
 		digital = Vector2(
@@ -103,6 +104,36 @@ func player_for_device(device: int) -> int:
 	return _devices.get(device, 0)
 
 
+func profile_for_device(device: int) -> Dictionary:
+	if _profile_overrides.has(device):
+		return Profiles.get_profile(_profile_overrides[device])
+	return Profiles.detect(Input.get_joy_name(device), Input.get_joy_info(device))
+
+
+func device_profile_override(device: int) -> String:
+	return _profile_overrides.get(device, "auto")
+
+
+func set_device_profile(device: int, profile_id: String) -> bool:
+	# Overrides are session-only; never associate reused device IDs with old profiles.
+	if profile_id != "auto" and profile_id not in Profiles.IDS:
+		return false
+	if profile_id == "auto":
+		_profile_overrides.erase(device)
+	else:
+		_profile_overrides[device] = profile_id
+	if _devices.has(device):
+		var id: int = _devices[device]
+		var profile := profile_for_device(device)
+		if not profile["playable"]:
+			leave(id)
+		else:
+			_clear_state(players[id])
+			players[id]["profile"] = profile
+	roster_changed.emit()
+	return true
+
+
 func leave(player_id: int) -> void:
 	if not players.has(player_id):
 		return
@@ -113,15 +144,13 @@ func leave(player_id: int) -> void:
 
 
 func device_connection_changed(device: int, connected: bool) -> void:
-	# Reused device IDs do not prove ownership. Always require an explicit claim.
-	pending_claims.erase(device)
+	# A disconnected device leaves immediately; reconnecting must join afresh.
+	if not connected:
+		_profile_overrides.erase(device)
 	if not connected and _devices.has(device):
-		var id: int = _devices[device]
-		_devices.erase(device)
-		_clear_state(players[id])
-		players[id]["connected"] = false
-		players[id]["device"] = -1
-	roster_changed.emit()
+		leave(_devices[device])
+	else:
+		roster_changed.emit()
 
 
 func clear_actions() -> void:
@@ -129,69 +158,24 @@ func clear_actions() -> void:
 		_clear_state(state)
 
 
-func claim_options() -> Array[int]:
-	var options: Array[int] = []
-	for id: int in players:
-		if not players[id]["connected"]:
-			options.append(id)
-	options.sort()
-	if players.size() < MAX_PLAYERS:
-		options.append(0) # Explicitly choose to join as a new player.
-	return options
-
-
-func claim_selection(device: int) -> int:
-	var options := claim_options()
-	var selected: int = pending_claims.get(device, -1)
-	return selected if selected in options else -1
-
-
-func _request_join(device: int) -> void:
-	var options := claim_options()
-	if options.is_empty():
-		return
-	if options.size() == 1 and options[0] == 0:
-		_assign(device, 0)
-	else:
-		pending_claims[device] = options[0]
-		roster_changed.emit()
-
-
-func _claim_event(device: int, button: int) -> void:
-	var options := claim_options()
-	if options.is_empty() or button == JOY_BUTTON_B:
-		pending_claims.erase(device)
-	elif button in [JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT]:
-		var step := 1 if button == JOY_BUTTON_DPAD_RIGHT else -1
-		var index := options.find(int(pending_claims[device]))
-		pending_claims[device] = options[0] if index < 0 else options[posmod(index + step, options.size())]
-	elif button == JOY_BUTTON_A:
-		var selected := claim_selection(device)
-		if selected >= 0:
-			pending_claims.erase(device)
-			_assign(device, selected)
-	roster_changed.emit()
-
-
-func _assign(device: int, player_id: int) -> void:
+func _assign(device: int) -> void:
 	if _devices.has(device):
 		return
-	var is_new := player_id == 0
-	if is_new:
-		for candidate in range(1, MAX_PLAYERS + 1):
-			if not players.has(candidate):
-				player_id = candidate
-				break
-	if player_id == 0 or (players.has(player_id) and players[player_id]["connected"]):
+	var player_id := 0
+	for candidate in range(1, MAX_PLAYERS + 1):
+		if not players.has(candidate):
+			player_id = candidate
+			break
+	if player_id == 0:
 		return
 	var device_name := "Keyboard" if device == KEYBOARD_DEVICE else Input.get_joy_name(device)
 	if device_name.is_empty():
 		device_name = "Controller %d" % (device + 1)
 	players[player_id] = {"device": device, "name": device_name, "connected": true,
-		"stick": Vector2.ZERO, "buttons": {}, "keys": {}, "jump": false, "leave_time": 0.0}
+		"stick": Vector2.ZERO, "buttons": {}, "keys": {}, "jump": false, "leave_time": 0.0,
+		"profile": Profiles.get_profile("gamepad") if device == KEYBOARD_DEVICE else profile_for_device(device)}
 	_devices[device] = player_id
-	if is_new:
-		player_joined.emit(player_id)
+	player_joined.emit(player_id)
 	roster_changed.emit()
 
 
@@ -201,15 +185,7 @@ func _keyboard_event(event: InputEventKey) -> void:
 		key = event.keycode
 	if not _devices.has(KEYBOARD_DEVICE):
 		if event.pressed and key in [KEY_ENTER, KEY_SPACE]:
-			if pending_claims.has(KEYBOARD_DEVICE):
-				_claim_event(KEYBOARD_DEVICE, JOY_BUTTON_A)
-			else:
-				_request_join(KEYBOARD_DEVICE)
-		elif event.pressed and pending_claims.has(KEYBOARD_DEVICE):
-			if key in [KEY_LEFT, KEY_RIGHT]:
-				_claim_event(KEYBOARD_DEVICE, JOY_BUTTON_DPAD_LEFT if key == KEY_LEFT else JOY_BUTTON_DPAD_RIGHT)
-			elif key == KEY_ESCAPE:
-				_claim_event(KEYBOARD_DEVICE, JOY_BUTTON_B)
+			_assign(KEYBOARD_DEVICE)
 		return
 	var id: int = _devices[KEYBOARD_DEVICE]
 	if key == KEY_BACKSPACE and event.pressed:

@@ -24,22 +24,31 @@ In Little World, press Xbox **A** or PlayStation **Cross** to join. Left stick/D
 
 ## Test matrix
 
-Updated September 15, 2026. “Pending” means no physical verification in this project.
+Updated September 15, 2026. The user connected two Xbox Wireless Controllers over Bluetooth on this Mac and confirmed both work in the game, including the left stick. Exact controller models and firmware have not been recorded. The updated disconnect-removal flow still needs physical confirmation. “Pending” means no physical verification of that case in this project.
 
 | Host / connection | Controller group | Counts to test | Status |
 | --- | --- | --- | --- |
-| macOS ARM64 / Bluetooth | Xbox Series / Bluetooth Xbox One | 1, 2, 4, 8, 16 | Pending |
+| macOS ARM64 / Bluetooth | Xbox Wireless Controllers (exact models unrecorded) | 1, 2 | Playable; user-reported. Updated disconnect removal pending |
+| macOS ARM64 / Bluetooth | Xbox Series / Bluetooth Xbox One | 4, 8, 16 | Pending |
 | macOS ARM64 / Bluetooth | PS5 DualSense / PS4 DualShock 4 | 1, 2, 4, 8, 16 | Pending |
 | macOS ARM64 / Bluetooth | Mixed Xbox + PlayStation | 2, 4, 8, 16 | Pending |
 | Windows / Bluetooth | Xbox, PlayStation, mixed | 1, 2, 4, 8, 16 | Pending |
 | Windows / supported Xbox receiver(s) | Xbox, plus PlayStation Bluetooth | 4, 8, 16 | Pending |
 | macOS + Windows / USB and mixed USB/Bluetooth | Xbox + PlayStation | 1, 4, 8, 16 | Pending |
 | macOS ARM64 / synthetic mapped events | Sixteen independent device IDs | 16 | SDK and scene/physics checks passed |
+| macOS ARM64 / Bluetooth | Wii Remote Plus RVL-CNT-01-TR | 1 | Standard pairing hit PIN prompt; helper 1.2.1 failed with incorrect-PIN log; release, local diagnostic build, and game-closed attempt all failed before input; PIN callback absent; compatibility unverified |
+| macOS ARM64 / Bluetooth + native reader | Nintendo RVL-CNT-01, reported 04e8:7021 | 1 | Connected with 0000; user-confirmed movement/jump via live native bridge. Saved launcher, reconnect, mixed play pending |
+| macOS + Windows / Bluetooth | Wii Remote / Remote Plus | 1, 2, 4, 8, 16 | Experimental profiles and scoped D-pad correction; physical pairing/input pending |
+| macOS + Windows / Bluetooth through Remote | Nunchuk, Classic, Classic Pro | 1, 2, mixed | Experimental profiles; physical tests pending |
+| macOS + Windows / Bluetooth | Wii U Pro | 1, 2, mixed | Experimental profile; physical tests pending |
+| macOS ARM64 / synthetic mapped events | Five Wii family profiles + mixed standard gamepad | Per-profile and mixed | 53 assertions passed; no physical Wii verification |
+
+See [Wii setup and family coverage](wii-controllers.md) for the explicit startup flag, pairing investigation, and remaining accessory work. A Wii device appearing in Bluetooth is not sufficient: record its Godot name/GUID and verify actual button/axis events.
 
 For each physical session, record OS/version, Godot version, controller model/firmware, adapter/receiver model and driver, connection type, connected count, joined count, and latency/dropouts. Distinguish a device visible in OS Bluetooth from one actually reported to Godot.
 
 1. Join every controller and confirm unique player numbers. Move and jump simultaneously; no device may affect another character.
-2. Disconnect one while moving, then two identical controllers. Their characters stop, remain reserved, and can be reclaimed in reversed reconnect order without stealing another player.
+2. Disconnect one while moving, then two identical controllers. Their characters disappear and their slots become free. Reconnect in reversed order and press A / Cross once on each: each gets a fresh character without changing other active players or accumulating inactive characters.
 3. Leave and join again; test full capacity, mixed controller brands, and a seventeenth input source.
 4. Run a sustained session, then test focus switching and computer sleep/wake. Record drift, repeat jumps, stuck buttons, disconnects, and recovery.
 5. Repeat on a TV via direct connection and one screen-sharing setup. Record readability and added input/display latency.

@@ -248,6 +248,7 @@ The SDK should handle:
 - controller detection
 - wireless Xbox controllers (Bluetooth-capable models)
 - wireless PlayStation controllers (DualShock 4 and DualSense)
+- the Wii controller family: Remote/Remote Plus, Nunchuk, Classic/Classic Pro, and Wii U Pro; track specialty accessories, GameCube adapters, and Wii U GamePad separately until their connection and input paths are implemented and tested
 - common PC controllers
 - Bluetooth controllers
 - USB controllers
@@ -279,6 +280,8 @@ The game should not care whether the player is using:
 - another compatible controller
 
 The SDK translates physical hardware into standardized game actions.
+
+Wii family support is a product target. The prototype has experimental basic-action profiles for the core controllers, with physical compatibility still pending. Motion, pointer input, and specialty accessories require additional APIs and hardware validation; see [Wii coverage](docs/wii-controllers.md).
 
 ---
 
