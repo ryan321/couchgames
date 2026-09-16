@@ -28,6 +28,7 @@ static func mesh(parent: Node3D, shape: Mesh, at: Vector3, mat: Material) -> Mes
 static func box(parent: Node3D, at: Vector3, size: Vector3, color: String, solid := false, metal := 0.0) -> MeshInstance3D:
 	var shape := beveled_box(size)
 	var node := mesh(parent, shape, at, material(color, metal))
+	if size.length()>2.0 and metal==0: node.material_override = paint_material(color)
 	if solid:
 		var body := StaticBody3D.new()
 		node.add_child(body)
@@ -121,12 +122,78 @@ static func cylinder(parent: Node3D, at: Vector3, bottom: float, top: float, hei
 	if solid: node.create_convex_collision()
 	return node
 
+static func paint_material(color: String) -> ShaderMaterial:
+	var key := "paint_"+color
+	if materials.has(key): return materials[key]
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://examples/sunbreak/shaders/paint.gdshader")
+	mat.set_shader_parameter("tint",Color(color))
+	mat.set_shader_parameter("detail_map",preload("res://examples/sunbreak/assets/rock_albedo.jpg"))
+	mat.set_shader_parameter("normal_map",preload("res://examples/sunbreak/assets/rock_normal.jpg"))
+	materials[key] = mat
+	return mat
+
+static func rock_material() -> ShaderMaterial:
+	if materials.has("rock_surface"): return materials["rock_surface"]
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://examples/sunbreak/shaders/surface.gdshader")
+	mat.set_shader_parameter("albedo_map",preload("res://examples/sunbreak/assets/rock_albedo.jpg"))
+	mat.set_shader_parameter("normal_map",preload("res://examples/sunbreak/assets/rock_normal.jpg"))
+	mat.set_shader_parameter("arm_map",preload("res://examples/sunbreak/assets/rock_arm.jpg"))
+	mat.set_shader_parameter("tint",Color("b6c4b4"))
+	materials["rock_surface"] = mat
+	return mat
+
+static func segment(parent: Node3D, from: Vector3, to: Vector3, radius: float, color: String, metal := 0.0) -> MeshInstance3D:
+	var shape := CylinderMesh.new()
+	shape.top_radius = radius*0.72
+	shape.bottom_radius = radius
+	shape.height = from.distance_to(to)
+	shape.radial_segments = 12
+	var node := mesh(parent,shape,(from+to)*0.5,material(color,metal))
+	node.quaternion = Quaternion(Vector3.UP,(to-from).normalized())
+	return node
+
+static func leaf_mesh() -> ArrayMesh:
+	var data := []
+	data.resize(Mesh.ARRAY_MAX)
+	data[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3(0,0,0),Vector3(-0.24,0.38,0.02),Vector3(0,0.45,0.12),Vector3(0,0,0),Vector3(0,0.45,0.12),Vector3(0.24,0.38,0.02),Vector3(-0.24,0.38,0.02),Vector3(0,0.82,0),Vector3(0,0.45,0.12),Vector3(0,0.45,0.12),Vector3(0,0.82,0),Vector3(0.24,0.38,0.02)])
+	var normals := PackedVector3Array()
+	for i in 12: normals.append(Vector3(0,0.3,1).normalized())
+	data[Mesh.ARRAY_NORMAL] = normals
+	var shape := ArrayMesh.new()
+	shape.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,data)
+	return shape
+
+static func foliage(parent: Node3D, count: int, tint: Color) -> MultiMeshInstance3D:
+	var result := MultiMeshInstance3D.new()
+	result.multimesh = MultiMesh.new()
+	result.multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	result.multimesh.use_custom_data = true
+	result.multimesh.mesh = leaf_mesh()
+	result.multimesh.instance_count = count
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://examples/sunbreak/shaders/foliage.gdshader")
+	mat.set_shader_parameter("base_color",tint)
+	result.material_override = mat
+	parent.add_child(result)
+	return result
+
 static func tree(parent: Node3D, at: Vector3, size: float, rng: RandomNumberGenerator) -> void:
-	var trunk := cylinder(parent, at + Vector3(0, size * 1.4, 0), size * 0.17, size * 0.1, size * 2.8, "796049", true)
-	trunk.rotation.z = rng.randf_range(-0.08, 0.08)
-	for i in 4:
-		var offset := Vector3(rng.randf_range(-0.7, 0.7), 2.7 + i * 0.35, rng.randf_range(-0.7, 0.7)) * size
-		sphere(parent, at + offset, Vector3(1.2, 0.95, 1.1) * size, ["3a8555", "559447", "79ab4a", "a1bf58"][i])
+	var trunk := cylinder(parent,at+Vector3(0,size*1.3,0),size*0.18,size*0.1,size*2.6,"645e42",true)
+	trunk.material_override = rock_material()
+	var leaves := foliage(parent,420,Color("648d32"))
+	for branch in 6:
+		var angle := branch*TAU/6+rng.randf()*0.5
+		var end := at+Vector3(cos(angle)*1.45,2.4+rng.randf()*1.1,sin(angle)*1.45)*size
+		segment(parent,at+Vector3(0,size*1.65,0),end,size*0.075,"716343")
+		for i in 70:
+			var spread := Vector3(rng.randf_range(-1,1),rng.randf_range(-0.5,0.7),rng.randf_range(-1,1))
+			var point := end+spread*size
+			var basis := Basis.from_euler(Vector3(rng.randf_range(-1.5,1.5),rng.randf()*TAU,rng.randf_range(-1.5,1.5)))
+			basis = basis.scaled(Vector3.ONE*rng.randf_range(0.65,1.25)*size)
+			leaves.multimesh.set_instance_transform(branch*70+i,Transform3D(basis,point))
+			leaves.multimesh.set_instance_custom_data(branch*70+i,Color(rng.randf(),0,0))
 
 static func building(parent: Node3D, at: Vector3, yaw: float, color: String) -> void:
 	var house := Node3D.new()
@@ -134,7 +201,7 @@ static func building(parent: Node3D, at: Vector3, yaw: float, color: String) -> 
 	house.position = at
 	house.rotation.y = yaw
 	box(house, Vector3(0, 1.7, 0), Vector3(8, 3.4, 6), color, true)
-	box(house, Vector3(0, 0.3, 0), Vector3(8.4, 0.6, 6.4), "e5d4ad", true)
+	box(house, Vector3(0, 0.3, 0), Vector3(8.4, 0.6, 6.4), "e5d4ad", true).material_override = rock_material()
 	box(house, Vector3(0, 3.35, 0), Vector3(8.5, 0.3, 6.5), "fff0cc")
 	for side in [-1, 1]:
 		var roof := box(house, Vector3(side * 2.05, 4.1, 0), Vector3(4.6, 0.24, 7), "365b69")
@@ -181,8 +248,8 @@ static func create_world(parent: Node3D) -> void:
 	env.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
 	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color("277da7")
-	sky_mat.sky_horizon_color = Color("bee5dc")
+	sky_mat.sky_top_color = Color("236c9f")
+	sky_mat.sky_horizon_color = Color("c2d2d0")
 	sky_mat.ground_horizon_color = Color("bee5dc")
 	sky_mat.sky_curve = 0.18
 	sky_mat.sun_angle_max = 6
@@ -190,7 +257,7 @@ static func create_world(parent: Node3D) -> void:
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("c5e5ff")
-	env.ambient_light_energy = 0.4
+	env.ambient_light_energy = 0.32
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.glow_enabled = true
 	env.glow_intensity = 0.45
@@ -199,11 +266,11 @@ static func create_world(parent: Node3D) -> void:
 	env.ssao_intensity = 1.3
 	env.fog_enabled = true
 	env.fog_light_color = Color("addbd9")
-	env.fog_density = 0.0018
+	env.fog_density = 0.0015
 	env_node.environment = env
 	parent.add_child(env_node)
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-42, -32, 0)
+	sun.rotation_degrees = Vector3(-32, -32, 0)
 	sun.light_color = Color("ffe6af")
 	sun.light_energy = 1.2
 	sun.shadow_enabled = true
@@ -220,6 +287,9 @@ static func create_world(parent: Node3D) -> void:
 	var island := cylinder(parent, Vector3(0, -0.6, 0), 60, 60, 1.2, "8baf4c", true)
 	var ground := ShaderMaterial.new()
 	ground.shader = preload("res://examples/sunbreak/shaders/ground.gdshader")
+	ground.set_shader_parameter("ground_color",preload("res://examples/sunbreak/assets/grass_albedo.jpg"))
+	ground.set_shader_parameter("ground_normal",preload("res://examples/sunbreak/assets/grass_normal.jpg"))
+	ground.set_shader_parameter("ground_arm",preload("res://examples/sunbreak/assets/grass_arm.jpg"))
 	island.material_override = ground
 	building(parent, Vector3(-14, 0, -9), 0.12, "e99270")
 	building(parent, Vector3(14, 0, -11), -0.18, "5dabb1")
@@ -242,30 +312,23 @@ static func create_world(parent: Node3D) -> void:
 		var at := Vector3(cos(angle) * radius, -0.15, sin(angle) * radius)
 		var rock := sphere(parent, at, Vector3(rng.randf_range(1, 3), rng.randf_range(0.5, 1.8), rng.randf_range(1, 2)), "9daaa0")
 		rock.rotation.y = angle
+		rock.material_override = rock_material()
+		rock.create_convex_collision()
+		rock.add_to_group("sunbreak_rocks")
 	for at in [Vector3(-6,0,12), Vector3(7,0,-8), Vector3(24,0,-2), Vector3(-26,0,-3), Vector3(7,0,18), Vector3(-7,0,-21)]:
 		box(parent, at + Vector3(0,0.75,0), Vector3(2.4,1.5,1.4), "678b82", true)
 		for x in [-0.85,0.85]: box(parent, at + Vector3(x,0.76,0), Vector3(0.13,1.58,1.48), "e9cc8b")
 		box(parent, at + Vector3(0,1.55,0), Vector3(2.5,0.15,1.5), "a1ba9a")
 	# Distant silhouettes and clustered clouds create depth without downloaded assets.
-	for i in 16:
-		var angle := i * TAU / 16
-		var at := Vector3(cos(angle) * 280, -18, sin(angle) * 280)
-		var peak := cylinder(parent, at, 65, 4, rng.randf_range(45, 100), "669c9e")
-		peak.rotation.y = angle
 	for i in 22:
 		var at := Vector3(rng.randf_range(-230,230), rng.randf_range(65,90), rng.randf_range(-230,230))
 		for k in 3: sphere(parent, at + Vector3(k*8, k%2*2, 0), Vector3(13,3.5,5), "f8f2dc")
-	# Small clustered grass tufts, batched in one draw call.
-	var blade := PrismMesh.new()
-	blade.size = Vector3(0.16, 0.45, 0.03)
-	var grass := MultiMeshInstance3D.new()
-	grass.multimesh = MultiMesh.new()
-	grass.multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	grass.multimesh.mesh = blade
-	grass.multimesh.instance_count = 1800
-	grass.material_override = material("8bb653")
-	parent.add_child(grass)
-	for i in 1800:
-		var at := Vector3(rng.randf_range(-50,50),0.2,rng.randf_range(-50,50))
-		if Vector2(at.x,at.z).length() > 56 or absf(at.x) < 4 or absf(at.z) < 4: at.y = -5
-		grass.multimesh.set_instance_transform(i, Transform3D(Basis(Vector3.UP,rng.randf()*TAU), at))
+	# Thousands of wind-animated leaves are batched, rather than separate scene nodes.
+	var grass := foliage(parent,36000,Color("739644"))
+	grass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for i in 36000:
+		var at := Vector3(rng.randf_range(-54,54),0,rng.randf_range(-54,54))
+		if Vector2(at.x,at.z).length()>56 or absf(at.x)<4 or absf(at.z)<4: at.y = -5
+		var basis := Basis(Vector3.UP,rng.randf()*TAU).scaled(Vector3(0.075,rng.randf_range(0.22,0.65),0.12))
+		grass.multimesh.set_instance_transform(i,Transform3D(basis,at))
+		grass.multimesh.set_instance_custom_data(i,Color(rng.randf(),0,0))

@@ -54,6 +54,7 @@ func show_menu() -> void:
 		action = game.resume_match
 	elif game.phase=="result": title = "PLAY AGAIN  →"
 	var first := button(title,action,true)
+	button("GRAPHICS: "+["PERFORMANCE","BALANCED","CINEMATIC"][game.quality],game.cycle_quality)
 	button("RETURN TO LIBRARY",func(): get_tree().quit())
 	panel.visible = true
 	first.grab_focus()

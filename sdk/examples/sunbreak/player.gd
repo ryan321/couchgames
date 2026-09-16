@@ -15,6 +15,12 @@ var aim := false
 var jump_queued := false
 var trigger_armed := false
 var pad := -1
+var jump_buffer := 0.0
+var coyote := 0.0
+var landing := 0.0
+var was_grounded := false
+var vertical_before := 0.0
+var sprinting := false
 var look_ready := false
 const LOOK_DEAD_ZONE := 0.22
 
@@ -34,28 +40,10 @@ func _ready() -> void:
 	camera.near = 0.05
 	add_child(camera)
 	camera.current = true
-	weapon = Node3D.new()
+	weapon = preload("res://examples/sunbreak/weapon.gd").new()
 	camera.add_child(weapon)
-	# A layered original pulse carbine with visible hands, rails and illuminated cells.
-	Art.box(weapon, Vector3(0,0,0),Vector3(0.16,0.18,0.48),"e3e6d6",false,0.6)
-	Art.box(weapon, Vector3(0,-0.025,-0.35),Vector3(0.12,0.12,0.3),"304953",false,0.8)
-	Art.box(weapon, Vector3(0,0.035,-0.16),Vector3(0.18,0.035,0.32),"ebad51",false,0.5)
-	Art.box(weapon, Vector3(0,-0.14,0.05),Vector3(0.09,0.24,0.12),"29444c")
-	Art.box(weapon, Vector3(0,-0.15,-0.12),Vector3(0.09,0.23,0.14),"517580",false,0.5)
-	Art.box(weapon, Vector3(0,0.14,0.02),Vector3(0.1,0.07,0.04),"2d4854")
-	Art.box(weapon, Vector3(0,0.11,-0.31),Vector3(0.025,0.04,0.025),"80f3df")
-	for i in 5: Art.box(weapon,Vector3(0,0.102,-0.2+i*0.055),Vector3(0.14,0.02,0.025),"304953")
-	for x in [-0.086,0.086]:
-		var cell := Art.box(weapon,Vector3(x,0,-0.06),Vector3(0.015,0.05,0.18),"68f9de")
-		cell.material_override = Art.material("68f9de",0.3,1.7)
-	Art.sphere(weapon,Vector3(0.06,-0.16,0.13),Vector3(0.085,0.09,0.14),"314b54")
-	Art.sphere(weapon,Vector3(-0.1,-0.11,-0.22),Vector3(0.08,0.09,0.14),"314b54")
-	Art.box(weapon,Vector3(0.08,-0.21,0.28),Vector3(0.13,0.14,0.26),"d9a26e")
-	Art.box(weapon,Vector3(-0.18,-0.18,-0.08),Vector3(0.12,0.13,0.25),"d9a26e")
-	flash = Art.sphere(weapon,Vector3(0,0,-0.55),Vector3(0.085,0.085,0.17),"b1ffee")
-	flash.material_override = Art.material("b1ffee",0,5)
-	flash.visible = false
-	weapon.position = Vector3(0.3,-0.25,-0.52)
+	flash = weapon.flash
+	weapon.position = Vector3(0.22,-0.22,-0.48)
 
 func reset() -> void:
 	position = Vector3(0,0.1,24)
@@ -64,7 +52,16 @@ func reset() -> void:
 	camera.rotation = Vector3.ZERO
 	camera.fov = 82
 	weapon.rotation = Vector3.ZERO
-	weapon.position = Vector3(0.3,-0.25,-0.52)
+	weapon.position = Vector3(0.22,-0.22,-0.48)
+	weapon.recoil_position = 0
+	weapon.recoil_velocity = 0
+	weapon.initialized = false
+	jump_buffer = 0
+	coyote = 0
+	landing = 0
+	was_grounded = false
+	camera.position.y = 1.62
+	camera.rotation.z = 0
 	health = 100
 	shield = 100
 	ammo = 30
@@ -88,10 +85,15 @@ func controller_look(raw: Vector2, delta: float) -> void:
 	if not look_ready:
 		if raw.length() <= LOOK_DEAD_ZONE: look_ready = true
 		return
-	var magnitude := raw.length()
-	if magnitude <= LOOK_DEAD_ZONE: return
-	var strength := clampf((magnitude-LOOK_DEAD_ZONE)/(1-LOOK_DEAD_ZONE),0,1)
-	look_by(raw.normalized()*strength*minf(delta,0.05)*2.4)
+	# A radial-only dead zone lets a small vertical offset through whenever X
+	# is deflected. Filter each axis so a horizontal turn cannot lift the view.
+	var filtered := Vector2(look_axis(raw.x),look_axis(raw.y)).limit_length()
+	if filtered==Vector2.ZERO: return
+	look_by(filtered*minf(delta,0.05)*2.4)
+
+func look_axis(value: float) -> float:
+	if not is_finite(value) or absf(value)<=LOOK_DEAD_ZONE: return 0.0
+	return signf(value)*clampf((absf(value)-LOOK_DEAD_ZONE)/(1-LOOK_DEAD_ZONE),0,1)
 
 func pad_axis(axis: int) -> float:
 	return Input.get_joy_axis(pad,axis) if pad >= 0 else 0.0
@@ -107,15 +109,26 @@ func tick(delta: float) -> void:
 	var look := Vector2(pad_axis(JOY_AXIS_RIGHT_X),pad_axis(JOY_AXIS_RIGHT_Y))
 	if game.control_mode=="controller": controller_look(look,delta)
 	aim = (game.control_mode=="mouse" and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)) or (game.control_mode=="controller" and pad_axis(JOY_AXIS_TRIGGER_LEFT)>0.3)
-	var sprint := (Input.is_physical_key_pressed(KEY_SHIFT) or pad_button(JOY_BUTTON_LEFT_STICK)) and not aim
+	sprinting = (Input.is_physical_key_pressed(KEY_SHIFT) or pad_button(JOY_BUTTON_LEFT_STICK)) and not aim and reload_left<=0
+	var sprint := sprinting
 	var speed := 10.5 if sprint else (3.8 if aim else 6.4)
 	var direction := basis * Vector3(move.x,0,move.y)
-	velocity.x = move_toward(velocity.x,direction.x*speed,delta*38)
-	velocity.z = move_toward(velocity.z,direction.z*speed,delta*38)
+	var acceleration := 30.0 if is_on_floor() else 9.0
+	velocity.x = move_toward(velocity.x,direction.x*speed,delta*acceleration)
+	velocity.z = move_toward(velocity.z,direction.z*speed,delta*acceleration)
 	velocity.y -= 22*delta
-	if is_on_floor() and jump_queued: velocity.y = 8.4
+	if is_on_floor(): coyote = 0.10
+	else: coyote = maxf(0,coyote-delta)
+	jump_buffer = 0.12 if jump_queued else maxf(0,jump_buffer-delta)
+	if coyote>0 and jump_buffer>0:
+		velocity.y = 8.4
+		coyote = 0
+		jump_buffer = 0
 	jump_queued = false
+	vertical_before = velocity.y
 	move_and_slide()
+	if is_on_floor() and not was_grounded: landing = clampf(-vertical_before*0.004,0,0.055)
+	was_grounded = is_on_floor()
 	if position.y < -8: hurt(1000)
 	fire_left = maxf(0,fire_left-delta)
 	if reload_left>0:
@@ -124,15 +137,14 @@ func tick(delta: float) -> void:
 	var firing: bool = (game.control_mode=="mouse" and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) or (game.control_mode=="controller" and pad_axis(JOY_AXIS_TRIGGER_RIGHT)>0.3)
 	if not firing: trigger_armed = true
 	if firing and trigger_armed: shoot()
-	recoil = move_toward(recoil,0,delta*7)
-	bob += delta * (11 if sprint else 8) * move.length()
-	var target := Vector3(0.02,-0.21,-0.45) if aim else Vector3(0.3,-0.25,-0.52)
-	target += Vector3(sin(bob)*0.008,absf(cos(bob))*0.009,recoil*0.09)
-	if reload_left>0: target.y -= sin(reload_left/1.6*PI)*0.3
-	weapon.position = weapon.position.lerp(target,1-exp(-delta*16))
-	weapon.rotation.z = sin(reload_left/1.6*PI)*-0.4
-	weapon.rotation.x = recoil*0.055
-	camera.fov = lerpf(camera.fov,58.0 if aim else (89.0 if sprint and move.length()>0 else 82.0),1-exp(-delta*9))
+	var actual_speed := Vector2(velocity.x,velocity.z).length()
+	bob += delta*actual_speed*1.7
+	landing = move_toward(landing,0,delta*0.2)
+	var moving := minf(actual_speed/6.4,1) if is_on_floor() else 0.0
+	camera.position.y = lerpf(camera.position.y,1.62+sin(bob*2)*0.009*moving-landing,1-exp(-delta*15))
+	camera.rotation.z = lerpf(camera.rotation.z,-move.x*0.009*moving,1-exp(-delta*8))
+	weapon.present(delta,Vector2(rotation.y,camera.rotation.x),actual_speed,aim,sprint and move.length()>0,reload_left,bob)
+	camera.fov = lerpf(camera.fov,64.0 if aim else (87.0 if sprint and move.length()>0 else 82.0),1-exp(-delta*8))
 	flash.visible = fire_left>0.085
 
 func reload() -> void:
@@ -148,6 +160,7 @@ func shoot() -> void:
 	ammo -= 1
 	fire_left = 0.115
 	recoil = 1
+	weapon.kick()
 	game.sound.effect("shot")
 	var origin := camera.global_position
 	var direction := -camera.global_basis.z

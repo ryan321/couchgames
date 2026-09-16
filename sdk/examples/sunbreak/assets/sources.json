@@ -1,0 +1,130 @@
+[
+  {
+    "file": "grass_albedo.jpg",
+    "source": "https://polyhaven.com/a/grass_path_2",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_path_2/grass_path_2_diff_1k.jpg",
+    "license": "CC0-1.0",
+    "bytes": 716010,
+    "sha256": "7f30b163739435c11f500f3818c7bb4922bab5f2734cc9ba6dd36817f0c9a8ab"
+  },
+  {
+    "file": "grass_normal.jpg",
+    "source": "https://polyhaven.com/a/grass_path_2",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_path_2/grass_path_2_nor_gl_1k.jpg",
+    "license": "CC0-1.0",
+    "bytes": 831959,
+    "sha256": "4f6e911619d4c79a6bc340a64eac1e5fcbae8e54ea2674ed1892f6a9a1dfb5fa"
+  },
+  {
+    "file": "grass_arm.jpg",
+    "source": "https://polyhaven.com/a/grass_path_2",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_path_2/grass_path_2_arm_1k.jpg",
+    "license": "CC0-1.0",
+    "bytes": 201977,
+    "sha256": "0fd19818f13c18ef2c3621bc91a3aeda9262a964ffed0bb20611980fceb09fe3"
+  },
+  {
+    "file": "rock_albedo.jpg",
+    "source": "https://polyhaven.com/a/rock_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_01/rock_01_diff_1k.jpg",
+    "license": "CC0-1.0",
+    "bytes": 688083,
+    "sha256": "0b5f0418eb1e686190c5d33bb54c400b1f9ed58813b5e34aa5e573a5197302b5"
+  },
+  {
+    "file": "rock_normal.jpg",
+    "source": "https://polyhaven.com/a/rock_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_01/rock_01_nor_gl_1k.jpg",
+    "license": "CC0-1.0",
+    "bytes": 798807,
+    "sha256": "7a7146f51159a7667233c2c14c34ff18a9f4374cc8869d53a1162648d0941023"
+  },
+  {
+    "file": "rock_arm.jpg",
+    "source": "https://polyhaven.com/a/rock_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_01/rock_01_arm_1k.jpg",
+    "license": "CC0-1.0",
+    "bytes": 201562,
+    "sha256": "5fe5c725468001fb13bb408c22831ba712a0d4972167ab265155cae0337e98e0"
+  },
+  {
+    "file": "characters/Superhero_Male_FullBody.gltf",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "license": "CC0-1.0",
+    "sha256": "e7fcea214ecf8855afbf910b50de6f9c7d1decfb71ca28bad8a4481452dafeb4"
+  },
+  {
+    "file": "characters/Superhero_Male_FullBody.bin",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "license": "CC0-1.0",
+    "sha256": "459003f9745853ae562a85506a2b94dd56515c1f37728f9fa3d2ce1a3e4cd92f"
+  },
+  {
+    "file": "characters/Base_Characters_License.txt",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "license": "CC0-1.0",
+    "sha256": "c232257c8a2545520aa120cda96acb23d00a355d2e3339cba20b7ebf56f28a09",
+    "original_sha256": "0f4beaf0fe360a7732e58bbe3dbf60a2422367fbea60cb9ea4add968f383268e",
+    "modification": "Normalized line endings and trailing whitespace; license text unchanged."
+  },
+  {
+    "file": "characters/T_Hair_1_Normal_png.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "license": "CC0-1.0",
+    "sha256": "57fd0ad8c96a4d01b38769637e066cecaa285b456f6e48ce00863754a457affb"
+  },
+  {
+    "file": "characters/T_Hair_1_BaseColor.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "license": "CC0-1.0",
+    "sha256": "bc7aa863bd22ab0a995cd838cceb4d3a5186ee54ee2fb0108fad85d20c057e6e"
+  },
+  {
+    "file": "characters/T_Eye_Normal_png.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "license": "CC0-1.0",
+    "sha256": "9ed61f7726a54fe346a78b9e5a18905d8e2b88f86235d97f53cd207a26f3f8c7"
+  },
+  {
+    "file": "characters/T_Eye_Brown.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "license": "CC0-1.0",
+    "sha256": "d08e3356a83211bc6ca21fe3a8e39f4b5c1a3b8f85457fc2c0fb57be09935025"
+  },
+  {
+    "file": "characters/T_Superhero_Male_Normal.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "license": "CC0-1.0",
+    "sha256": "9b25cf9200216eb754b79cf4c63b5380c419780788322f3c57cdd2b3e02679a6"
+  },
+  {
+    "file": "characters/T_Superhero_Male_Dark.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "license": "CC0-1.0",
+    "sha256": "df680cbc1967a61e85998bfafb8f7bc0a36dd604bb3266486c4b06b1a184bb45"
+  },
+  {
+    "file": "characters/T_Superhero_Male_Roughness.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "license": "CC0-1.0",
+    "sha256": "c70dabf48574cda55644d556beae1ee7cf1bdcf68a50d259d20f2f2358f27991"
+  },
+  {
+    "file": "characters/soldier_animations.glb",
+    "source": "https://quaternius.com/packs/universalanimationlibrary.html",
+    "archive_member": "Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb",
+    "license": "CC0-1.0",
+    "bytes": 7618436,
+    "sha256": "69591853d817488edaa8fd9bf8fc1d821eaeaf789f8627b3cd23b41c4ed67997"
+  },
+  {
+    "file": "characters/Animation_License.txt",
+    "source": "https://quaternius.com/packs/universalanimationlibrary.html",
+    "archive_member": "Universal Animation Library[Standard]/License.txt",
+    "license": "CC0-1.0",
+    "bytes": 332,
+    "sha256": "67e65a88def1ce573211f5cac3f514014abeface8fe48309c010491186b3a89a",
+    "original_sha256": "6d01f55c6e4c49a2c9963e147e561945ae2c83958c8ca667d90a6bffdbfac061",
+    "modification": "Normalized line endings and trailing whitespace; license text unchanged."
+  }
+]

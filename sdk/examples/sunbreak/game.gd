@@ -27,15 +27,21 @@ var banner := ""
 var victory := false
 var control_mode := "mouse"
 var rng := RandomNumberGenerator.new()
+var quality := 1
+var batched_meshes := 0
+var navigation := preload("res://examples/sunbreak/navigation.gd").new()
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	DisplayServer.window_set_title("SUNBREAK · Single-player island skirmish")
-	get_viewport().msaa_3d = Viewport.MSAA_2X
+	get_viewport().size_changed.connect(apply_render_quality)
+	apply_render_quality()
 	rng.seed = 621
 	# This game's FPS actions are local; the SDK still checks the shared runtime.
 	get_node("/root/Platform").input.set_process_input(false)
 	Art.create_world(self)
+	preload("res://examples/sunbreak/scenery.gd").dress(self)
+	batched_meshes = preload("res://examples/sunbreak/scenery.gd").batch_static(self)
 	player = Player.new()
 	player.game = self
 	add_child(player)
@@ -60,11 +66,35 @@ func _ready() -> void:
 	canvas.add_child(hud)
 	Input.joy_connection_changed.connect(_controller_connection)
 	hud.show_menu()
+	call_deferred("rebuild_navigation")
+
+func render_scale_for(dimensions: Vector2i) -> float:
+	var width: float = [1280.0,1920.0,2560.0][quality]
+	return clampf(minf(width/maxi(1,dimensions.x),width*0.5625/maxi(1,dimensions.y)),0.25,1.0)
+
+func apply_render_quality() -> void:
+	var view := get_viewport()
+	view.scaling_3d_scale = render_scale_for(get_window().size)
+	view.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR if RenderingServer.get_current_rendering_method()=="gl_compatibility" else Viewport.SCALING_3D_MODE_FSR
+	view.msaa_3d = Viewport.MSAA_DISABLED if quality==0 else Viewport.MSAA_2X
+
+func cycle_quality() -> void:
+	quality = (quality+1)%3
+	apply_render_quality()
+	banner = "GRAPHICS / "+["PERFORMANCE","BALANCED","CINEMATIC"][quality]
+	banner_left = 2.5
+	if phase!="playing": hud.show_menu()
+
+func rebuild_navigation() -> void:
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	navigation.rebuild(self)
 
 func _exit_tree() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	Art.materials.clear()
 	Art.box_meshes.clear()
+	preload("res://examples/sunbreak/soldier.gd").library = null
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and phase == "playing": pause_match()
@@ -92,6 +122,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.keycode == KEY_F11:
 			var fullscreen := DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if fullscreen else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		elif event.keycode == KEY_F2: cycle_quality()
 		elif event.keycode == KEY_ESCAPE:
 			if phase=="playing": pause_match()
 			elif phase=="paused": resume_match()
@@ -127,6 +158,7 @@ func clear_match() -> void:
 		collection.clear()
 	for cover in covers: cover.free()
 	covers.clear()
+	if navigation.ready: call_deferred("rebuild_navigation")
 
 func start_match() -> void:
 	clear_match()
@@ -197,6 +229,7 @@ func _physics_process(delta: float) -> void:
 	advance_projectiles(delta)
 	if phase!="playing": return
 	for i in range(effects.size()-1,-1,-1):
+		if effects[i].node.has_method("tick_death"): effects[i].node.tick_death(delta)
 		effects[i].life -= delta
 		if effects[i].life<=0:
 			effects[i].node.queue_free()
@@ -233,6 +266,7 @@ func _physics_process(delta: float) -> void:
 
 func eliminated(bot: CharacterBody3D) -> void:
 	bots.erase(bot)
+	effects.append({"node":bot,"life":4.0})
 	kills += 1
 	cover_charges = mini(3,cover_charges+1)
 	spark(bot.position+Vector3.UP,"ffc378")
@@ -276,6 +310,7 @@ func deploy_cover() -> void:
 	covers.append(cover)
 	if covers.size()>6: covers.pop_front().queue_free()
 	cover_charges -= 1
+	call_deferred("rebuild_navigation")
 	sound.effect("build")
 
 func enemy_shot(at: Vector3, direction: Vector3) -> void:
