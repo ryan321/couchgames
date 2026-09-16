@@ -11,6 +11,7 @@ var camera: Camera3D
 var key_light: DirectionalLight3D
 var architecture: Node3D
 var actors: Dictionary = {}
+var gates: Dictionary = {}
 var objects: Dictionary = {}
 var effects: Array[MeshInstance3D] = []
 var torches: Array[Node3D] = []
@@ -174,6 +175,7 @@ func rebuild() -> void:
 		architecture.queue_free()
 	for actor: Node3D in actors.values(): actor.queue_free()
 	actors.clear()
+	gates.clear()
 	objects.clear()
 	torches.clear()
 	architecture = Node3D.new()
@@ -353,7 +355,7 @@ func pickup_model(kind: String, key_color := "gold") -> Node3D:
 
 func key_label(parent: Node3D, color: String, height: float, offset := Vector3.ZERO) -> void:
 	var label := Label3D.new()
-	label.text = Level.Campaign.KEY_MARKS[color]+" · "+color.to_upper()
+	label.text = color.capitalize()
 	label.position = offset+Vector3.UP*height
 	label.font_size = 26
 	label.pixel_size = 0.009
@@ -432,24 +434,9 @@ func _process(delta: float) -> void:
 		if pickup.kind in ["key","potion"]:
 			actors[key].position.y = 0.08+sin(game.clock*2+pickup.pos.x)*0.04
 			actors[key].rotation.y = game.clock*0.6
-	var labeled_doors := {}
-	for cell: Vector2i in game.doors:
-		var key := "door-%s"%cell
-		seen[key] = true
-		if not actors.has(key):
-			var color: String = game.map.door_colors.get(game.doors[cell],"gold")
-			var tint: Color = Level.Campaign.KEY_COLORS[color]
-			var door := Node3D.new()
-			add_child(door)
-			door.position = at3(Level.center(cell))
-			if not game.map.get("door_axes",{}).get(game.doors[cell],true): door.rotation.y = PI/2
-			for bar in 4: box(door,Vector3(0,0.46,-0.4+bar*0.26),Vector3(0.19,0.9,0.07),tint,0.65)
-			box(door,Vector3(0,0.82,0),Vector3(0.24,0.08,0.99),Color("d5b877"),0.6)
-			box(door,Vector3(0,0.23,0),Vector3(0.24,0.08,0.99),Color("d5b877"),0.6)
-			ball(door,Vector3(0,0.65,0),Vector3.ONE*0.22,tint,1.0)
-			if not labeled_doors.has(game.doors[cell]): key_label(door,color,1.35,Vector3(0,0,0.5))
-			actors[key] = door
-		labeled_doors[game.doors[cell]] = true
+	for gate: Node3D in gates.values():
+		var unlocked: bool = gate.cells.all(func(cell): return not game.doors.has(cell))
+		gate.present(unlocked,delta if game.phase=="playing" else 0.0)
 	for key: String in actors.keys():
 		if not seen.has(key):
 			actors[key].queue_free()
@@ -595,6 +582,7 @@ func build_set_dressing() -> void:
 	# Every tall support sits on an existing solid tile; floor ornament stays below feet.
 	var columns: Array[Transform3D] = []
 	for cell in ([Vector2i(0,3),Vector2i(0,8),Vector2i(0,13),Vector2i(12,13),Vector2i(12,16),Vector2i(26,4),Vector2i(26,7),Vector2i(39,3),Vector2i(39,8),Vector2i(39,13)] if game.level_index==0 else game.map.columns):
+		if game.map.get("door_sites",game.doors).keys().any(func(site): return Vector2(site).distance_to(Vector2(cell))<2.0): continue
 		var at := at3(Level.center(cell))
 		columns.append(Transform3D(Basis.IDENTITY,at+Vector3(0,1.05,0)))
 		for y in [0.14,1.86,2.03]:
@@ -602,16 +590,16 @@ func build_set_dressing() -> void:
 		for y in [0.28,1.7]:
 			ring(architecture,at+Vector3(0,y,0),0.35,0.04,Color("a89563"))
 	batch_boxes(architecture,columns,Vector3(0.62,1.65,0.62),Color.WHITE)
-	# Segmented stone arches frame the two keyed gateways.
-	for entry in game.map.arches:
-		var center: Vector3 = entry.pos if entry is Dictionary else entry
-		var turn := Basis(Vector3.UP,PI/2) if entry is Dictionary and not entry.vertical else Basis.IDENTITY
-		var voussoirs: Array[Transform3D] = []
-		for i in 13:
-			var angle := i*PI/12
-			var at: Vector3 = center+turn*Vector3(0,sin(angle)*1.45,cos(angle)*1.45)
-			voussoirs.append(Transform3D(turn*Basis(Vector3.RIGHT,-angle),at))
-		batch_boxes(architecture,voussoirs,Vector3(0.63,0.38,0.38),Color.WHITE)
+	# One unobstructed, persistent gate per lock. Open passages keep their color and state label.
+	var sites: Dictionary = game.map.get("door_sites",game.doors)
+	for group: int in game.map.door_colors:
+		var cells: Array = sites.keys().filter(func(cell): return sites[cell]==group)
+		if cells.is_empty(): continue
+		var gate := preload("res://examples/gauntlet/gate_view.gd").new()
+		architecture.add_child(gate)
+		gate.configure(self,cells,game.map.door_colors[group],game.map.get("door_axes",{}).get(group,true))
+		gate.present(cells.all(func(cell): return not game.doors.has(cell)),1.0)
+		gates[group] = gate
 	if game.level_index>0: return
 	# Worn runner and embroidered borders distinguish the entrance hall.
 	var cloth := material(Color("522b32"))

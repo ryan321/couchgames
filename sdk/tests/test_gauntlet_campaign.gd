@@ -33,7 +33,7 @@ func route(target: Vector2) -> Array:
 			if game.walls.has(next) or previous.has(next): continue
 			if game.doors.has(next):
 				var color: String = game.map.door_colors[game.doors[next]]
-				if (game.keys if color=="gold" else int(game.keyring.get(color,0)))<=0: continue
+				if int(game.keyring.get(color,0))<=0: continue
 			previous[next] = at
 			frontier.append(next)
 	return []
@@ -108,6 +108,11 @@ func run() -> void:
 			previous_nests = game.generators.size()
 			previous_enemies = game.enemies.size()
 			expect(game.map.door_colors.size()==(3 if chapter==1 else 5),"Later maps introduce three then five colored locks")
+			expect(game.dungeon_view.gates.size()==game.map.door_colors.size(),"Each lock has one persistent gate instead of overlapping tile labels")
+			var closed_visible := true
+			for gate: Node3D in game.dungeon_view.gates.values():
+				closed_visible = closed_visible and not gate.is_open and gate.status.text==gate.key_color.capitalize() and gate.leaves.all(func(leaf): return leaf.visible)
+			expect(closed_visible,"Closed gates show solid colored leaves and only the color name")
 			var spawns_clear := true
 			for hero: Dictionary in game.heroes.values(): spawns_clear = spawns_clear and not game.blocked(hero.pos,10)
 			expect(spawns_clear,"All sixteen possible spawns fit the new map")
@@ -143,6 +148,13 @@ func run() -> void:
 			expect(travelled>previous_route and game.phase=="complete" and game.escaped_count()==count,"Full colored-key collision route reaches exit and grows longer each chapter")
 			previous_route = travelled
 			expect(game.doors.is_empty() and game.keys==0,"Solving the level consumes exactly the matching keys")
+			game.dungeon_view._process(0)
+			var open_visible := true
+			for gate: Node3D in game.dungeon_view.gates.values():
+				open_visible = open_visible and gate.is_open and gate.status.text==gate.key_color.capitalize()
+				gate.present(true,0.3)
+				open_visible = open_visible and gate.leaves.all(func(leaf): return not leaf.visible)
+			expect(open_visible,"Unlocked gates keep only the color name and retract all panels out of the passage")
 			print("Campaign route: ",count," players, chapter ",chapter+1,", ",travelled," tiles; collision and keys, combat disabled.")
 		game.reset_level()
 		expect(game.level_index==0 and game.keyring.is_empty() and game.phase=="lobby","New run returns to the first vault with no stale colored keys")

@@ -125,6 +125,7 @@ func load_map() -> void:
 	map = Level.definition(level_index)
 	walls = map.walls
 	doors = map.doors
+	map.door_sites = doors.duplicate()
 	generators = map.generators
 	pickups = map.pickups
 
@@ -520,7 +521,7 @@ func slide(at: Vector2, movement: Vector2, radius: float, open_doors := false) -
 
 func unlock(group: int) -> void:
 	var color: String = map.door_colors.get(group,"gold")
-	var available: int = keys if color=="gold" else keyring.get(color,0)
+	var available: int = keyring.get(color,0)
 	if available<=0:
 		if message_time<=0: announce("FIND THE %s KEY · EXPLORE THE OTHER CHAMBERS"%color.to_upper())
 		return

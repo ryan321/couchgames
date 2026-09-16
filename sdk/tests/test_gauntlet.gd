@@ -137,8 +137,18 @@ func run() -> void:
 	var locked: Vector2 = game.slide(game.heroes[2].pos,Vector2(64,0),10,true)
 	expect(locked.x<384 and game.doors.size()==4,"Door collision blocks passage without a key")
 	game.keys = 1
+	game.keyring = {"sapphire":1}
+	var wrong_key: Vector2 = game.slide(game.heroes[2].pos,Vector2(64,0),10,true)
+	expect(wrong_key.x<384 and game.keyring.sapphire==1 and game.doors.size()==4,"Sapphire key cannot open the first Ruby gate and is not consumed")
+	game.keyring = {"ruby":1}
 	var opened: Vector2 = game.slide(game.heroes[2].pos,Vector2(64,0),10,true)
 	expect(opened.x>416 and game.keys==0 and game.doors.size()==2,"One shared key opens both cells of one door")
+	game.keys = 1
+	game.keyring = {"ruby":1}
+	game.unlock(1)
+	expect(game.doors.size()==2 and game.keys==1 and game.keyring.ruby==1,"Ruby key cannot open the second Sapphire gate")
+	game.keys = 0
+	game.keyring.clear()
 	expect(game.slide(Vector2(48,48),Vector2(-1000,0),10).x>=42,"Large movement cannot tunnel through dungeon walls")
 	game.heroes[2].hp = 0
 	game.heroes[1].pos = game.heroes[2].pos+Vector2(20,0)
@@ -336,7 +346,7 @@ func route(target: Vector2) -> Array:
 		for direction: Vector2i in game.DIRECTIONS:
 			var next := cell+direction
 			if next.x<=0 or next.y<=0 or next.x>=39 or next.y>=19 or game.walls.has(next) or previous.has(next): continue
-			if game.doors.has(next) and game.keys==0: continue
+			if game.doors.has(next) and int(game.keyring.get(game.map.door_colors[game.doors[next]],0))==0: continue
 			previous[next] = cell
 			queue.append(next)
 	if not previous.has(to): return []

@@ -7,7 +7,7 @@ Stylized fantasy with believable materials, warm fire against cool shadows, read
 Implemented:
 
 - Textured humanoid models with shared skeletal idle, walk, attack, and casting clips; class-colored equipment and live character portraits.
-- Scanned stone albedo, normal, roughness, and ambient-occlusion textures; metal reflections, torch flames, gate arches, banners, and a hall runner.
+- Scanned stone albedo, normal, roughness, and ambient-occlusion textures; metal reflections, torch flames, low colored gates, banners, and a hall runner.
 - Forward+ selected per game, with Metal on macOS, ambient occlusion, restrained volumetric haze, glow, and directional shadows. The global project renderer stays unchanged for the other games.
 - Wider party-following shared camera, immediate zoom-out to include spread-out and fallen players, F3 full-dungeon overview, minimap, and low foreground masonry for visibility.
 - F2 performance mode removes expensive lighting/shadows, disables MSAA, and renders the 3D scene at 75% resolution in Forward+. The HUD stays at its normal resolution. Toggle again to restore cinematic settings.

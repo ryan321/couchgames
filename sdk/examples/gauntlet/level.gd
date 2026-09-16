@@ -8,7 +8,7 @@ const COUNT := 3
 static func definition(index: int) -> Dictionary:
 	if index>0: return Campaign.create(index)
 	return {"name":Campaign.NAMES[0],"width":WIDTH,"height":HEIGHT,"exit":EXIT,
-		"walls":walls(),"doors":doors(),"door_colors":{0:"gold",1:"gold"},"generators":generators(),"pickups":pickups(),"enemies":[],
+		"walls":walls(),"doors":doors(),"door_colors":{0:"ruby",1:"sapphire"},"generators":generators(),"pickups":pickups(),"enemies":[],
 		"enemy_scale":1.0,"spawn_rate":1.0,"enemy_cap":14,"stone":Color("475967"),
 		"columns":[Vector2i(4,4),Vector2i(6,5),Vector2i(8,8),Vector2i(16,4),Vector2i(23,15),Vector2i(30,8),Vector2i(35,15)],
 		"emblems":[Vector2i(6,12),Vector2i(19,6),Vector2i(19,13),Vector2i(34,5)],
@@ -72,9 +72,10 @@ static func generators() -> Array:
 		result.append({"pos":center(entry[0]),"kind":entry[1],"hp":220.0,"max_hp":220.0,"clock":1.8})
 	return result
 static func pickups() -> Array:
-	var result: Array = []
+	var result: Array = [
+		{"pos":center(Vector2i(9,13)),"kind":"key","key_color":"ruby"},
+		{"pos":center(Vector2i(24,2)),"kind":"key","key_color":"sapphire"}]
 	var groups := {
-		"key":[Vector2i(9,13),Vector2i(24,2)],
 		"food":[Vector2i(3,10),Vector2i(9,3),Vector2i(15,16),Vector2i(22,12),Vector2i(15,2),Vector2i(29,4),Vector2i(37,13)],
 		"potion":[Vector2i(8,16),Vector2i(15,12),Vector2i(23,7),Vector2i(29,16)],
 		"gold":[Vector2i(2,2),Vector2i(3,2),Vector2i(9,6),Vector2i(10,6),Vector2i(15,7),Vector2i(16,8),Vector2i(24,17),Vector2i(23,17),Vector2i(29,2),Vector2i(30,2),Vector2i(37,17),Vector2i(38,17)]}
