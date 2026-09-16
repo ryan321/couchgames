@@ -13,4 +13,4 @@ Sources: [Voiceover Pack](https://kenney.nl/assets/voiceover-pack), [Voiceover P
 
 `python3 scripts/prepare_gauntlet_voices.py` trims excess silence, removes low-frequency noise, matches loudness, and produces the `choose_*.wav` game files. Pitch and delivery are unchanged. Source recordings remain intact. Only these four clips are included, rather than the entire packs. Playback needs no download or authoring tools.
 
-These are stock voice lines, not bespoke performances of the game's characters. Warrior and Wizard share the Fighter pack voice. The previously synthesized damage reactions are retained because the user liked those “oofs.” Wii speaker streaming is disabled; these lines play on regular speakers.
+These are stock voice lines, not bespoke performances of the game's characters. Warrior and Wizard share the Fighter pack voice. Hero damage now uses [separate CC0 hurt recordings](hurt/README.md), with three takes per class. Wii speaker streaming is disabled; these lines play on regular speakers.

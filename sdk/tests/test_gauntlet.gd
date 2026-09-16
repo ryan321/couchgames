@@ -710,6 +710,9 @@ func check_class_attacks() -> void:
 	expect(game.enemies[0].hp==200,"Heavy axe has a short windup before impact")
 	game.elapsed += 0.15
 	game.update_melee()
+	expect(game.enemies[0].hp==200,"Enemy ahead stays unharmed until the visible axe sweeps in front")
+	game.elapsed += 0.10
+	game.update_melee()
 	expect(game.enemies[0].hp==118 and game.enemies[1].hp==200 and game.enemies[2].hp==200,"Axe deals heavy damage only to nearby enemies in front")
 	game.update_melee()
 	expect(game.enemies[0].hp==118,"Each swing hits each target only once")

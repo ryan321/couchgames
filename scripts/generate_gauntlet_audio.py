@@ -79,8 +79,6 @@ def grunt(kind, variant):
 
 
 def effects():
-    for kind,name in enumerate(['warrior','valkyrie','wizard','elf']):
-        for variant in range(3): write(f'hurt_{name}_{variant}',grunt(kind,variant),.72)
     for name,seconds,low,high,body in [
         ('axe',.35,100,3200,105),('sword',.26,650,8500,245),('bow',.20,1500,10000,430),
         ('impact',.16,100,2600,85),('impact_ghost',.24,800,6000,320),('stone',.23,700,9500,170)]:
@@ -114,6 +112,8 @@ def effects():
 
 
 def controller_audio(name, signal):
+    # The disabled experimental transport accepts at most 0.8 seconds of audio.
+    if len(signal)>int(.78*RATE): signal=fade(signal[:int(.78*RATE)],.005,.025)
     # Yamaha ADPCM: two 4 kHz samples per byte, high nibble first on the Wii.
     spectrum=np.fft.rfft(signal)
     hz=np.fft.rfftfreq(len(signal),1/RATE)
@@ -212,6 +212,8 @@ def main():
     # Preserve the recorded lobby voices; their source/license lives in assets/audio/voices.
     from prepare_gauntlet_voices import main as prepare_recorded_voices
     prepare_recorded_voices()
+    from prepare_gauntlet_hurt import main as prepare_recorded_hurt
+    prepare_recorded_hurt()
     controller_hurts_and_enemies()
     for chapter in range(3): music(chapter)
     print(f'Generated original effects, 12 class hurt takes and three music loops in {OUT}')

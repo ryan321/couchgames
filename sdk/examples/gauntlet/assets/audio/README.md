@@ -2,15 +2,15 @@
 
 **Current hardware status:** Wii speaker streaming is disabled by default after physical tests produced choppy sound and connection drops. All class-selection and hurt voices play on regular speakers. Native Wii gameplay requests motor pulses only; physical rumble confirmation is pending. The ADPCM transport described below is experimental and is not used in normal play.
 
-Combat effects, damage grunts and music are original deterministic synthesis made for this project. Lobby selections use CC0 human voice recordings from Kenney; see [recording sources, actor credits and licenses](voices/README.md). No original Gauntlet audio or third-party music is included.
+Weapon/enemy effects and music are original deterministic synthesis made for this project. Hero damage uses CC0 human recordings from HaelDB and AuraVoice; lobby selections use CC0 recordings from Kenney; see [recording sources, actor credits and licenses](voices/README.md). No original Gauntlet audio or third-party music is included.
 
-- Warrior: low, heavy grunt; Valkyrie: higher, sharper gasp; Wizard: rough groan; Elf: lighter, quick “oof.” Three takes per class cycle across successful hits.
+- Four performers provide three recorded hurt reactions per class, cycling across successful hits. Clips run 0.22–0.84 seconds, with trimmed silence, light filtering, matched loudness and natural pitch. See [hurt sources and preparation](voices/hurt/README.md).
 - Layered axe/sword swishes, bow release, magic bolts/bursts, body/ghost/stone impacts, crumbling generators, and short interface/reward cues.
 - Three original 16-bar minor-mode scores: Ember (88 BPM), Archive (92 BPM), Crown (96 BPM). Stereo sustained chords, plucked melody, bass, and restrained percussion. Note tails wrap around the loop boundary.
 
-The game plays checked-in 24 kHz PCM16 WAV effects and compressed Ogg Vorbis music (about 1.1 MiB total). No downloads, Python, NumPy, or ffmpeg are needed to play.
+The game plays checked-in 24 kHz PCM16 WAV effects and compressed Ogg Vorbis music. No downloads, Python, NumPy, or ffmpeg are needed to play.
 
-To regenerate, use `python3 scripts/generate_gauntlet_audio.py` from the repository root. Authoring requires an existing Python environment with NumPy and ffmpeg's native Vorbis encoder; the script installs nothing. It uses a fixed random seed. Import the resulting assets with the existing Godot editor before testing.
+To regenerate, use `python3 scripts/generate_gauntlet_audio.py` from the repository root. Authoring requires an existing Python environment with NumPy and ffmpeg's native Vorbis encoder; the script installs nothing. It uses a fixed random seed. To rebuild only player hurt WAVs, run `python3 scripts/prepare_gauntlet_hurt.py` (ffmpeg only; no downloads). Import the resulting assets with the existing Godot editor before testing.
 
 Music fades toward a quiet level for the current game phase and briefly ducks under hurt reactions. Eight effect voices are reserved for player reactions, three for impacts, and five for weapons/interface cues. Per-player hurt throttling allows simultaneous reactions from different players; per-effect throttling controls crowded combat noise. Sound effects and music have separate controller-accessible pause-menu switches. Settings last for the current game process.
 

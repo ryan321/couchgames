@@ -1,7 +1,7 @@
 extends Node3D
 ## Shared textured character assets; animation is presentation-only and never moves the simulation.
 const Costume = preload("res://examples/gauntlet/hero_costume.gd")
-const Equipment = preload("res://examples/gauntlet/hero_equipment.gd")
+const Cast = preload("res://examples/gauntlet/cast_assets.gd")
 const ASSETS := "res://examples/gauntlet/assets/characters/"
 static var head_meshes: Dictionary = {}
 static var animation_library: AnimationLibrary
@@ -9,6 +9,7 @@ var skeleton: Skeleton3D
 var animator: AnimationPlayer
 var kind := 0
 var garment_color: Color
+var axe_motion := preload("res://examples/gauntlet/axe_motion.gd").new()
 var motion: RefCounted
 var outfit: Node3D
 var managed := false
@@ -17,6 +18,8 @@ var weapon: Node3D
 var damage_feedback: Node3D
 var robe_skirt: Node3D
 var robe_trail := Vector3.ZERO
+var body_lean := Vector2.ZERO
+var breathing_clock := 0.0
 
 func _ready() -> void:
 	damage_feedback = preload("res://examples/gauntlet/damage_feedback.gd").new()
@@ -28,9 +31,12 @@ func _ready() -> void:
 	if kind in [2,3]:
 		var wrist := skeleton.find_bone("hand_l" if kind==3 else "hand_r")
 		weapon.basis = skeleton.get_bone_global_pose(wrist).basis.inverse()
+	if kind==0: axe_motion.present(self)
 
 func _process(delta: float) -> void:
-	if not managed and motion: motion.tree.advance(delta)
+	if not managed and motion:
+		motion.tree.advance(delta)
+		if kind==0: axe_motion.present(self)
 
 func configure(view: Node3D, hero_class: int, color_index := -1) -> void:
 	kind = hero_class
@@ -86,40 +92,25 @@ func configure(view: Node3D, hero_class: int, color_index := -1) -> void:
 		Costume.helmet(view,crown,kind)
 	var hand := attachment("hand_l" if kind==3 else "hand_r")
 	weapon = Node3D.new()
-	hand.add_child(weapon)
+	if kind==0: add_child(weapon)
+	else: hand.add_child(weapon)
 	weapon.rotation.x = PI/2
-	if kind==2:
-		# Crooked wood, brass collars and a restrained crystal rather than a glowing lollipop.
-		for section in 9:
-			var y := -0.58+section*0.17
-			Equipment.segment(view,weapon,Vector3(sin(section*0.6)*0.025,y,0),Vector3(sin((section+1)*0.6)*0.025,y+0.17,0),0.028,Color("594230"))
-		for y in [0.65,0.78,0.87]: view.ring(weapon,Vector3(-0.02,y,0),0.035,0.009,Color("97815b"))
-		for side in [-1,1]:
-			Equipment.segment(view,weapon,Vector3(-0.02,0.88,0),Vector3(side*0.075,1.04,0),0.018,Color("756044"))
-		view.ball(weapon,Vector3(-0.02,1.00,0),Vector3(0.085,0.16,0.085),Color("82a5b4"),0.45)
-	elif kind==3:
-		weapon.rotation = Vector3.ZERO
-		weapon.rotation.z = PI/2
-		Equipment.bow(view,weapon)
-	else:
-		view.cylinder(weapon,Vector3(0,0.03,0),0.028,0.28,Color("684332"))
-		view.box(weapon,Vector3(0,0.17,0),Vector3(0.21,0.035,0.06),Color("d2b571"),0.75)
-		Equipment.blade(view,weapon,kind==0)
-		if kind==0: view.cylinder(weapon,Vector3(0,0.43,0),0.024,0.65,Color("684332"))
-		for wrap in 6:
-			view.ring(weapon,Vector3(0,-0.065+wrap*0.032,0),0.029,0.004,Color("b19362"))
+	if kind==3:
+		weapon.rotation = Vector3(0,0,PI/2)
+	var held_model := Cast.instance(Cast.WEAPONS[kind])
+	# Warrior weapon and hand follow the shared authored axe sweep.
+	weapon.add_child(held_model)
+	chest_detail.add_child(Cast.armor(kind,garment_color))
+	if kind<2:
 		var shield_socket := attachment("hand_l")
 		var shield_hand := Node3D.new()
 		shield_socket.add_child(shield_hand)
 		shield_hand.scale = Vector3.ONE*0.82
-		var shield: MeshInstance3D = view.cylinder(shield_hand,Vector3(0,0.02,0.09),0.27,0.05,color,-1,0.55)
-		shield.rotation.z = PI/2
-		var rim: MeshInstance3D = view.ring(shield_hand,Vector3(0,0.02,0.09),0.26,0.021,Color("c1af7c"))
-		rim.rotation.z = PI/2
-		for rivet in 8:
-			var angle := rivet*TAU/8
-			view.ball(shield_hand,Vector3(0.035,0.02+cos(angle)*0.22,0.09+sin(angle)*0.22),Vector3.ONE*0.024,Color("cbbb90"))
-		view.ball(shield_hand,Vector3(0,0.02,0.13),Vector3(0.12,0.12,0.06),Color("d6bd80"))
+		var shield := Cast.colored_instance(Cast.SHIELDS[kind],color.darkened(0.25))
+		shield_hand.add_child(shield)
+		shield.position = Vector3(0,0.02,0.09)
+		shield.rotation.y = -PI/2
+
 	animator = AnimationPlayer.new()
 	outfit.add_child(animator)
 	animator.add_animation_library("",get_library(skeleton))
@@ -141,6 +132,10 @@ static func get_library(rig: Skeleton3D) -> AnimationLibrary:
 		# Keep pelvis translation for natural footfall; the in-place source has no root motion.
 		if pair[0] in ["idle","mage_idle"]: animation = preload("res://examples/gauntlet/hero_motion.gd").quiet_idle(animation)
 		animation_library.add_animation(pair[0],animation)
+	var axe_hold: Animation = animation_library.get_animation("idle").duplicate()
+	axe_hold.loop_mode = Animation.LOOP_NONE
+	axe_hold.length = preload("res://examples/gauntlet/axe_swing.gd").DURATION
+	animation_library.add_animation("axe_hold",axe_hold)
 	animation_library.remove_animation("hit")
 	animation_library.add_animation("hit",preload("res://examples/gauntlet/hero_motion.gd").hit_animation(rig))
 	for firing in [false,true]:
@@ -168,20 +163,32 @@ static func get_library(rig: Skeleton3D) -> AnimationLibrary:
 	source.free()
 	return animation_library
 
-func present(hero: Dictionary, delta := 1.0/60, playing := true) -> void:
+func present(hero: Dictionary, delta := 1.0/60, playing := true, now := -1.0) -> void:
 	managed = true
 	var displacement: Vector2 = hero.pos-motion.last_position if motion.initialized else Vector2.ZERO
 	motion.advance(hero,delta,playing)
 	if not playing: return
+	if kind==0: axe_motion.advance(hero,delta,playing,now)
 	# Aim changes smoothly; collision and projectile direction remain responsive in the simulation.
 	outfit.rotation.y = lerp_angle(outfit.rotation.y,atan2(hero.face.x,hero.face.y),1.0-exp(-delta*20.0))
+	if kind==0 and axe_motion.age<axe_motion.Swing.DURATION:
+		outfit.rotation.y = atan2(axe_motion.facing.x,axe_motion.facing.y)
 	fall = move_toward(fall,1.0 if hero.hp<=0 else 0.0,delta*3.0)
-	outfit.rotation.z = -smoothstep(0,1,fall)*PI/2
-	outfit.position.y = 0.12*fall
+	var velocity := Vector3.ZERO
+	if hero.hp>0 and not hero.escaped and displacement.length()<64.0 and delta>0:
+		velocity = Vector3(displacement.x,0,displacement.y)/(32.0*maxf(delta,0.001))
+	var local_velocity := Basis(Vector3.UP,outfit.rotation.y).inverse()*velocity
+	var lean_target: Vector2 = Vector2(local_velocity.z,-local_velocity.x)*[0.019,0.025,0.013,0.028][kind]
+	body_lean = body_lean.lerp(lean_target,1.0-exp(-delta*7.0))
+	breathing_clock += delta
+	var alive := 1.0-fall
+	outfit.rotation.x = body_lean.x*alive
+	outfit.rotation.z = -smoothstep(0,1,fall)*PI/2+body_lean.y*alive
+	outfit.position.y = 0.12*fall+sin(breathing_clock*2.1+kind)*0.006*alive
+	if kind==0:
+		axe_motion.present(self)
+		weapon.visible = hero.hp>0 and not hero.escaped
 	if robe_skirt and delta>0:
-		var velocity := Vector3.ZERO
-		if hero.hp>0 and not hero.escaped and displacement.length()<64.0:
-			velocity = Vector3(displacement.x,0,displacement.y)/(32.0*maxf(delta,0.001))
 		# Simulated movement, not facing, determines drag; this also handles turns and blocked movement.
 		robe_trail = robe_trail.lerp((-velocity*0.075).limit_length(0.30),1.0-exp(-delta*10.0))
 		var pelvis := skeleton.find_bone("pelvis")

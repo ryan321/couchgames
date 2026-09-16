@@ -74,7 +74,8 @@ static func labyrinth(map: Dictionary) -> void:
 	corridor(map,[Vector2i(14,41),Vector2i(20,41),Vector2i(20,39),Vector2i(24,39)])
 	gate(map,Vector2i(18,41),true,"ruby")
 	corridor(map,[Vector2i(16,21),Vector2i(19,21),Vector2i(19,24),Vector2i(22,24)])
-	gate(map,Vector2i(19,23),false,"sapphire")
+	# Span the straight approach, with solid wall at both ends before the bend widens into a room.
+	gate(map,Vector2i(18,21),true,"sapphire")
 	corridor(map,[Vector2i(18,7),Vector2i(23,7),Vector2i(23,11),Vector2i(27,11)])
 	gate(map,Vector2i(23,9),false,"emerald")
 	corridor(map,[Vector2i(35,40),Vector2i(40,40),Vector2i(40,38),Vector2i(44,38)])

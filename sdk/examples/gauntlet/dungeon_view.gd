@@ -1,5 +1,6 @@
 extends Node3D
 ## Presentation only. All gameplay, navigation and hit tests remain in the 2D simulation.
+const Props = preload("res://examples/gauntlet/environment_assets.gd")
 const Level = preload("res://examples/gauntlet/level.gd")
 var environment_settings: Environment
 var high_quality := true
@@ -17,6 +18,8 @@ var effects: Array[MeshInstance3D] = []
 var torches: Array[Node3D] = []
 var materials: Dictionary = {}
 var model_meshes: Dictionary = {}
+var visibility := preload("res://examples/gauntlet/party_visibility.gd").new()
+var party_fog: Node3D
 var portal: Node3D
 var particle_mesh := SphereMesh.new()
 
@@ -137,13 +140,20 @@ func _ready() -> void:
 	camera.current = true
 	camera.size = 10.0
 	update_camera(1.0)
+	party_fog = preload("res://examples/gauntlet/party_fog.gd").new()
+	party_fog.policy = visibility
+	add_child(party_fog)
 
 func batch_boxes(parent: Node3D, transforms: Array[Transform3D], size: Vector3, color: Color) -> void:
 	if transforms.is_empty(): return
-	var shape := BoxMesh.new()
-	shape.size = size
-	var stone := StandardMaterial3D.new()
 	var floor_surface := size.y<0.10
+	var shape: Mesh
+	if floor_surface:
+		shape = BoxMesh.new()
+		shape.size = size
+	else:
+		shape = Props.geometry("DressedStone")
+	var stone := StandardMaterial3D.new()
 	var prefix := "res://examples/gauntlet/assets/"+("monastery_stone_floor" if floor_surface else "medieval_wall_01")
 	stone.albedo_texture = load(prefix+"_albedo.jpg")
 	stone.normal_enabled = true
@@ -154,22 +164,26 @@ func batch_boxes(parent: Node3D, transforms: Array[Transform3D], size: Vector3, 
 	stone.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
 	stone.roughness_texture = stone.ao_texture
 	stone.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
-	stone.albedo_color = Color("b4c0c3") if floor_surface else Color("a8afbc")
+	stone.albedo_color = color.lerp(Color.WHITE,0.66 if floor_surface else 0.45)
 	stone.uv1_triplanar = true
 	stone.uv1_world_triplanar = true
 	stone.uv1_scale = Vector3.ONE*(0.38 if floor_surface else 0.65)
 	stone.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	shape.material = stone
 	var batch := MultiMesh.new()
 	batch.transform_format = MultiMesh.TRANSFORM_3D
 	batch.mesh = shape
 	batch.instance_count = transforms.size()
-	for i in transforms.size(): batch.set_instance_transform(i,transforms[i])
+	for i in transforms.size():
+		var transform := transforms[i]
+		if not floor_surface: transform.basis = transform.basis*Basis.from_scale(size)
+		batch.set_instance_transform(i,transform)
 	var instance := MultiMeshInstance3D.new()
 	instance.multimesh = batch
+	instance.material_override = stone
 	parent.add_child(instance)
 
 func rebuild() -> void:
+	visibility.configure(Vector2i(game.map.width,game.map.height),game.walls)
 	if architecture:
 		remove_child(architecture)
 		architecture.queue_free()
@@ -204,14 +218,7 @@ func rebuild() -> void:
 		batch_boxes(architecture,tiles,Vector3(1.003,0.09,1.003),Color("35434a").lightened(variant*0.013))
 		batch_boxes(architecture,bricks,Vector3(0.97,0.30,0.97),Color(game.map.stone).lightened(variant*0.017))
 		batch_boxes(architecture,crowns,Vector3(0.965,0.12,0.965),Color("6c777b").lightened(variant*0.012))
-	# Brass inlaid room emblems and broken masonry give the floor a sense of place.
-	for cell in game.map.emblems:
-		var at := at3(Level.center(cell),0.07)
-		ring(architecture,at,1.3,0.018,Color("988459"))
-		ring(architecture,at,1.15,0.014,Color("988459"))
-		for i in 8:
-			var spoke := box(architecture,at+Vector3(sin(i*PI/4)*0.9,0,cos(i*PI/4)*0.9),Vector3(0.08,0.02,0.26),Color("ad965f"),0.4)
-			spoke.rotation.y = i*PI/4
+	build_room_floors()
 	for cell in game.map.columns:
 		var at := at3(Level.center(cell),0.9)
 		cylinder(architecture,at+Vector3(0,0.16,0),0.4,0.32,Color("9babae"),0.34)
@@ -220,8 +227,7 @@ func rebuild() -> void:
 		var holder := Node3D.new()
 		holder.position = at3(Level.center(cell))
 		architecture.add_child(holder)
-		cylinder(holder,Vector3(0,0.42,0),0.13,0.8,Color("4e4540"),-1,0.7)
-		cylinder(holder,Vector3(0,0.86,0),0.15,0.2,Color("ae8250"),0.27,0.6)
+		holder.add_child(Props.instance("EmberBrazier",0.85))
 		var flame := Node3D.new()
 		flame.position.y = 0.90
 		holder.add_child(flame)
@@ -245,6 +251,7 @@ func rebuild() -> void:
 		light.omni_range = 6.5
 		holder.add_child(light)
 	build_set_dressing()
+	build_wall_details()
 	for cell in ([Vector2i(3,3),Vector2i(7,6),Vector2i(9,9),Vector2i(17,8),Vector2i(23,16),Vector2i(32,10),Vector2i(36,16)] if game.level_index==0 else game.map.emblems):
 		for i in 4:
 			var at := at3(Level.center(cell))+Vector3(sin(i*12.3)*0.32,0.06,cos(i*7.1)*0.32)
@@ -287,12 +294,7 @@ func rebuild() -> void:
 		var tower := Node3D.new()
 		tower.position = at3(generator.pos)
 		architecture.add_child(tower)
-		cylinder(tower,Vector3(0,0.15,0),0.65,0.26,Color("4c485f"))
-		cylinder(tower,Vector3(0,0.40,0),0.46,0.32,Color("897b91"),0.37)
-		for side in 4:
-			var a := side*PI/2+PI/4
-			var pillar := box(tower,Vector3(sin(a)*0.35,0.85,cos(a)*0.35),Vector3(0.13,0.90,0.13),Color("a39aa7"),0.3)
-			pillar.rotation.z = -sin(a)*0.15
+		tower.add_child(Props.instance("SummoningAltar"))
 		var crystal := ball(tower,Vector3(0,1.05,0),Vector3(0.48,0.65,0.48),Color("bc53d0") if generator.kind=="ghost" else Color("e77738"),0.6)
 		objects["crystal-%d"%i] = crystal
 		objects["generator-%d"%i] = tower
@@ -303,54 +305,21 @@ func hero_model(kind: int, color_index := -1) -> Node3D:
 	return actor
 
 func enemy_model(kind: String) -> Node3D:
-	var root := Node3D.new()
-	if model_meshes.has("enemy-"+kind):
-		var instance := MeshInstance3D.new()
-		instance.mesh = model_meshes["enemy-"+kind]
-		root.add_child(instance)
-		return root
-	if kind=="ghost":
-		ball(root,Vector3(0,0.65,0),Vector3(0.5,0.7,0.5),Color("bbcfdf"),0.3)
-		cylinder(root,Vector3(0,0.37,0),0.33,0.35,Color("c6d5e0"),0.21)
-		for side in [-1,1]: ball(root,Vector3(side*0.1,0.78,0.22),Vector3(0.07,0.11,0.04),Color("242940"))
-	else:
-		var color := Color("a0a680") if kind=="grunt" else Color("c66651")
-		ball(root,Vector3(0,0.54,0),Vector3(0.6,0.65,0.4),color)
-		ball(root,Vector3(0,0.96,0),Vector3(0.42,0.43,0.39),color.lightened(0.1))
-		for side in [-1,1]:
-			ball(root,Vector3(side*0.18,0.14,0.04),Vector3(0.2,0.25,0.3),Color("4f514b"))
-			ball(root,Vector3(side*0.30,0.64,0),Vector3(0.22,0.34,0.28),color)
-			ball(root,Vector3(side*0.085,1.0,0.185),Vector3(0.05,0.045,0.03),Color("ffdc8b"),1)
-			if kind=="demon":
-				var horn := cylinder(root,Vector3(side*0.2,1.2,0),0.07,0.38,Color("efcc9f"),0.008)
-				horn.rotation.z = side*0.4
-		if kind=="grunt":
-			box(root,Vector3(0,0.7,0.2),Vector3(0.43,0.28,0.06),Color("596869"),0.4)
-			cylinder(root,Vector3(0.40,0.7,0.12),0.09,0.75,Color("7e6250"),0.16)
-	bake_meshes(root,"enemy-"+kind)
-	return root
+	var actor := preload("res://examples/gauntlet/enemy_actor.gd").new()
+	actor.configure(kind)
+	return actor
 
 func pickup_model(kind: String, key_color := "gold") -> Node3D:
 	var root := Node3D.new()
 	match kind:
-		"gold":
-			box(root,Vector3(0,0.17,0),Vector3(0.46,0.30,0.33),Color("80523b"))
-			box(root,Vector3(0,0.34,0),Vector3(0.47,0.12,0.34),Color("d8ae59"),0.65)
-			box(root,Vector3(0,0.19,0.18),Vector3(0.08,0.12,0.035),Color("ffe1a1"),0.6)
+		"gold": root.add_child(Props.instance("VaultChest",0.48))
 		"key":
-			var tint: Color = Level.Campaign.KEY_COLORS[key_color]
-			var hoop := ring(root,Vector3(-0.1,0.32,0),0.14,0.045,tint,0.3)
-			hoop.rotation.x = PI/2
-			box(root,Vector3(0.13,0.32,0),Vector3(0.4,0.07,0.07),tint,0.65)
-			box(root,Vector3(0.30,0.23,0),Vector3(0.07,0.18,0.07),tint,0.65)
-		"potion":
-			ball(root,Vector3(0,0.25,0),Vector3(0.3,0.36,0.3),Color("b298e6"),0.3)
-			cylinder(root,Vector3(0,0.48,0),0.06,0.12,Color("e2cfac"))
-			cylinder(root,Vector3(0,0.40,0),0.10,0.10,Color("b8dbe4"))
-		"food":
-			cylinder(root,Vector3(0,0.08,0),0.34,0.06,Color("d3c6a5"),-1,0.35)
-			ball(root,Vector3(0,0.21,0),Vector3(0.43,0.26,0.35),Color("c89154"))
-			ball(root,Vector3(0.16,0.22,0.13),Vector3(0.12,0.12,0.22),Color("f1d1a0"))
+			var key := Props.instance("RunicKey",1.15)
+			root.add_child(key)
+			for part: MeshInstance3D in key.find_children("*","MeshInstance3D",true,false):
+				part.material_override = material(Level.Campaign.KEY_COLORS[key_color],0.55,0.3)
+		"potion": root.add_child(Props.instance("JadePotion",0.62))
+		"food": root.add_child(Props.instance("FeastPlatter",1.15))
 	return root
 
 func key_label(parent: Node3D, color: String, height: float, offset := Vector3.ZERO) -> void:
@@ -367,6 +336,8 @@ func key_label(parent: Node3D, color: String, height: float, offset := Vector3.Z
 func _process(delta: float) -> void:
 	if not architecture: return
 	update_camera(delta)
+	visibility.update(game.heroes,game.phase,game.map.exit,game.doors)
+	party_fog.present(camera,game.clock)
 	var seen := {}
 	for id: int in game.heroes:
 		var hero: Dictionary = game.heroes[id]
@@ -396,7 +367,7 @@ func _process(delta: float) -> void:
 		var progress := clampf((game.clock-float(hero.get("exit_at",game.clock)))/0.45,0,1) if hero.escaped else 0.0
 		actor.scale = Vector3.ONE*maxf(0.001,1.0-progress)*1.05
 		actor.visible = progress<1.0
-		actor.present(hero,delta,game.phase=="playing")
+		actor.present(hero,delta,game.phase=="playing",game.elapsed)
 		actor.damage_feedback.present(hero,game.elapsed)
 		actor.get_node("Number").text = "%02d%s" % [id," +" if hero.hp<=0 else ""]
 	for enemy: Dictionary in game.enemies:
@@ -408,13 +379,15 @@ func _process(delta: float) -> void:
 			var feedback := preload("res://examples/gauntlet/damage_feedback.gd").new()
 			feedback.name = "DamageFeedback"
 			actors[key].add_child(feedback)
-			feedback.configure(actors[key],true,1.18 if enemy.kind=="ghost" else 1.65)
+			feedback.configure(actors[key],true,1.60 if enemy.kind=="ghost" else 1.88)
 		var actor: Node3D = actors[key]
 		var position3 := at3(enemy.pos)
 		var direction := position3-actor.position
-		if Vector2(direction.x,direction.z).length()>0.003: actor.rotation.y = atan2(direction.x,direction.z)
+		if game.phase=="playing" and Vector2(direction.x,direction.z).length()>0.003:
+			actor.rotation.y = lerp_angle(actor.rotation.y,atan2(direction.x,direction.z),1.0-exp(-delta*12.0))
+		actor.visible = visibility.visibility_at(enemy.pos/32.0)>0
 		actor.position = position3
-		actor.position.y = sin(game.clock*4+enemy.id)*0.08 if enemy.kind=="ghost" else absf(sin(game.clock*7+enemy.id))*0.025
+		actor.present(enemy,Vector2(direction.x,direction.z).length(),delta,game.clock,game.phase=="playing")
 		var feedback: Node3D = actor.get_node("DamageFeedback")
 		feedback.present(enemy,game.elapsed)
 		actor.scale = Vector3.ONE+Vector3(0.04,-0.065,0.04)*feedback.recoil
@@ -430,18 +403,22 @@ func _process(delta: float) -> void:
 				key_label(actors[key],color,0.95)
 				for part in actors[key].get_children():
 					if part is MeshInstance3D: part.material_override = material(Level.Campaign.KEY_COLORS[color],0.5,0.4)
+		actors[key].visible = visibility.visibility_at(pickup.pos/32.0)>0
 		actors[key].position = at3(pickup.pos)
 		if pickup.kind in ["key","potion"]:
 			actors[key].position.y = 0.08+sin(game.clock*2+pickup.pos.x)*0.04
 			actors[key].rotation.y = game.clock*0.6
 	for gate: Node3D in gates.values():
 		var unlocked: bool = gate.cells.all(func(cell): return not game.doors.has(cell))
+		gate.visible = gate.cells.any(func(cell): return visibility.visibility_at(Vector2(cell)+Vector2.ONE*.5)>0)
 		gate.present(unlocked,delta if game.phase=="playing" else 0.0)
 	for key: String in actors.keys():
 		if not seen.has(key):
 			actors[key].queue_free()
 			actors.erase(key)
+	portal.visible = visibility.visibility_at(game.map.exit/32.0)>0
 	for i in game.generators.size():
+		objects["generator-%d"%i].visible = visibility.visibility_at(game.generators[i].pos/32.0)>0
 		var crystal: Node3D = objects.get("crystal-%d"%i)
 		if crystal:
 			crystal.visible = game.generators[i].hp>0
@@ -449,6 +426,8 @@ func _process(delta: float) -> void:
 			crystal.position.y = 1.05+sin(game.clock*3+i)*0.09
 			objects["generator-%d"%i].scale.y = 1.0 if game.generators[i].hp>0 else 0.3
 	for i in torches.size():
+		var holder: Node3D = torches[i].get_parent()
+		holder.visible = visibility.visibility_at(Vector2(holder.position.x,holder.position.z))>0
 		torches[i].scale.y = 0.62+sin(game.clock*9+i)*0.06
 	# Reuse a bounded pool for bullets, portal motes and expanding spell rings.
 	var needed: int = mini(220,game.shots.size()+game.sparks.size()+12)
@@ -489,6 +468,9 @@ func _process(delta: float) -> void:
 			var angle: float = game.clock*0.75+i*TAU/12
 			effect.position = portal.position+Vector3(cos(angle)*0.66,1+sin(angle)*0.66,0.03)
 			effect.scale = Vector3.ONE*0.055
+
+	for effect in effects:
+		if effect.visible: effect.visible = visibility.visibility_at(Vector2(effect.position.x,effect.position.z))>0
 
 func bake_meshes(parent: Node3D, key: String) -> void:
 	# Bake fixed details to one vertex-colored mesh; keep the animated leg nodes separate.
@@ -627,3 +609,59 @@ func arrow_mesh() -> ArrayMesh:
 		bake_meshes(root,"arrow")
 		root.free()
 	return model_meshes["arrow"]
+
+func build_room_floors() -> void:
+	# Low, varied floor motifs only where the whole inset fits existing walkable tiles.
+	for index in game.map.emblems.size():
+		var cell: Vector2i = game.map.emblems[index]
+		var clear := true
+		for dy in range(-1,2):
+			for dx in range(-1,2):
+				var tile := cell+Vector2i(dx,dy)
+				if game.walls.has(tile) or game.map.get("door_sites",game.doors).has(tile): clear = false
+		if not clear: continue
+		var at := at3(Level.center(cell),0.06)
+		var motif: int = (index+game.level_index)%4
+		if motif==0:
+			# Bronze and jade mosaic, with an open central diamond.
+			for side in [-1,1]:
+				for axis in 2:
+					var offset := Vector3(side*1.03,0,0) if axis==0 else Vector3(0,0,side*1.03)
+					box(architecture,at+offset,Vector3(.035,.012,2.08) if axis==0 else Vector3(2.08,.012,.035),Color("887754"),.4)
+			for side in [-1,1]:
+				for z in [-1,1]:
+					var tile := box(architecture,at+Vector3(side*.65,.008,z*.65),Vector3(.26,.012,.26),Color("47736f"))
+					tile.rotation.y = PI/4
+		elif motif==1:
+			var cloth: Color = [Color("522b32"),Color("214b48"),Color("3d3858")][game.level_index]
+			box(architecture,at,Vector3(1.6,.014,2.45),cloth)
+			for side in [-1,1]:
+				box(architecture,at+Vector3(side*.70,.011,0),Vector3(.03,.008,2.30),Color("a58a54"))
+				for n in 11:
+					box(architecture,at+Vector3((n-5)*.13,.008,side*1.24),Vector3(.025,.009,.12),Color("9a865f"))
+		elif motif==2:
+			for side in [-1,1]:
+				var grate := Props.instance("FloorGrate")
+				grate.position = at+Vector3(side*.57,-.025,0)
+				architecture.add_child(grate)
+		else:
+			for n in 7:
+				var slab := box(architecture,at+Vector3(sin(n*2.4)*.85,.003,cos(n*2.4)*.85),Vector3(.38,.012,.29),Color("687876").darkened(n*.018))
+				slab.rotation.y = n*.71
+
+func build_wall_details() -> void:
+	# Dress existing solid masonry only, away from gates. No new invisible floor obstacles.
+	var sites: Dictionary = game.map.get("door_sites",game.doors)
+	for cell: Vector2i in game.walls:
+		if (cell.x*13+cell.y*7)%19!=0: continue
+		if sites.keys().any(func(site): return Vector2(site).distance_to(Vector2(cell))<2.5): continue
+		var south := cell+Vector2i.DOWN
+		if game.walls.has(south) or south.y>=game.map.height: continue
+		if game.map.has("floor") and not game.map.floor.has(south): continue
+		var prop := Props.instance("CeramicUrn" if (cell.x+cell.y)%2==0 else "OakBarrel",0.65)
+		prop.position = at3(Level.center(cell),.89)
+		prop.rotation.y = cell.x*.7
+		architecture.add_child(prop)
+		var relief := Props.instance("WingRelief",.78)
+		relief.position = at3(Level.center(cell),.03)+Vector3(0,0,.48)
+		architecture.add_child(relief)

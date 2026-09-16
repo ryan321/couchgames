@@ -101,7 +101,7 @@ func hurt(hero_class: int, player_id: int) -> void:
 	last_hurt_sample = "hurt_%s_%d"%[CLASSES[clampi(hero_class,0,3)],take]
 	last_hurt_player = player_id
 	# Eight reserved voices keep a hurt response audible during a full party's attacks.
-	play_in_pool(last_hurt_sample,0,8,-16.5,1.0+(player_id%3-1)*0.018,true)
+	play_in_pool(last_hurt_sample,0,8,-9,1.0,true)
 	# Briefly lower the score so the player's reaction comes through.
 	if music_player: music_player.volume_db = minf(music_player.volume_db,-31)
 

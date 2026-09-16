@@ -20,7 +20,7 @@ func run() -> void:
 	for kind: String in sound.CLASSES:
 		for take in 3:
 			var sample: AudioStreamWAV = sound.samples["hurt_%s_%d"%[kind,take]]
-			expect(sample.get_length()>.15 and sample.get_length()<.5,"Hurt reaction is a short playable sample")
+			expect(sample.get_length()>.15 and sample.get_length()<.9,"Hurt reaction is a short playable sample")
 			fingerprints[sample.data.hex_encode().sha256_text()] = true
 	expect(fingerprints.size()==12,"Every class and take has different audio")
 	for kind: String in sound.EFFECTS:

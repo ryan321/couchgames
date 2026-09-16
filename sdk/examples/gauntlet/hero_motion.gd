@@ -88,7 +88,7 @@ func advance(hero: Dictionary, delta: float, playing: bool) -> void:
 	if hero.hp>0 and not hero.escaped:
 		if hero.get("attack_serial",0)!=attack_serial:
 			attack_serial = hero.attack_serial
-			attack_clip.animation = ["attack" if attack_serial%2 else "attack_b","attack" if attack_serial%2 else "attack_b","mage_shot","bow_shot"][kind]
+			attack_clip.animation = ["axe_hold","attack" if attack_serial%2 else "attack_b","mage_shot","bow_shot"][kind]
 			var duration: float = tree.get_node(tree.anim_player).get_animation(attack_clip.animation).length
 			var cadence: float = preload("res://examples/gauntlet/level.gd").CLASSES[kind].rate
 			tree.set("parameters/attack_speed/scale",duration/cadence)

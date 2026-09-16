@@ -12,6 +12,36 @@ func expect(value: bool, label: String) -> void:
 		failures += 1
 		push_error(label)
 
+func check_gate_barriers() -> void:
+	for chapter in [1,2]:
+		var map := Level.definition(chapter)
+		for group: int in map.door_colors:
+			var cells: Array = map.doors.keys().filter(func(cell): return map.doors[cell]==group)
+			var normal := Vector2i.RIGHT if map.door_axes[group] else Vector2i.DOWN
+			var along := Vector2i.DOWN if map.door_axes[group] else Vector2i.RIGHT
+			var ends_sealed := true
+			for cell: Vector2i in cells:
+				for end: Vector2i in [cell-along,cell+along]:
+					if not cells.has(end): ends_sealed = ends_sealed and map.walls.has(end)
+			expect(ends_sealed,"Each gate meets solid wall at both ends")
+			var source: Vector2i = cells[0]-normal
+			var goal: Vector2i = cells[0]+normal
+			var frontier: Array[Vector2i] = [source]
+			var visited := {source:true}
+			var cursor := 0
+			# Open every other gate: each individual lock must seal its own passage.
+			while cursor<frontier.size():
+				var at := frontier[cursor]
+				cursor += 1
+				for direction in DIRECTIONS:
+					var next: Vector2i = at+direction
+					if next.x<0 or next.y<0 or next.x>=map.width or next.y>=map.height: continue
+					if map.walls.has(next) or cells.has(next) or visited.has(next): continue
+					visited[next] = true
+					frontier.append(next)
+			expect(not map.walls.has(source) and not map.walls.has(goal),"Both sides of each gate have walkable approaches")
+			expect(not visited.has(goal),"Chapter %d %s gate cannot be walked around"%[chapter+1,map.door_colors[group]])
+
 func route(target: Vector2) -> Array:
 	var source := Level.cell(game.heroes[1].pos)
 	var goal := Level.cell(target)
@@ -71,6 +101,7 @@ func solve() -> int:
 	return travelled
 
 func run() -> void:
+	check_gate_barriers()
 	game = load("res://examples/gauntlet/dungeon.tscn").instantiate()
 	root.add_child(game)
 	game.close_on_finish = false

@@ -30,6 +30,8 @@ def main():
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_library.gd"], "Library checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_sunbreak.gd"], "Sunbreak checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_world_1_1.gd"], "World 1-1 checks passed:"),
+        (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_gauntlet_visibility.gd"], "Gauntlet visibility checks passed:"),
+        (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_gauntlet_cast.gd"], "Gauntlet cast checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_gauntlet.gd"], "Gauntlet checks passed:"),
         (["--headless", "--audio-driver", "Dummy", "--path", str(root / "sdk"), "--script", "res://tests/test_gauntlet_audio.gd"], "Gauntlet audio checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_gauntlet_campaign.gd"], "Gauntlet campaign checks passed:"),

@@ -341,11 +341,15 @@ func draw_minimap() -> void:
 	var scale: float = minf(150.0/game.map.width,68.0/game.map.height)
 	for cell: Vector2i in game.walls:
 		if game.map.has("visible_cells") and not game.map.visible_cells.has(cell): continue
-		draw_rect(Rect2(origin+Vector2(cell)*scale,Vector2.ONE*scale),Color(0.5,0.64,0.69,0.48))
+		var sight: float = game.dungeon_view.visibility.visibility_at(Vector2(cell)+Vector2.ONE*.5)
+		draw_rect(Rect2(origin+Vector2(cell)*scale,Vector2.ONE*scale),Color(0.5,0.64,0.69,0.48*sight))
 	for cell: Vector2i in game.doors:
+		if game.dungeon_view.visibility.visibility_at(Vector2(cell)+Vector2.ONE*.5)<.5: continue
 		draw_rect(Rect2(origin+Vector2(cell)*scale,Vector2.ONE*scale),Level.Campaign.KEY_COLORS[game.map.door_colors.get(game.doors[cell],"gold")])
 	for pickup: Dictionary in game.pickups:
+		if game.dungeon_view.visibility.visibility_at(pickup.pos/32.0)<.5: continue
 		if pickup.kind=="key": draw_circle(origin+pickup.pos/32*scale,2,Level.Campaign.KEY_COLORS[pickup.get("key_color","gold")])
-	draw_circle(origin+game.map.exit/32*scale,3.5,Color("8ff2cb"))
+	if game.dungeon_view.visibility.visibility_at(game.map.exit/32.0)>=.5:
+		draw_circle(origin+game.map.exit/32*scale,3.5,Color("8ff2cb"))
 	for hero: Dictionary in game.heroes.values():
 		if not hero.escaped: draw_circle(origin+hero.pos/32*scale,2.5,game.color_for(hero))

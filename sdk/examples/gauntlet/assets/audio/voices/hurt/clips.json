@@ -1,0 +1,86 @@
+[
+  {
+    "class": "warrior",
+    "take": 0,
+    "source": "3grunt1.wav",
+    "start": 0.515,
+    "end": 0.895
+  },
+  {
+    "class": "warrior",
+    "take": 1,
+    "source": "3grunt2.wav",
+    "start": 0.445,
+    "end": 0.875
+  },
+  {
+    "class": "warrior",
+    "take": 2,
+    "source": "3grunt3.wav",
+    "start": 0.035,
+    "end": 0.445
+  },
+  {
+    "class": "wizard",
+    "take": 0,
+    "source": "2yell1.wav",
+    "start": 0.395,
+    "end": 0.745
+  },
+  {
+    "class": "wizard",
+    "take": 1,
+    "source": "2yell10.wav",
+    "start": 0.085,
+    "end": 0.665
+  },
+  {
+    "class": "wizard",
+    "take": 2,
+    "source": "2yell7.wav",
+    "start": 0.595,
+    "end": 1.185
+  },
+  {
+    "class": "elf",
+    "take": 0,
+    "source": "1yell1.wav",
+    "start": 0.305,
+    "end": 0.655
+  },
+  {
+    "class": "elf",
+    "take": 1,
+    "source": "1yell15.wav",
+    "start": 0.285,
+    "end": 0.505
+  },
+  {
+    "class": "elf",
+    "take": 2,
+    "source": "1yell16.wav",
+    "start": 0.535,
+    "end": 0.865
+  },
+  {
+    "class": "valkyrie",
+    "take": 0,
+    "source": "female_hurt_grunts_groans_1.ogg",
+    "start": 0.31,
+    "end": 1.15
+  },
+  {
+    "class": "valkyrie",
+    "take": 1,
+    "source": "female_hurt_grunts_groans_1.ogg",
+    "start": 2.07,
+    "end": 2.72
+  },
+  {
+    "class": "valkyrie",
+    "take": 2,
+    "source": "female_hurt_grunts_groans_1.ogg",
+    "start": 3.69,
+    "end": 4.14
+  }
+]

@@ -1,6 +1,7 @@
 extends Node2D
 const Level = preload("res://examples/gauntlet/level.gd")
 const DungeonView = preload("res://examples/gauntlet/dungeon_view.gd")
+const AxeSwing = preload("res://examples/gauntlet/axe_swing.gd")
 const Board = preload("res://examples/gauntlet/board.gd")
 const Fleet = preload("res://examples/pocket_rally/wii_fleet.gd")
 const Sounds = preload("res://examples/gauntlet/sound.gd")
@@ -180,7 +181,7 @@ func finish_screen_action() -> void:
 func make_hero(id: int, hero_class: int, color_index := -1) -> Dictionary:
 	var stats: Dictionary = Level.CLASSES[hero_class]
 	return {"id":id,"hero_class":hero_class,"color_index":posmod(id-1 if color_index<0 else color_index,Level.PLAYER_COLORS.size()),"pos":Level.spawn(id,level_index),"face":Vector2.DOWN,
-		"attack_serial":0,"magic_serial":0,"hit_serial":0,"hp":stats.health,"cooldown":0.0,"hurt":0.0,"potions":2,"revive":0.0,"escaped":false,"walk":0.0}
+		"attack_serial":0,"attack_started":-100.0,"attack_face":Vector2.DOWN,"magic_serial":0,"hit_serial":0,"hp":stats.health,"cooldown":0.0,"hurt":0.0,"potions":2,"revive":0.0,"escaped":false,"walk":0.0}
 
 func join(id: int) -> void:
 	if heroes.has(id): return
@@ -556,8 +557,10 @@ func fire(hero: Dictionary) -> void:
 	var stats: Dictionary = Level.CLASSES[hero.hero_class]
 	hero.cooldown = stats.rate
 	hero.attack_serial += 1
+	hero.attack_started = elapsed
+	hero.attack_face = hero.face
 	if hero.hero_class<2:
-		melee_swings.append({"owner":hero.id,"face":hero.face,"at":elapsed+stats.windup,"hero_class":hero.hero_class})
+		melee_swings.append({"owner":hero.id,"face":hero.face,"at":elapsed+stats.windup,"hero_class":hero.hero_class,"started":elapsed,"sampled":0.0,"hit_enemies":{},"hit_generators":{}})
 		sound.effect("axe" if hero.hero_class==0 else "sword")
 	else:
 		var arrow: bool = hero.hero_class==3
@@ -565,10 +568,10 @@ func fire(hero: Dictionary) -> void:
 			"life":1.35,"owner":hero.id,"hero_class":hero.hero_class,"kind":"arrow" if arrow else "arcane"})
 		sound.effect("bow" if arrow else "shoot")
 
-func melee_reaches(origin: Vector2, facing: Vector2, target: Vector2, reach: float, target_radius: float) -> bool:
+func melee_reaches(origin: Vector2, facing: Vector2, target: Vector2, reach: float, target_radius: float, check_arc := true) -> bool:
 	var offset := target-origin
 	if offset.length()>reach+target_radius: return false
-	if offset.length()>target_radius and facing.dot(offset.normalized())<0.35: return false
+	if check_arc and offset.length()>target_radius and facing.dot(offset.normalized())<0.35: return false
 	# Sweep visibility through the same walls and closed doors as projectiles.
 	var parts := maxi(1,ceili(offset.length()/6.0))
 	for part in range(1,parts+1):
@@ -579,14 +582,36 @@ func update_melee() -> void:
 	for i in range(melee_swings.size()-1,-1,-1):
 		var swing: Dictionary = melee_swings[i]
 		if elapsed<swing.at: continue
-		melee_swings.remove_at(i)
 		var hero: Dictionary = heroes.get(swing.owner,{})
-		if hero.is_empty() or hero.hp<=0 or hero.escaped or hero.hero_class!=swing.hero_class: continue
+		if hero.is_empty() or hero.hp<=0 or hero.escaped or hero.hero_class!=swing.hero_class:
+			melee_swings.remove_at(i)
+			continue
+		if swing.hero_class==0:
+			update_axe(swing,hero)
+			if elapsed-swing.started>=AxeSwing.STRIKE_END: melee_swings.remove_at(i)
+			continue
+		melee_swings.remove_at(i)
 		var stats: Dictionary = Level.CLASSES[hero.hero_class]
 		for enemy: Dictionary in enemies:
 			if enemy.hp>0 and melee_reaches(hero.pos,swing.face,enemy.pos,stats.reach,12): damage_enemy(enemy,stats.damage)
 		for generator: Dictionary in generators:
 			if generator.hp>0 and melee_reaches(hero.pos,swing.face,generator.pos,stats.reach,19): damage_generator(generator,stats.damage)
+
+func update_axe(swing: Dictionary, hero: Dictionary) -> void:
+	var age: float = elapsed-swing.started
+	var damage: float = Level.CLASSES[0].damage
+	for enemy: Dictionary in enemies:
+		if enemy.hp<=0 or swing.hit_enemies.has(enemy.id): continue
+		if AxeSwing.touches(hero.pos,swing.face,enemy.pos,12,swing.sampled,age) and melee_reaches(hero.pos,swing.face,enemy.pos,Level.CLASSES[0].reach,12,false):
+			damage_enemy(enemy,damage)
+			swing.hit_enemies[enemy.id] = true
+	for index in generators.size():
+		var generator: Dictionary = generators[index]
+		if generator.hp<=0 or swing.hit_generators.has(index): continue
+		if AxeSwing.touches(hero.pos,swing.face,generator.pos,19,swing.sampled,age) and melee_reaches(hero.pos,swing.face,generator.pos,Level.CLASSES[0].reach,19,false):
+			damage_generator(generator,damage)
+			swing.hit_generators[index] = true
+	swing.sampled = age
 
 func cast_magic(id: int) -> void:
 	var hero: Dictionary = heroes[id]
@@ -706,9 +731,13 @@ func update_enemies(delta: float) -> void:
 		var speed: float = (53.0 if enemy.kind=="grunt" else 65.0)*(1.0+level_index*0.045)
 		enemy.pos = slide(enemy.pos,(aim-enemy.pos).normalized()*speed*delta,9)
 		enemy.attack -= delta
-		if distance<23: hurt(target,(24.0 if enemy.kind=="grunt" else 18.0)*(1.0+level_index*0.1))
+		if distance<23:
+			var before: int = target.hit_serial
+			hurt(target,(24.0 if enemy.kind=="grunt" else 18.0)*(1.0+level_index*0.1))
+			if target.hit_serial!=before: enemy.attack_serial = int(enemy.get("attack_serial",0))+1
 		if enemy.kind=="demon" and distance<250 and enemy.attack<=0:
 			enemy.attack = 2.4
+			enemy.attack_serial = int(enemy.get("attack_serial",0))+1
 			shots.append({"pos":enemy.pos,"velocity":(target.pos-enemy.pos).normalized()*160,"damage":30.0*(1.0+level_index*0.1),"life":2.0,"owner":0,"hero_class":0})
 	for i in range(enemies.size()-1,-1,-1):
 		if enemies[i].hp<=0:
