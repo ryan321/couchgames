@@ -8,7 +8,7 @@ import sys
 import tempfile
 
 from godot_tools import ROOT, godot_environment, resolve_godot
-from game_catalog import GAMES
+from game_catalog import GAMES, rendering_arguments
 
 
 def build_reader(fleet=False):
@@ -38,6 +38,7 @@ def main():
     parser.add_argument("--game", choices=list(GAMES), default="little-world")
     parser.add_argument("--joycons", choices=["separate", "paired"], default="separate",
                         help="One sideways Joy-Con per player (default), or a combined pair in a grip")
+    parser.add_argument("--compatibility", action="store_true", help="Use the simpler renderer on older graphics hardware")
     args = parser.parse_args()
     if sys.platform != "darwin":
         raise RuntimeError("The experimental native Wii reader currently requires macOS.")
@@ -66,7 +67,7 @@ def main():
                   ("2 joins, release and press again to start; hold 2 to fire; 1 magic/class; Home pauses." if args.game == "gauntlet" else "Tilt steers; 2 gas; 1 brake."), flush=True)
         helper = subprocess.Popen([str(binary), state_path])
         try:
-            return subprocess.call([executable, "--path", str(ROOT / "sdk"), scene], env=environment)
+            return subprocess.call([executable, *rendering_arguments(args.game, compatibility=args.compatibility), "--path", str(ROOT / "sdk"), scene], env=environment)
         finally:
             if helper.poll() is None:
                 helper.terminate()

@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 from godot_tools import ROOT, godot_environment, resolve_godot
-from game_catalog import GAMES
+from game_catalog import GAMES, rendering_arguments
 
 
 def main():
@@ -15,6 +15,7 @@ def main():
     parser.add_argument("--wii", action="store_true", help="Enable experimental SDL Wii/Remote Plus/Nunchuk/Classic/Wii U Pro input (pairing required)")
     parser.add_argument("--joycons", choices=["separate", "paired"], default="separate",
                         help="One sideways Joy-Con per player (default), or a combined pair in a grip")
+    parser.add_argument("--compatibility", action="store_true", help="Use the simpler renderer on older graphics hardware")
     args = parser.parse_args()
     executable = resolve_godot(args.godot)
     environment = godot_environment(args.wii, args.joycons)
@@ -31,7 +32,7 @@ def main():
     scene = GAMES[args.game]["scene"]
     if args.game == "pocket-rally":
         scene = "res://examples/pocket_rally/rally.tscn"
-    return subprocess.call([executable, "--path", str(ROOT / "sdk"), scene], cwd=ROOT, env=environment)
+    return subprocess.call([executable, *rendering_arguments(args.game, compatibility=args.compatibility), "--path", str(ROOT / "sdk"), scene], cwd=ROOT, env=environment)
 
 
 if __name__ == "__main__":

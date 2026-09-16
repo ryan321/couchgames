@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from library import GAMES, LibraryHost
+from game_catalog import rendering_arguments
 
 class Process:
     def __init__(self):
@@ -17,6 +18,16 @@ class Process:
     def wait(self, timeout=None): return self.returncode
 
 class HostTests(unittest.TestCase):
+    def test_game_specific_renderer_and_explicit_fallback(self):
+        with patch('sys.platform', 'darwin'):
+            self.assertEqual(rendering_arguments('gauntlet'),
+                             ['--rendering-method', 'forward_plus', '--rendering-driver', 'metal'])
+            self.assertEqual(rendering_arguments('gauntlet', compatibility=True), [])
+            for game_id in GAMES:
+                if game_id != 'gauntlet':
+                    self.assertEqual(rendering_arguments(game_id), [])
+        with patch('sys.platform', 'win32'):
+            self.assertEqual(rendering_arguments('gauntlet'), ['--rendering-method', 'forward_plus'])
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.calls = []

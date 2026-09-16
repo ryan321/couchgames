@@ -102,7 +102,7 @@ func reset_level() -> void:
 func make_hero(id: int, hero_class: int) -> Dictionary:
 	var stats: Dictionary = Level.CLASSES[hero_class]
 	return {"id":id,"hero_class":hero_class,"pos":Level.spawn(id),"face":Vector2.DOWN,
-		"hp":stats.health,"cooldown":0.0,"hurt":0.0,"potions":2,"revive":0.0,"escaped":false,"walk":0.0}
+		"attack_serial":0,"magic_serial":0,"hit_serial":0,"hp":stats.health,"cooldown":0.0,"hurt":0.0,"potions":2,"revive":0.0,"escaped":false,"walk":0.0}
 
 func join(id: int) -> void:
 	if heroes.has(id): return
@@ -141,6 +141,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo: return
 	match event.keycode:
 		KEY_ESCAPE: get_tree().quit()
+		KEY_F2: dungeon_view.toggle_quality()
+		KEY_F3: dungeon_view.toggle_overview()
 		KEY_F11:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
 		KEY_F1:
@@ -277,6 +279,7 @@ func unlock(group: int) -> void:
 func fire(hero: Dictionary) -> void:
 	var stats: Dictionary = Level.CLASSES[hero.hero_class]
 	hero.cooldown = stats.rate
+	hero.attack_serial += 1
 	shots.append({"pos":hero.pos,"velocity":hero.face*360,"damage":stats.damage,"life":1.35,"owner":hero.id,"hero_class":hero.hero_class})
 	sound.effect("shoot")
 
@@ -284,6 +287,7 @@ func cast_magic(id: int) -> void:
 	var hero: Dictionary = heroes[id]
 	if hero.hp<=0 or hero.escaped or hero.potions<=0: return
 	hero.potions -= 1
+	hero.magic_serial += 1
 	var damage: float = Level.CLASSES[hero.hero_class].magic
 	for enemy: Dictionary in enemies:
 		if enemy.pos.distance_to(hero.pos)<200: enemy.hp -= damage
@@ -396,6 +400,7 @@ func hurt(hero: Dictionary, damage: float) -> void:
 	var armor := 0.65 if hero.hero_class==1 else 1.0
 	hero.hp = maxf(0,hero.hp-damage*armor)
 	hero.hurt = 0.65
+	hero.hit_serial += 1
 	sound.effect("hurt")
 	if hero.hp<=0: announce("PLAYER %02d IS DOWN · STAND NEAR THEM TO REVIVE" % hero.id)
 

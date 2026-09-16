@@ -46,6 +46,55 @@ func run() -> void:
 	service.set_physics_process(false)
 	for device in 16: join(device)
 	expect(game.heroes.size()==16,"Sixteen independent players can enter")
+	game.dungeon_view._process(0)
+	var actor: Node3D = game.dungeon_view.actors["hero-1"]
+	expect(actor.skeleton.get_bone_count()>50 and actor.animator.has_animation("walk"),"Textured heroes have an imported skeleton and movement animation")
+	for female in [false,true]:
+		var face_mesh: ArrayMesh = preload("res://examples/gauntlet/hero_actor.gd").make_head(female)
+		var textured := face_mesh.get_surface_count()>0
+		for surface in face_mesh.get_surface_count():
+			textured = textured and face_mesh.surface_get_material(surface).albedo_texture!=null
+		expect(textured,"Imported head, eyes and brows retain their texture maps")
+	check_animation_layers()
+	var saved_positions := {}
+	for id: int in game.heroes:
+		saved_positions[id] = game.heroes[id].pos
+		game.heroes[id].pos = Vector2(48+(id%4)*384,48+((id-1)/4)*176)
+	game.dungeon_view.update_camera(1.0)
+	var visible_area := Rect2(Vector2.ZERO,Vector2(1520,632))
+	var all_visible := true
+	for id: int in game.heroes:
+		for height in [0.0,2.4]:
+			var projected: Vector2 = game.dungeon_view.camera.unproject_position(game.dungeon_view.at3(game.heroes[id].pos,height))
+			all_visible = all_visible and visible_area.has_point(projected)
+		game.heroes[id].pos = saved_positions[id]
+	expect(all_visible,"Shared camera keeps feet and labels visible when sixteen players spread across the map")
+	game.dungeon_view.update_camera(1.0)
+	expect(game.dungeon_view.camera.size>=14.0,"A gathered party retains a broad view of the dungeon")
+	# Exercise one normal frame, not a settled camera: a distant fallen hero must stay visible.
+	game.heroes[16].pos = Vector2(1232,48)
+	var saved_health: float = game.heroes[16].hp
+	game.heroes[16].hp = 0
+	game.dungeon_view.update_camera(1.0/60)
+	var immediate_fit := true
+	for hero: Dictionary in game.heroes.values():
+		for height in [0.0,2.4]:
+			immediate_fit = immediate_fit and visible_area.has_point(game.dungeon_view.camera.unproject_position(game.dungeon_view.at3(hero.pos,height)))
+	expect(immediate_fit,"Immediate expansion keeps both distant fallen teammates and the moving party visible")
+	expect(game.heroes[16].pos==Vector2(1232,48) and game.heroes[1].pos==saved_positions[1],"Camera framing never moves or tethers a player")
+	game.heroes[16].hp = saved_health
+	game.heroes[16].pos = saved_positions[16]
+	var map_key := InputEventKey.new()
+	map_key.keycode = KEY_F3
+	map_key.pressed = true
+	game._unhandled_key_input(map_key)
+	var map_visible: bool = game.dungeon_view.overview
+	for corner in [Vector2.ZERO,Vector2(1280,0),Vector2(0,640),Vector2(1280,640)]:
+		for height in [0.0,2.4]:
+			map_visible = map_visible and visible_area.has_point(game.dungeon_view.camera.unproject_position(game.dungeon_view.at3(corner,height)))
+	expect(map_visible,"F3 frames the entire dungeon, including raised objects at every map edge")
+	game._unhandled_key_input(map_key)
+	expect(not game.dungeon_view.overview,"F3 returns to automatic party framing")
 	var positions := {}
 	for hero: Dictionary in game.heroes.values():
 		positions[hero.pos] = true
@@ -196,13 +245,22 @@ func run() -> void:
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--capture="):
 			game.reset_level()
-			for device in range(1,16): join(device)
+			var capture_players := 16
+			for option in OS.get_cmdline_user_args():
+				if option.begins_with("--players="): capture_players = clampi(int(option.trim_prefix("--players=")),1,16)
+			if "--stress" in OS.get_cmdline_user_args(): capture_players = 16
+			for device in range(1,capture_players): join(device)
+			if "--performance" in OS.get_cmdline_user_args(): game.dungeon_view.toggle_quality()
 			if "--lobby" not in OS.get_cmdline_user_args(): game.start()
 			game.message_time = 0
 			tick(3)
 			game.board.queue_redraw()
-			await process_frame
+			# Give imported skeletons and animation blending time to reach their idle pose.
+			for frame in 12: await process_frame
 			if "--stress" in OS.get_cmdline_user_args():
+				for id: int in game.heroes:
+					game.heroes[id].pos = Vector2(96+((id-1)%4)*320,80+((id-1)/4)*160)
+				game.dungeon_view.update_camera(1.0)
 				game.enemies.clear()
 				for n in 96:
 					game.enemies.append({"id":2000+n,"pos":Level.center(Vector2i(14+n%11,2+(n/11))),"hp":52.0,"kind":["ghost","grunt","demon"][n%3],"attack":1.0})
@@ -216,7 +274,7 @@ func run() -> void:
 			game.board._process(0)
 			game.board.queue_redraw()
 			await RenderingServer.frame_post_draw
-			expect(root.get_texture().get_image().save_png(argument.trim_prefix("--capture="))==OK,"Sixteen-player render saved")
+			expect(root.get_texture().get_image().save_png(argument.trim_prefix("--capture="))==OK,"Game view rendered and saved")
 	if not failures: print("Gauntlet checks passed: %d gameplay/input assertions; synthetic controllers." % checks)
 	quit(1 if failures else 0)
 
@@ -299,3 +357,46 @@ func party_at(at: Vector2) -> bool:
 	for device in bot_count:
 		if not game.heroes[device+1].escaped and game.heroes[device+1].pos.distance_to(at)>3: return false
 	return true
+
+func check_animation_layers() -> void:
+	for kind in 4:
+		var fighter: Node3D = game.dungeon_view.hero_model(kind)
+		var walker: Node3D = game.dungeon_view.hero_model(kind)
+		game.dungeon_view.add_child(fighter)
+		game.dungeon_view.add_child(walker)
+		var hero: Dictionary = game.make_hero(1,kind)
+		var other: Dictionary = hero.duplicate(true)
+		var leg: int = fighter.skeleton.find_bone("thigh_l")
+		var arm: int = fighter.skeleton.find_bone("upperarm_l" if kind==2 else "upperarm_r")
+		var before: Quaternion = fighter.skeleton.get_bone_pose_rotation(leg)
+		for frame in 30:
+			hero.pos += Vector2(2,0)
+			other.pos = hero.pos
+			if frame==24: hero.attack_serial += 1
+			fighter.present(hero,1.0/60,true)
+			walker.present(other,1.0/60,true)
+		expect(not before.is_equal_approx(fighter.skeleton.get_bone_pose_rotation(leg)),"Class %d has a moving stride through the live blend tree"%kind)
+		expect(fighter.skeleton.get_bone_pose_rotation(leg).is_equal_approx(walker.skeleton.get_bone_pose_rotation(leg)),"Class %d keeps exactly the same leg stride while firing"%kind)
+		expect(not fighter.skeleton.get_bone_pose_rotation(arm).is_equal_approx(walker.skeleton.get_bone_pose_rotation(arm)),"Class %d layers its own attack over the walking pose"%kind)
+		if kind==2:
+			var staff_arm: int = fighter.skeleton.find_bone("upperarm_r")
+			expect(fighter.skeleton.get_bone_pose_rotation(staff_arm).is_equal_approx(walker.skeleton.get_bone_pose_rotation(staff_arm)),"Wizard keeps the staff arm steady while the free hand casts")
+		var paused: Quaternion = fighter.skeleton.get_bone_pose_rotation(leg)
+		fighter.present(hero,0.5,false)
+		expect(paused.is_equal_approx(fighter.skeleton.get_bone_pose_rotation(leg)),"Pausing freezes class %d animation"%kind)
+		for frame in 60: fighter.present(hero,1.0/60,true)
+		expect(fighter.motion.speed<0.01,"Class %d eases back to idle when movement stops or is blocked"%kind)
+		hero.hit_serial += 1
+		fighter.present(hero,0.08,true)
+		expect(fighter.motion.tree.get("parameters/hit/active"),"Class %d reacts to an actual damage event"%kind)
+		hero.magic_serial += 1
+		fighter.present(hero,0.08,true)
+		expect(fighter.motion.tree.get("parameters/spell/active"),"Class %d presents potion casting independently of weapon fire"%kind)
+		hero.hp = 0
+		fighter.present(hero,0.1,true)
+		expect(fighter.fall>0 and fighter.fall<1 and fighter.rotation.z==0,"Knockdown blends the body while keeping player labels upright")
+		hero.hp = 500
+		fighter.present(hero,0.5,true)
+		expect(fighter.fall==0,"A revived hero recovers to an upright stance")
+		fighter.free()
+		walker.free()

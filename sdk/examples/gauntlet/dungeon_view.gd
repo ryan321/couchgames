@@ -1,8 +1,14 @@
 extends Node3D
 ## Presentation only. All gameplay, navigation and hit tests remain in the 2D simulation.
 const Level = preload("res://examples/gauntlet/level.gd")
+var environment_settings: Environment
+var high_quality := true
+var overview := false
+const DEFAULT_CAMERA_SIZE := 14.0
+var camera_target := Vector3(10,0,14)
 var game: Node
 var camera: Camera3D
+var key_light: DirectionalLight3D
 var architecture: Node3D
 var actors: Dictionary = {}
 var objects: Dictionary = {}
@@ -76,25 +82,50 @@ func _ready() -> void:
 	particle_mesh.rings = 6
 	var environment := WorldEnvironment.new()
 	var settings := Environment.new()
+	environment_settings = settings
 	settings.background_mode = Environment.BG_COLOR
 	settings.background_color = Color("0d1922")
 	settings.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	settings.ambient_light_color = Color("98bccf")
-	settings.ambient_light_energy = 0.28
-	settings.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	settings.ambient_light_color = Color("779bc1")
+	settings.ambient_light_energy = 0.20
+	settings.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	settings.tonemap_exposure = 1.05
+	settings.glow_enabled = true
+	settings.glow_intensity = 0.55
+	settings.glow_bloom = 0.03
+	if RenderingServer.get_current_rendering_method()=="forward_plus":
+		settings.ssao_enabled = true
+		settings.ssao_radius = 1.3
+		settings.ssao_intensity = 1.8
+		settings.ssao_detail = 0.4
+		settings.volumetric_fog_enabled = true
+		settings.volumetric_fog_density = 0.0025
+		settings.volumetric_fog_albedo = Color("80a0b3")
+		settings.volumetric_fog_length = 50
+		settings.volumetric_fog_ambient_inject = 0.3
+	var sky := Sky.new()
+	var sky_material := ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = Color("233444")
+	sky_material.sky_horizon_color = Color("9aacae")
+	sky_material.ground_bottom_color = Color("171d22")
+	sky_material.ground_horizon_color = Color("9b8a6c")
+	sky.sky_material = sky_material
+	settings.sky = sky
+	settings.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	environment.environment = settings
 	add_child(environment)
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-58,-28,0)
+	key_light = sun
+	sun.rotation_degrees = Vector3(-52,-35,0)
 	sun.light_color = Color("ffdcad")
-	sun.light_energy = 0.85
+	sun.light_energy = 0.55
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 80
 	add_child(sun)
 	var rim := DirectionalLight3D.new()
 	rim.rotation_degrees = Vector3(-30,155,0)
 	rim.light_color = Color("8fc5e1")
-	rim.light_energy = 0.22
+	rim.light_energy = 0.45
 	add_child(rim)
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -103,14 +134,30 @@ func _ready() -> void:
 	add_child(camera)
 	camera.look_at(Vector3(20,0,10))
 	camera.current = true
+	camera.size = 10.0
+	update_camera(1.0)
 
 func batch_boxes(parent: Node3D, transforms: Array[Transform3D], size: Vector3, color: Color) -> void:
 	if transforms.is_empty(): return
 	var shape := BoxMesh.new()
 	shape.size = size
-	var stone := ShaderMaterial.new()
-	stone.shader = preload("res://examples/gauntlet/shaders/stone.gdshader")
-	stone.set_shader_parameter("stone_color",color)
+	var stone := StandardMaterial3D.new()
+	var floor_surface := size.y<0.10
+	var prefix := "res://examples/gauntlet/assets/"+("monastery_stone_floor" if floor_surface else "medieval_wall_01")
+	stone.albedo_texture = load(prefix+"_albedo.jpg")
+	stone.normal_enabled = true
+	stone.normal_texture = load(prefix+"_normal.jpg")
+	stone.normal_scale = 1.25
+	stone.ao_enabled = true
+	stone.ao_texture = load(prefix+"_arm.jpg")
+	stone.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+	stone.roughness_texture = stone.ao_texture
+	stone.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
+	stone.albedo_color = Color("b4c0c3") if floor_surface else Color("a8afbc")
+	stone.uv1_triplanar = true
+	stone.uv1_world_triplanar = true
+	stone.uv1_scale = Vector3.ONE*(0.38 if floor_surface else 0.65)
+	stone.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	shape.material = stone
 	var batch := MultiMesh.new()
 	batch.transform_format = MultiMesh.TRANSFORM_3D
@@ -144,10 +191,12 @@ func rebuild() -> void:
 				var at := Vector3(x+0.5,0,y+0.5)
 				tiles.append(Transform3D(Basis.IDENTITY,at))
 				if game.walls.has(cell):
-					bricks.append(Transform3D(Basis.IDENTITY,at+Vector3(0,0.27,0)))
-					bricks.append(Transform3D(Basis.IDENTITY,at+Vector3(0,0.60,0)))
-					crowns.append(Transform3D(Basis.IDENTITY,at+Vector3(0,0.82,0)))
-		batch_boxes(architecture,tiles,Vector3(0.973,0.09,0.973),Color("35434a").lightened(variant*0.013))
+					var wall_scale := 0.35 if y==Level.HEIGHT-1 else 1.0
+					var wall_basis := Basis.from_scale(Vector3(1,wall_scale,1))
+					bricks.append(Transform3D(wall_basis,at+Vector3(0,0.27*wall_scale,0)))
+					bricks.append(Transform3D(wall_basis,at+Vector3(0,0.60*wall_scale,0)))
+					crowns.append(Transform3D(wall_basis,at+Vector3(0,0.82*wall_scale,0)))
+		batch_boxes(architecture,tiles,Vector3(1.003,0.09,1.003),Color("35434a").lightened(variant*0.013))
 		batch_boxes(architecture,bricks,Vector3(0.97,0.30,0.97),Color("475967").lightened(variant*0.017))
 		batch_boxes(architecture,crowns,Vector3(0.965,0.12,0.965),Color("6c777b").lightened(variant*0.012))
 	# Brass inlaid room emblems and broken masonry give the floor a sense of place.
@@ -168,16 +217,29 @@ func rebuild() -> void:
 		architecture.add_child(holder)
 		cylinder(holder,Vector3(0,0.42,0),0.13,0.8,Color("4e4540"),-1,0.7)
 		cylinder(holder,Vector3(0,0.86,0),0.15,0.2,Color("ae8250"),0.27,0.6)
-		var flame := ball(holder,Vector3(0,1.12,0),Vector3(0.3,0.62,0.3),Color("ffbd60"),2.0)
-		ball(flame,Vector3(0,0.03,0),Vector3(0.5,0.8,0.5),Color("fff6ce"),2.0)
+		var flame := Node3D.new()
+		flame.position.y = 0.90
+		holder.add_child(flame)
+		for angle in [0.0,PI/2]:
+			var shape := QuadMesh.new()
+			shape.size = Vector2(0.58,0.85)
+			var fire := MeshInstance3D.new()
+			fire.mesh = shape
+			fire.position.y = 0.42
+			fire.rotation.y = angle
+			fire.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var fire_material := ShaderMaterial.new()
+			fire_material.shader = preload("res://examples/gauntlet/shaders/flame.gdshader")
+			fire.material_override = fire_material
+			flame.add_child(fire)
 		torches.append(flame)
-		if torches.size()%2==0:
-			var light := OmniLight3D.new()
-			light.position.y = 1.5
-			light.light_color = Color("ffb65b")
-			light.light_energy = 1.2
-			light.omni_range = 5
-			holder.add_child(light)
+		var light := OmniLight3D.new()
+		light.position.y = 1.6
+		light.light_color = Color("ffab48")
+		light.light_energy = 3.2
+		light.omni_range = 6.5
+		holder.add_child(light)
+	build_set_dressing()
 	for cell in [Vector2i(3,3),Vector2i(7,6),Vector2i(9,9),Vector2i(17,8),Vector2i(23,16),Vector2i(32,10),Vector2i(36,16)]:
 		for i in 4:
 			var at := at3(Level.center(cell))+Vector3(sin(i*12.3)*0.32,0.06,cos(i*7.1)*0.32)
@@ -231,63 +293,9 @@ func rebuild() -> void:
 		objects["generator-%d"%i] = tower
 
 func hero_model(kind: int) -> Node3D:
-	var root := Node3D.new()
-	var color := Color(Level.CLASSES[kind].color)
-	var skin := Color("efd2ae")
-	var leather := Color("574641")
-	# Articulated legs, layered tunic, breastplate and cape.
-	for side in [-1,1]:
-		var leg := Node3D.new()
-		leg.name = "LegL" if side==-1 else "LegR"
-		leg.position = Vector3(side*0.13,0.30,0)
-		root.add_child(leg)
-		cylinder(leg,Vector3(0,-0.03,0),0.095,0.30,color.darkened(0.3))
-		ball(leg,Vector3(0,-0.23,0.06),Vector3(0.22,0.18,0.34),leather)
-	cylinder(root,Vector3(0,0.61,0),0.27,0.53,color,0.22)
-	box(root,Vector3(0,0.65,0.26),Vector3(0.32,0.34,0.12),Color("d2ccbb") if kind in [0,1] else color.lightened(0.18),0.4 if kind<2 else 0)
-	var cape := box(root,Vector3(0,0.63,-0.19),Vector3(0.44,0.55,0.07),color.darkened(0.36))
-	cape.rotation.x = -0.20
-	cylinder(root,Vector3(0,0.45,0),0.275,0.08,leather)
-	box(root,Vector3(0,0.45,0.27),Vector3(0.10,0.10,0.025),Color("f0c76d"),0.7)
-	ball(root,Vector3(0,1.02,0),Vector3(0.44,0.47,0.43),skin)
-	for side in [-1,1]:
-		ball(root,Vector3(side*0.095,1.06,0.204),Vector3(0.047,0.063,0.025),Color("25313b"))
-		ball(root,Vector3(side*0.30,0.75,0),Vector3(0.22,0.23,0.27),color.lightened(0.25))
-		ball(root,Vector3(side*0.32,0.54,0.10),Vector3(0.13,0.19,0.14),skin)
-	match kind:
-		0:
-			ball(root,Vector3(0,1.20,0),Vector3(0.48,0.22,0.46),Color("bac9ce"))
-			for side in [-1,1]:
-				var horn := cylinder(root,Vector3(side*0.28,1.26,0),0.07,0.35,Color("f3dfb5"),0.01)
-				horn.rotation.z = -side*0.7
-			cylinder(root,Vector3(0.4,0.62,0.20),0.035,0.95,leather)
-			box(root,Vector3(0.4,1.03,0.20),Vector3(0.4,0.25,0.075),Color("c1d2d6"),0.7)
-		1:
-			ball(root,Vector3(0,1.19,0),Vector3(0.46,0.18,0.45),Color("e7c57b"))
-			for side in [-1,1]:
-				var wing := ball(root,Vector3(side*0.27,1.27,0),Vector3(0.12,0.37,0.16),Color("e3ece5"))
-				wing.rotation.z = -side*0.4
-			var shield := cylinder(root,Vector3(-0.38,0.62,0.18),0.29,0.08,Color("b8d3db"),-1,0.65)
-			shield.rotation.x = PI/2
-			ball(root,Vector3(-0.38,0.62,0.24),Vector3(0.12,0.12,0.07),Color("e5c26f"))
-			box(root,Vector3(0.37,0.90,0.17),Vector3(0.065,0.75,0.045),Color("e5eeed"),0.8)
-			box(root,Vector3(0.37,0.63,0.17),Vector3(0.22,0.04,0.07),Color("e5c26f"),0.7)
-		2:
-			cylinder(root,Vector3(0,1.19,0),0.34,0.06,color)
-			cylinder(root,Vector3(0,1.43,0),0.25,0.48,color,0.015)
-			ball(root,Vector3(0,0.88,0.19),Vector3(0.26,0.30,0.14),Color("ebdfd5"))
-			cylinder(root,Vector3(0.4,0.7,0.13),0.035,1.3,leather)
-			ball(root,Vector3(0.4,1.39,0.13),Vector3(0.19,0.27,0.19),Color("c6a1ff"),1.2)
-		3:
-			cylinder(root,Vector3(0,1.30,0),0.27,0.35,color,0.025).rotation.z = -0.3
-			for side in [-1,1]: ball(root,Vector3(side*0.25,1.01,0),Vector3(0.19,0.10,0.1),skin)
-			var bow := ring(root,Vector3(0.38,0.70,0.2),0.30,0.025,Color("d7b779"))
-			bow.rotation.z = PI/2
-	bake_meshes(root,"hero-%d"%kind)
-	bake_meshes(root.get_node("LegL"),"leg-%d"%kind)
-	bake_meshes(root.get_node("LegR"),"leg-%d"%kind)
-	root.set_meta("class",kind)
-	return root
+	var actor := preload("res://examples/gauntlet/hero_actor.gd").new()
+	actor.configure(self,kind)
+	return actor
 
 func enemy_model(kind: String) -> Node3D:
 	var root := Node3D.new()
@@ -339,8 +347,9 @@ func pickup_model(kind: String) -> Node3D:
 			ball(root,Vector3(0.16,0.22,0.13),Vector3(0.12,0.12,0.22),Color("f1d1a0"))
 	return root
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not architecture: return
+	update_camera(delta)
 	var seen := {}
 	for id: int in game.heroes:
 		var hero: Dictionary = game.heroes[id]
@@ -356,7 +365,7 @@ func _process(_delta: float) -> void:
 			var label := Label3D.new()
 			label.name = "Number"
 			label.text = "%02d"%id
-			label.position = Vector3(0,1.95,0)
+			label.position = Vector3(0,2.30,0)
 			label.font_size = 50
 			label.pixel_size = 0.008
 			label.outline_size = 12
@@ -367,15 +376,10 @@ func _process(_delta: float) -> void:
 			halo.name = "Halo"
 		var actor: Node3D = actors[key]
 		actor.position = at3(hero.pos)
-		actor.rotation.y = atan2(hero.face.x,hero.face.y)
-		actor.rotation.z = PI/2 if hero.hp<=0 else 0.0
 		var progress := clampf((game.clock-float(hero.get("exit_at",game.clock)))/0.45,0,1) if hero.escaped else 0.0
-		actor.scale = Vector3.ONE*maxf(0.001,1.0-progress)*1.15
+		actor.scale = Vector3.ONE*maxf(0.001,1.0-progress)*1.05
 		actor.visible = progress<1.0
-		if hero.hp>0 and not hero.escaped:
-			actor.get_node("LegL").rotation.x = sin(hero.walk)*0.55
-			actor.get_node("LegR").rotation.x = -sin(hero.walk)*0.55
-			actor.position.y = absf(sin(hero.walk))*0.025
+		actor.present(hero,delta,game.phase=="playing")
 		actor.get_node("Number").text = "%02d%s" % [id," +" if hero.hp<=0 else ""]
 	for enemy: Dictionary in game.enemies:
 		var key := "enemy-%d"%enemy.id
@@ -435,10 +439,10 @@ func _process(_delta: float) -> void:
 		if i<game.shots.size():
 			effect.mesh = particle_mesh
 			var shot: Dictionary = game.shots[i]
-			effect.position = at3(shot.pos,0.7)
+			effect.position = at3(shot.pos,1.35 if shot.owner>0 else 0.7)
 			effect.scale = Vector3(0.12,0.12,0.28)
 			effect.rotation.y = atan2(shot.velocity.x,shot.velocity.y)
-			effect.material_override = material(Color("fca266") if shot.owner==0 else Color("e8dbad"),0,1.5)
+			effect.material_override = material(Color("fca266") if shot.owner==0 else (Color("82a5b4") if shot.get("hero_class",0)==2 else Color("e8dbad")),0,0.8)
 		elif i<game.shots.size()+game.sparks.size():
 			var spark: Dictionary = game.sparks[i-game.shots.size()]
 			var radius: float = (1.0-spark.life/0.65)*6.25 if spark.kind=="magic" else (1.0-spark.life/0.35)*0.65
@@ -488,3 +492,92 @@ func bake_meshes(parent: Node3D, key: String) -> void:
 	var instance := MeshInstance3D.new()
 	instance.mesh = model_meshes[key]
 	parent.add_child(instance)
+
+func update_camera(delta: float) -> void:
+	if not camera: return
+	# Fallen teammates still need rescuing; only escaped/disconnected heroes leave the frame.
+	var party: Array = game.heroes.values().filter(func(hero): return not hero.escaped)
+	var low := Vector2(3,12)
+	var high := Vector2(9,18)
+	if not party.is_empty():
+		low = party[0].pos/32.0
+		high = low
+		for hero: Dictionary in party:
+			low = low.min(hero.pos/32.0)
+			high = high.max(hero.pos/32.0)
+	elif game.phase=="complete":
+		low = Level.EXIT/32.0
+		high = low
+	var aspect := float(get_viewport().size.x)/maxf(1,get_viewport().size.y)
+	var desired := maxf(DEFAULT_CAMERA_SIZE,maxf((high.x-low.x)/aspect+5.0,(high.y-low.y)*0.77+5.0))
+	var center := (low+high)*0.5
+	if overview:
+		desired = maxf(22.0,44.0/aspect)
+		center = Vector2(20,10)
+	var half_x := desired*aspect*0.5
+	var half_z := desired/1.54
+	center.x = clampf(center.x,half_x-1,41-half_x) if half_x<21 else 20
+	center.y = clampf(center.y,half_z-1,21-half_z) if half_z<11 else 10
+	var weight := minf(1,delta*3.0)
+	camera_target = camera_target.lerp(Vector3(center.x,0.5,center.y),weight)
+	camera.size = lerpf(camera.size,desired,weight)
+	camera.position = camera_target+Vector3(0,28,24)
+	camera.look_at(camera_target)
+	# Smooth recentering/zoom-in, but expand immediately if that smoothing would crop anyone.
+	# Measure both feet and labels in the actual camera basis, with a 10% edge margin.
+	var required := DEFAULT_CAMERA_SIZE
+	for hero: Dictionary in party:
+		for height in [0.0,2.4]:
+			var offset := at3(hero.pos,height)-camera_target
+			required = maxf(required,absf(camera.global_basis.y.dot(offset))*2.0/0.90)
+			required = maxf(required,absf(camera.global_basis.x.dot(offset))*2.0/(aspect*0.90))
+	camera.size = maxf(camera.size,required)
+
+func toggle_overview() -> void:
+	overview = not overview
+	update_camera(1.0)
+	game.announce("FULL DUNGEON VIEW" if overview else "AUTOMATIC PARTY CAMERA")
+
+func toggle_quality() -> void:
+	high_quality = not high_quality
+	if RenderingServer.get_current_rendering_method()=="forward_plus":
+		environment_settings.ssao_enabled = high_quality
+		environment_settings.volumetric_fog_enabled = high_quality
+		get_viewport().scaling_3d_scale = 1.0 if high_quality else 0.75
+	get_viewport().msaa_3d = Viewport.MSAA_2X if high_quality else Viewport.MSAA_DISABLED
+	key_light.shadow_enabled = high_quality
+	environment_settings.glow_enabled = high_quality
+	game.announce("CINEMATIC LIGHTING" if high_quality else "PERFORMANCE LIGHTING")
+
+func build_set_dressing() -> void:
+	# Every tall support sits on an existing solid tile; floor ornament stays below feet.
+	var columns: Array[Transform3D] = []
+	for cell in [Vector2i(0,3),Vector2i(0,8),Vector2i(0,13),Vector2i(12,13),Vector2i(12,16),Vector2i(26,4),Vector2i(26,7),Vector2i(39,3),Vector2i(39,8),Vector2i(39,13)]:
+		var at := at3(Level.center(cell))
+		columns.append(Transform3D(Basis.IDENTITY,at+Vector3(0,1.05,0)))
+		for y in [0.14,1.86,2.03]:
+			box(architecture,at+Vector3(0,y,0),Vector3(0.94,0.14,0.94),Color("747c7c"))
+		for y in [0.28,1.7]:
+			ring(architecture,at+Vector3(0,y,0),0.35,0.04,Color("a89563"))
+	batch_boxes(architecture,columns,Vector3(0.62,1.65,0.62),Color.WHITE)
+	# Segmented stone arches frame the two keyed gateways.
+	for center in [Vector3(12.5,1.8,15),Vector3(26.5,1.8,6)]:
+		var voussoirs: Array[Transform3D] = []
+		for i in 13:
+			var angle := i*PI/12
+			var at: Vector3 = center+Vector3(0,sin(angle)*1.45,cos(angle)*1.45)
+			voussoirs.append(Transform3D(Basis(Vector3.RIGHT,-angle),at))
+		batch_boxes(architecture,voussoirs,Vector3(0.63,0.38,0.38),Color.WHITE)
+	# Worn runner and embroidered borders distinguish the entrance hall.
+	var cloth := material(Color("522b32"))
+	cloth.roughness = 1.0
+	box(architecture,Vector3(5.5,0.056,15.1),Vector3(2.0,0.015,6.0),Color("522b32"))
+	for side in [-1,1]:
+		box(architecture,Vector3(5.5+side*0.90,0.067,15.1),Vector3(0.024,0.008,5.9),Color("a68b54"))
+		for z in 18:
+			var stitch := box(architecture,Vector3(5.5+side*0.81,0.071,12.3+z*0.32),Vector3(0.07,0.008,0.07),Color("aa905c"))
+			stitch.rotation.y = PI/4
+	for at in [Vector3(0.94,1.20,5.5),Vector3(12.94,1.20,2.5),Vector3(26.94,1.20,11.5)]:
+		box(architecture,at,Vector3(0.025,1.35,0.64),Color("522b32"))
+		box(architecture,at+Vector3(0,0.72,0),Vector3(0.06,0.045,0.85),Color("b49860"),0.6)
+		for side in [-1,1]: box(architecture,at+Vector3(0.02,0,side*0.28),Vector3(0.012,1.32,0.018),Color("c1a564"))

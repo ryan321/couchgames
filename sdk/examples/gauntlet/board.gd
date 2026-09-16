@@ -83,10 +83,10 @@ func make_portrait(kind: int) -> void:
 	scene.add_child(fill)
 	var camera := Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 1.9
-	camera.position = Vector3(0,1.4,4)
+	camera.size = 2.55
+	camera.position = Vector3(0,1.65,4)
 	scene.add_child(camera)
-	camera.look_at(Vector3(0,0.85,0))
+	camera.look_at(Vector3(0,1.05,0))
 	camera.current = true
 
 func _process(_delta: float) -> void:
@@ -130,14 +130,15 @@ func _draw() -> void:
 		else:
 			text("%02d" % id,at+Vector2(10,29),16,Color("6a808e"))
 			text("A / Cross / Wii 2 to join",at+Vector2(42,29),11,Color("728996"))
-	centered("MOVE  Stick / D-pad     FIRE  A / Cross / Wii 2     MAGIC  X / Square / Wii 1     F1  Help     F11  Fullscreen",884,15,MUTED)
+	centered("MOVE  Stick / D-pad     FIRE  A / Cross / Wii 2     MAGIC  X / Square / Wii 1     F1  Help     F2  Lighting     F3  Map     F11  Fullscreen",884,15,MUTED)
 	if game.phase=="playing":
+		draw_minimap()
 		if game.message_time>0:
 			panel_box(Rect2(340,688,920,38),Color(0.04,0.10,0.14,0.94),Color("546b70"),8)
 			centered(game.message,713,16,GOLD)
 		if game.escaped_count()>0:
-			panel_box(Rect2(1190,116,352,42),Color("1a403b"),Color("69bda4"),8)
-			text("%d / %d safely through the portal" % [game.escaped_count(),game.heroes.size()],Vector2(1208,143),17,Color("b6f2d8"))
+			panel_box(Rect2(1190,265,352,42),Color("1a403b"),Color("69bda4"),8)
+			text("%d / %d safely through the portal" % [game.escaped_count(),game.heroes.size()],Vector2(1208,292),17,Color("b6f2d8"))
 	if game.phase in ["lobby","paused","complete","defeat"] or game.help:
 		draw_rect(Rect2(40,104,1520,632),Color(0.02,0.05,0.08,0.64))
 		draw_panel()
@@ -146,7 +147,7 @@ func draw_panel() -> void:
 	panel_box(Rect2(285,158,1030,530),Color("152935"),Color("728477"),18)
 	if game.help:
 		centered("A guide to the vault",219,32,GOLD)
-		var lines := ["Move and aim with the left stick or D-pad. Hold A / Cross / Wii 2 to fire.","Cast magic with X / Square / Wii 1. Keyboard: Space fires; X casts.","Shared keys open doors. Food heals your party. Generators award bonus treasure.","Enter the glowing portal to escape. Escaped heroes are safe and leave the dungeon.","Every connected hero must escape. Stand near fallen teammates to revive them.","Pause: Menu / Options / Wii Home / P. Press fire to resume.","F1 closes this guide. F11 toggles fullscreen. Escape returns to the library."]
+		var lines := ["Move and aim with the left stick or D-pad. Hold A / Cross / Wii 2 to fire.","Cast magic with X / Square / Wii 1. Keyboard: Space fires; X casts.","Shared keys open doors. Food heals your party. Generators award bonus treasure.","Enter the glowing portal to escape. Escaped heroes are safe and leave the dungeon.","Every connected hero must escape. Stand near fallen teammates to revive them.","Pause: Menu / Options / Wii Home / P. Press fire to resume.","F1 closes this guide. F3 toggles the full map. F11 toggles fullscreen. Escape returns to the library."]
 		for i in lines.size(): centered(lines[i],275+i*47,18,MUTED)
 	elif game.phase=="lobby":
 		centered("The Ember Vault",214,40,GOLD)
@@ -174,3 +175,19 @@ func draw_panel() -> void:
 		if won:
 			centered("Returning to your library in %d…" % maxi(1,ceili(game.return_countdown)),492,23,Color("b1e0c7"))
 		else: centered("Menu / Wii Home / R to play again",492,22,GOLD)
+
+func draw_minimap() -> void:
+	var origin := Vector2(1310,122)
+	var scale := 5.6
+	panel_box(Rect2(origin-Vector2(10,10),Vector2(244,144)),Color(0.035,0.075,0.1,0.93),Color("617c80"),8)
+	for cell: Vector2i in game.walls:
+		draw_rect(Rect2(origin+Vector2(cell)*scale,Vector2.ONE*scale),Color("556770"))
+	for cell: Vector2i in game.doors:
+		draw_rect(Rect2(origin+Vector2(cell)*scale,Vector2.ONE*scale),GOLD)
+	for pickup: Dictionary in game.pickups:
+		if pickup.kind=="key": draw_circle(origin+pickup.pos/32*scale,2.5,GOLD)
+	draw_circle(origin+Level.EXIT/32*scale,4,Color("8ff2cb"))
+	for hero: Dictionary in game.heroes.values():
+		if not hero.escaped:
+			draw_circle(origin+hero.pos/32*scale,3.0,Color(Level.CLASSES[hero.hero_class].color))
+	text("THE VAULT",origin+Vector2(0,128),11,MUTED)

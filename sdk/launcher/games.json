@@ -44,6 +44,7 @@
     "controls": "Fight the horde. Escape the Ember Vault.",
     "scene": "res://examples/gauntlet/dungeon.tscn",
     "color": "c5a0d9",
-    "native_wii": "fleet"
+    "native_wii": "fleet",
+    "renderer": "forward_plus"
   }
 ]

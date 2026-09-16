@@ -1,0 +1,362 @@
+[
+  {
+    "file": "monastery_stone_floor_albedo.jpg",
+    "source": "https://polyhaven.com/a/monastery_stone_floor",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/monastery_stone_floor/monastery_stone_floor_diff_2k.jpg",
+    "license": "CC0-1.0",
+    "sha256": "aa12137fff1728bbbfe98b30480e33a34cba3b5c096575702c1d66939214e14a",
+    "bytes": 3021140
+  },
+  {
+    "file": "monastery_stone_floor_normal.jpg",
+    "source": "https://polyhaven.com/a/monastery_stone_floor",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/monastery_stone_floor/monastery_stone_floor_nor_gl_2k.jpg",
+    "license": "CC0-1.0",
+    "sha256": "8f3e131a9d6d9c3a95c872173393830f7c1de389cd60d4878b2211058d706d2c",
+    "bytes": 4248820
+  },
+  {
+    "file": "monastery_stone_floor_arm.jpg",
+    "source": "https://polyhaven.com/a/monastery_stone_floor",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/monastery_stone_floor/monastery_stone_floor_arm_2k.jpg",
+    "license": "CC0-1.0",
+    "sha256": "05b540e571d2c7250bce9763f7ea0b03120d726fdc6e48f1a16fd7f922a5f891",
+    "bytes": 2331525
+  },
+  {
+    "file": "medieval_wall_01_albedo.jpg",
+    "source": "https://polyhaven.com/a/medieval_wall_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/medieval_wall_01/medieval_wall_01_diff_1k.jpg",
+    "license": "CC0-1.0",
+    "sha256": "73abffef4f875462fbe7379c771f4d55792a3ad11d60eeb757473cc832b0b1a1",
+    "bytes": 598413
+  },
+  {
+    "file": "medieval_wall_01_normal.jpg",
+    "source": "https://polyhaven.com/a/medieval_wall_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/medieval_wall_01/medieval_wall_01_nor_gl_1k.jpg",
+    "license": "CC0-1.0",
+    "sha256": "4d11552658659d941bfe590d2e4c2e2fbaf5ea4c71e0d77c1e5778fa55ec459c",
+    "bytes": 861497
+  },
+  {
+    "file": "medieval_wall_01_arm.jpg",
+    "source": "https://polyhaven.com/a/medieval_wall_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/medieval_wall_01/medieval_wall_01_arm_1k.jpg",
+    "license": "CC0-1.0",
+    "sha256": "5996a56794c8ea662b68828efec07cb98fbdafe29dd3ea23cce459eb44fbcd03",
+    "bytes": 137562
+  },
+  {
+    "file": "characters/Female_Peasant.bin",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Female_Peasant.bin",
+    "license": "CC0-1.0",
+    "sha256": "40eccaa2bd545c893142ef7dca0866ea8f20df3a86c67c5615024bc4fe546e83",
+    "bytes": 658600
+  },
+  {
+    "file": "characters/Female_Peasant.gltf",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Female_Peasant.gltf",
+    "license": "CC0-1.0",
+    "sha256": "43ba98058b933cae9acbde0f3ef8c3dda4ba9f69f338606f9d87666d9efffb31",
+    "bytes": 29529
+  },
+  {
+    "file": "characters/Female_Ranger.bin",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Female_Ranger.bin",
+    "license": "CC0-1.0",
+    "sha256": "d015964ba0a26eee9c9d2ea6f07aa660bba88aa536cf8bb6b67944b9e97c46df",
+    "bytes": 1959556
+  },
+  {
+    "file": "characters/Female_Ranger.gltf",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Female_Ranger.gltf",
+    "license": "CC0-1.0",
+    "sha256": "9b98b2ae6af3b4a1ec22bf8928b939e0751f08b25b636de82bfa7364fb34d3e1",
+    "bytes": 45461
+  },
+  {
+    "file": "characters/Male_Peasant.bin",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Male_Peasant.bin",
+    "license": "CC0-1.0",
+    "sha256": "e46bde795f7b69b351d322d7a5628e07131cfb48ed0afe366293f1b3f530433c",
+    "bytes": 674764
+  },
+  {
+    "file": "characters/Male_Peasant.gltf",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Male_Peasant.gltf",
+    "license": "CC0-1.0",
+    "sha256": "8f5a6cf6c1cf96e0a0f8e1a861b4245d42b7f88d44e5076da3d48f3fc52f4e76",
+    "bytes": 32681
+  },
+  {
+    "file": "characters/Male_Ranger.bin",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Male_Ranger.bin",
+    "license": "CC0-1.0",
+    "sha256": "5bbb0d42cb324c6c27ce00417e68a876d92978f07d161f83590f0d7c0570eff6",
+    "bytes": 1746884
+  },
+  {
+    "file": "characters/Male_Ranger.gltf",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/Male_Ranger.gltf",
+    "license": "CC0-1.0",
+    "sha256": "e1033a212332d84d98c19bc4927c621635478d0aa15d13c79da68d3ba9e0196f",
+    "bytes": 41447
+  },
+  {
+    "file": "characters/T_Peasant_BaseColor.png",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Peasant_BaseColor.png",
+    "license": "CC0-1.0",
+    "sha256": "a43635628d95571cd62fd4db0cc3a6ea32778b2bc02f242dda224c89d07f1ade",
+    "bytes": 5055760
+  },
+  {
+    "file": "characters/T_Peasant_Normal.png",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Peasant_Normal.png",
+    "license": "CC0-1.0",
+    "sha256": "7598fa7b63e46fd4dac29708bf5a81e05eb9a67280f7b13c61e28a9110eeb679",
+    "bytes": 14110336
+  },
+  {
+    "file": "characters/T_Peasant_ORM.png",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Peasant_ORM.png",
+    "license": "CC0-1.0",
+    "sha256": "e1932f5f91104afca89c501416a5fec09069b8552734237fc09045fabc4ca9b4",
+    "bytes": 9903835
+  },
+  {
+    "file": "characters/T_Ranger_BaseColor.png",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Ranger_BaseColor.png",
+    "license": "CC0-1.0",
+    "sha256": "846ef2170b04ee584ad83bb8a1e86dab57a9a43b1193204505912c274d949925",
+    "bytes": 6630927
+  },
+  {
+    "file": "characters/T_Ranger_Normal.png",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Ranger_Normal.png",
+    "license": "CC0-1.0",
+    "sha256": "dd64da2af3180f0c8f0b721cfc5f0d2720c351b97da8285c6cf49e7717c84147",
+    "bytes": 12713653
+  },
+  {
+    "file": "characters/T_Ranger_ORM.png",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Ranger_ORM.png",
+    "license": "CC0-1.0",
+    "sha256": "aca03d2fba12508ef07d5968ca22267fb207ea26ae898b6b2def8a296bd44f1c",
+    "bytes": 10792085
+  },
+  {
+    "file": "characters/T_Regular_Female_Dark_BaseColor.png",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Regular_Female_Dark_BaseColor.png",
+    "license": "CC0-1.0",
+    "sha256": "3b6ab973f9f3d6f8961226a0dbd99cf6d1b72df3795a8a5c1620a55754c161c2",
+    "bytes": 1348542
+  },
+  {
+    "file": "characters/T_Regular_Female_Normal.png",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Regular_Female_Normal.png",
+    "license": "CC0-1.0",
+    "sha256": "e1051d3d56df9cf061bc14c769c37253aecd595f8275f9d4c0d6e0e953c00e18",
+    "bytes": 3913459
+  },
+  {
+    "file": "characters/T_Regular_Female_Roughness.png",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Regular_Female_Roughness.png",
+    "license": "CC0-1.0",
+    "sha256": "da541fbd4b3bffe754fada5c29f8a0d8f836bf20ce7df8273607af4729a3a5ae",
+    "bytes": 3274215
+  },
+  {
+    "file": "characters/T_Regular_Male_Dark_BaseColor.png",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Regular_Male_Dark_BaseColor.png",
+    "license": "CC0-1.0",
+    "sha256": "b4dcc0f4139aab548d7c070c4655bd2080ef16caeaaabee6c4aeb693c524e802",
+    "bytes": 1316151
+  },
+  {
+    "file": "characters/T_Regular_Male_Normal.png",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Regular_Male_Normal.png",
+    "license": "CC0-1.0",
+    "sha256": "10cd71e2453e577fdd43e912b6016a99baf64964f0593e524bdd304855e15e2a",
+    "bytes": 4064184
+  },
+  {
+    "file": "characters/T_Regular_Male_Roughness.png",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/Exports/glTF (Godot-Unreal)/Outfits/T_Regular_Male_Roughness.png",
+    "license": "CC0-1.0",
+    "sha256": "086c2eb25bddfdb77d8e639ccbffb8df723ef4a1910d8e1b217e852f8668bfe5",
+    "bytes": 3160102
+  },
+  {
+    "file": "characters/License_Standard.txt",
+    "source": "https://quaternius.com/packs/modularcharacteroutfitsfantasy.html",
+    "archive_member": "Modular Character Outfits - Fantasy[Standard]/License_Standard.txt",
+    "license": "CC0-1.0",
+    "sha256": "2202cc2f608c4210790b112e5f121bc2e7f8dced7b5b1c7f4be6203461bdebbb",
+    "bytes": 728
+  },
+  {
+    "file": "characters/hero_animations.glb",
+    "source": "https://quaternius.com/packs/universalanimationlibrary2.html",
+    "archive_member": "Universal Animation Library 2[Standard]/Unreal-Godot/UAL2_Standard.glb",
+    "license": "CC0-1.0",
+    "sha256": "8cee20ab1bc55130092447e810e26df22dd2803eccc54f52137a7d54d7ab88a8",
+    "bytes": 8091444
+  },
+  {
+    "file": "characters/Animation_License.txt",
+    "source": "https://quaternius.com/packs/universalanimationlibrary2.html",
+    "archive_member": "Universal Animation Library 2[Standard]/License.txt",
+    "license": "CC0-1.0",
+    "sha256": "6d01f55c6e4c49a2c9963e147e561945ae2c83958c8ca667d90a6bffdbfac061",
+    "bytes": 332
+  },
+  {
+    "file": "characters/Superhero_Male_FullBody.gltf",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.gltf",
+    "license": "CC0-1.0",
+    "sha256": "e7fcea214ecf8855afbf910b50de6f9c7d1decfb71ca28bad8a4481452dafeb4",
+    "bytes": 30989
+  },
+  {
+    "file": "characters/Superhero_Male_FullBody.bin",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.bin",
+    "license": "CC0-1.0",
+    "sha256": "459003f9745853ae562a85506a2b94dd56515c1f37728f9fa3d2ce1a3e4cd92f",
+    "bytes": 720076
+  },
+  {
+    "file": "characters/T_Hair_1_Normal_png.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Hair_1_Normal.png",
+    "license": "CC0-1.0",
+    "sha256": "57fd0ad8c96a4d01b38769637e066cecaa285b456f6e48ce00863754a457affb",
+    "bytes": 4326126
+  },
+  {
+    "file": "characters/T_Hair_1_BaseColor.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Hair_1_BaseColor.png",
+    "license": "CC0-1.0",
+    "sha256": "bc7aa863bd22ab0a995cd838cceb4d3a5186ee54ee2fb0108fad85d20c057e6e",
+    "bytes": 1570376
+  },
+  {
+    "file": "characters/T_Eye_Normal_png.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Eye_Normal.png",
+    "license": "CC0-1.0",
+    "sha256": "9ed61f7726a54fe346a78b9e5a18905d8e2b88f86235d97f53cd207a26f3f8c7",
+    "bytes": 15099
+  },
+  {
+    "file": "characters/T_Eye_Brown.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Eye_Brown.png",
+    "license": "CC0-1.0",
+    "sha256": "d08e3356a83211bc6ca21fe3a8e39f4b5c1a3b8f85457fc2c0fb57be09935025",
+    "bytes": 35958
+  },
+  {
+    "file": "characters/T_Superhero_Male_Normal.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Superhero_Male_Normal.png",
+    "license": "CC0-1.0",
+    "sha256": "9b25cf9200216eb754b79cf4c63b5380c419780788322f3c57cdd2b3e02679a6",
+    "bytes": 4252937
+  },
+  {
+    "file": "characters/T_Superhero_Male_Dark.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Superhero_Male_Dark.png",
+    "license": "CC0-1.0",
+    "sha256": "df680cbc1967a61e85998bfafb8f7bc0a36dd604bb3266486c4b06b1a184bb45",
+    "bytes": 1384380
+  },
+  {
+    "file": "characters/T_Superhero_Male_Roughness.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Superhero_Male_Roughness.png",
+    "license": "CC0-1.0",
+    "sha256": "c70dabf48574cda55644d556beae1ee7cf1bdcf68a50d259d20f2f2358f27991",
+    "bytes": 3152049
+  },
+  {
+    "file": "characters/Superhero_Female_FullBody.gltf",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Female_FullBody.gltf",
+    "license": "CC0-1.0",
+    "sha256": "adedf28000a0716f689b009a70314506fc62f827498f77ba852acb5610f3f3f4",
+    "bytes": 31656
+  },
+  {
+    "file": "characters/Superhero_Female_FullBody.bin",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Female_FullBody.bin",
+    "license": "CC0-1.0",
+    "sha256": "3a8220a485b33d05d879115a50697728b45a151781106033afb8b8c243fca208",
+    "bytes": 990808
+  },
+  {
+    "file": "characters/T_Hair_2_Normal.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Hair_2_Normal.png",
+    "license": "CC0-1.0",
+    "sha256": "172f230aae0d4366c3cfc0402b2e6d1811b11f8487344bff28605eeacac1558d",
+    "bytes": 4710013
+  },
+  {
+    "file": "characters/T_Hair_2_BaseColor.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Hair_2_BaseColor.png",
+    "license": "CC0-1.0",
+    "sha256": "f9f4f2fb3eeeefb0b6f0fdef38b0770fd6607640c1c680b8139dd76697e9f9b3",
+    "bytes": 1729467
+  },
+  {
+    "file": "characters/T_Superhero_Female_Normal.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Superhero_Female_Normal.png",
+    "license": "CC0-1.0",
+    "sha256": "cf922460b43ccd31e983e34db05514c9d451dd2f9cdd01a843978e797719f859",
+    "bytes": 3940537
+  },
+  {
+    "file": "characters/T_Superhero_Female_Dark_BaseColor.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Superhero_Female_Dark_BaseColor.png",
+    "license": "CC0-1.0",
+    "sha256": "d366843ee7d9e9f37ec87a0e1c98c7f2e45573c08eeb80a51a6d9344e68cf288",
+    "bytes": 1319410
+  },
+  {
+    "file": "characters/T_Superhero_Female_Roughness.png",
+    "source": "https://quaternius.com/packs/universalbasecharacters.html",
+    "archive_path": "Universal Base Characters[Standard]/Base Characters/Godot - UE/T_Superhero_Female_Roughness.png",
+    "license": "CC0-1.0",
+    "sha256": "d2beabf2bd0313e32c68dcdbb80dca371a6e994fabf96efa97128bf9f14fa57b",
+    "bytes": 3277022
+  }
+]

@@ -12,7 +12,7 @@ import time
 from godot_tools import ROOT, godot_environment, resolve_godot
 from play_wii_native import build_reader
 
-from game_catalog import CATALOG, GAMES
+from game_catalog import CATALOG, GAMES, rendering_arguments
 
 
 def clean_environment():
@@ -86,7 +86,7 @@ class LibraryHost:
             state_path = self.wii_session.name if fleet else str(Path(self.wii_session.name) / "state.json")
             environment["COUCH_WII_FLEET_DIR" if fleet else "COUCH_WII_NATIVE_STATE"] = state_path
             self.helper = self.popen([str(binary), state_path], stdout=self.log, stderr=subprocess.STDOUT, env=clean_environment())
-        self.game = self.popen([self.executable, "--path", str(ROOT / "sdk"), game["scene"]],
+        self.game = self.popen([self.executable, *rendering_arguments(game_id), "--path", str(ROOT / "sdk"), game["scene"]],
                                cwd=ROOT, env=environment, stdout=self.log, stderr=subprocess.STDOUT)
         self.state.update(phase="running", message=game["title"] + " is playing. Close its window to come back.")
         self.publish()
