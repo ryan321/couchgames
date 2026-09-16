@@ -46,5 +46,15 @@
     "color": "c5a0d9",
     "native_wii": "fleet",
     "renderer": "forward_plus"
+  },
+  {
+    "id": "sunbreak",
+    "title": "Sunbreak",
+    "players": "1 player · First-person shooter",
+    "description": "A sunlit island. A closing storm. Your last stand.",
+    "controls": "Fight robots. Build cover. Secure the outpost.",
+    "scene": "res://examples/sunbreak/island.tscn",
+    "color": "78bdba",
+    "renderer": "forward_plus"
   }
 ]

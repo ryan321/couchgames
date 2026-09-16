@@ -47,6 +47,21 @@ func _draw() -> void:
 		poly([Vector2(91,164),Vector2(211,149),Vector2(207,161)],"d79472")
 		poly([Vector2(183,196),Vector2(213,93),Vector2(230,115),Vector2(211,196)],"de795f")
 		poly([Vector2(152,203),Vector2(192,180),Vector2(247,198),Vector2(205,209)],"f9edd1")
+	elif game_id == "sunbreak":
+		draw_rect(Rect2(0,0,440,270),Color("73bcc4"))
+		draw_circle(Vector2(338,54),29,Color("fff0c4"))
+		poly([Vector2(0,193),Vector2(104,157),Vector2(288,159),Vector2(440,208),Vector2(440,270),Vector2(0,270)],"719e55")
+		poly([Vector2(0,240),Vector2(190,173),Vector2(221,175),Vector2(186,270),Vector2(0,270)],"d5c291")
+		for at in [Vector2(68,159),Vector2(270,161)]:
+			draw_rect(Rect2(at,Vector2(96,48)),Color("e49771"))
+			poly([at+Vector2(-9,0),at+Vector2(48,-33),at+Vector2(103,0)],"345b6b")
+			draw_rect(Rect2(at+Vector2(16,12),Vector2(19,22)),Color("fbe6bb"))
+			draw_rect(Rect2(at+Vector2(61,12),Vector2(19,22)),Color("fbe6bb"))
+		draw_rect(Rect2(204,78,13,112),Color("487f8c"))
+		draw_circle(Vector2(210,79),12,Color("a2ffdc"))
+		poly([Vector2(286,270),Vector2(279,232),Vector2(243,184),Vector2(269,180),Vector2(337,232),Vector2(350,270)],"29434d")
+		poly([Vector2(285,242),Vector2(247,190),Vector2(263,185),Vector2(322,237)],"dbe2d2")
+		draw_line(Vector2(292,228),Vector2(310,244),Color("84f4d4"),5)
 	elif game_id == "gauntlet":
 		draw_rect(Rect2(0,0,440,270),Color("252431"))
 		for y in 6:

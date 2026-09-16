@@ -23,8 +23,11 @@ class HostTests(unittest.TestCase):
             self.assertEqual(rendering_arguments('gauntlet'),
                              ['--rendering-method', 'forward_plus', '--rendering-driver', 'metal'])
             self.assertEqual(rendering_arguments('gauntlet', compatibility=True), [])
+            self.assertEqual(rendering_arguments('sunbreak'),
+                             ['--rendering-method', 'forward_plus', '--rendering-driver', 'metal'])
+            self.assertEqual(rendering_arguments('sunbreak', compatibility=True), [])
             for game_id in GAMES:
-                if game_id != 'gauntlet':
+                if GAMES[game_id].get('renderer') != 'forward_plus':
                     self.assertEqual(rendering_arguments(game_id), [])
         with patch('sys.platform', 'win32'):
             self.assertEqual(rendering_arguments('gauntlet'), ['--rendering-method', 'forward_plus'])

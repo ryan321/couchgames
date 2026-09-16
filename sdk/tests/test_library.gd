@@ -17,7 +17,7 @@ func run() -> void:
 	current_scene = library
 	library.set_process(false)
 	OS.unset_environment("COUCH_LIBRARY_SESSION")
-	expect(library.cards.size()==5,"All five source games appear")
+	expect(library.cards.size()==6,"All six source games appear")
 	for game in library.games:
 		expect(FileAccess.file_exists(game.scene),"Catalog scene exists")
 	library.controller.select(0)
@@ -50,6 +50,15 @@ func run() -> void:
 	library.cards[4].pressed.emit()
 	request = JSON.parse_string(FileAccess.get_file_as_string(directory.path_join("request.json")))
 	expect(request.game=="gauntlet","The fifth card launches Gauntlet")
+	library.apply_status({"phase":"idle","updated":Time.get_unix_time_from_system(),"request_id":request.request_id,"message":"Ready"})
+	library._process(1)
+	library.cards[5].grab_focus()
+	await process_frame
+	await process_frame
+	expect(library.cards[5].get_global_rect().end.y<=729,"Sunbreak remains visible in the scrolling library")
+	library.cards[5].pressed.emit()
+	request = JSON.parse_string(FileAccess.get_file_as_string(directory.path_join("request.json")))
+	expect(request.game=="sunbreak","The sixth card launches Sunbreak")
 	library.apply_status({"phase":"idle","updated":Time.get_unix_time_from_system(),"request_id":request.request_id,"message":"Ready"})
 	library._process(1)
 	library.status.text = "Choose something to play."

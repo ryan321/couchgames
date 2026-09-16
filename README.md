@@ -35,7 +35,17 @@ Click **Little World**, **Cloudbound**, **Pocket Rally**, **Super Mario Bros. �
 
 On this Mac, **Wii Remote + gamepads** uses our existing native Wii reader automatically for the selected game. Choose **Gamepads / keyboard** to play without it. Close any standalone game/reader first. See [library controls and implementation](sdk/launcher/README.md).
 
-This first library lists the five included source games in a scrolling grid. The production Rust supervisor and launching installed releases from SQLite remain planned.
+This first library lists the six included source games in a scrolling grid. The production Rust supervisor and launching installed releases from SQLite remain planned.
+
+## Play Sunbreak — single-player first-person shooter
+
+```sh
+python3 scripts/play.py --game sunbreak
+```
+
+Or select **Sunbreak** in the library. Fight three waves of robots across a colorful coastal outpost, keep ahead of the shrinking storm, collect shields/health, and deploy cover. Original procedural scenery, animated water, cinematic lighting, a modeled pulse rifle, aiming/reloading, and synthesized effects run on the shared installed Godot. Uses Forward+ / Metal on macOS; add `--compatibility` for simpler lighting.
+
+**WASD** moves, **right-button drag** looks/aims with the cursor free, **left click** fires, **right click** aims, **Space** jumps, **Shift** sprints, **R** reloads, **Q** builds cover, and **Esc** pauses. Standard gamepad: sticks move/look, RT/LT fire/aim, A/Cross jumps, X/Square reloads, Y/Triangle builds cover, and right-stick click levels the view. Press a controller button to select it; mouse capture is never automatic. This first playable slice is single-player with original art, not Fortnite production-quality graphics. See [match rules, controls, and verification](sdk/examples/sunbreak/README.md).
 
 ## Play Gauntlet — 1–16 player dungeon
 
