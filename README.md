@@ -31,11 +31,25 @@ A source-game library screen is implemented. The production desktop host, full i
 python3 scripts/library.py
 ```
 
-Click **Little World**, **Cloudbound**, **Pocket Rally**, or **Super Mario Bros. — World 1-1** to play. Each game runs in its own process; closing it returns you to the library with the same card selected. Keyboard arrows + Enter and standard gamepad D-pad + A / Cross also navigate the cards. F11 toggles fullscreen.
+Click **Little World**, **Cloudbound**, **Pocket Rally**, **Super Mario Bros. — World 1-1**, or **Gauntlet** to play. Each game runs in its own process; closing it returns you to the library with the same card selected. Keyboard arrows + Enter and standard gamepad D-pad + A / Cross also navigate the cards. F11 toggles fullscreen.
 
 On this Mac, **Wii Remote + gamepads** uses our existing native Wii reader automatically for the selected game. Choose **Gamepads / keyboard** to play without it. Close any standalone game/reader first. See [library controls and implementation](sdk/launcher/README.md).
 
-This first library lists the four included source games. The production Rust supervisor and launching installed releases from SQLite remain planned.
+This first library lists the five included source games in a scrolling grid. The production Rust supervisor and launching installed releases from SQLite remain planned.
+
+## Play Gauntlet — 1–16 player dungeon
+
+```sh
+python3 scripts/play_wii_native.py --game gauntlet
+# Or gamepads / keyboard:
+python3 scripts/play.py --game gauntlet
+```
+
+The first dungeon, **The Ember Vault**, is complete: four classes, ranged attacks, magic, monster generators, keys/doors, shared food and treasure, ally revival, and a team exit. It uses original artwork and a new level inspired by arcade Gauntlet. Everyone plays on the same screen.
+
+Wii: **2** joins/fires, **1** changes class in the lobby or casts magic in play, **Home** starts/pauses, and the sideways **D-pad** moves. Xbox/PlayStation: **A/Cross** joins/fires, **X/Square** selects a class/casts magic, **Menu/Options** starts/pauses. Keyboard: **Enter** joins, **Tab** changes class, **Enter again** starts, **WASD/arrows** move, **Space** fires, **X** casts. **Esc** returns to the library.
+
+Full one-player and sixteen-player routes pass automated input/gameplay tests; physical multiplayer testing is pending. See [Gauntlet controls, level guide, and verification](sdk/examples/gauntlet/README.md).
 
 ## Play Little World
 

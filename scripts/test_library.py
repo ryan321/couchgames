@@ -53,7 +53,7 @@ class HostTests(unittest.TestCase):
         self.assertEqual(len(self.calls),2)
     @patch('library.sys.platform','darwin')
     def test_native_reader_selection_and_cleanup(self):
-        for game_id, reader in [('cloudbound','single'),('pocket-rally','fleet')]:
+        for game_id, reader in [('cloudbound','single'),('pocket-rally','fleet'),('gauntlet','fleet')]:
             self.request(action='launch',game=game_id,input='native-wii')
             self.assertEqual(self.calls[-2][0][0],'/reader/'+reader)
             snapshot_dir = self.host.wii_session.name

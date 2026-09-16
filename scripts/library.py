@@ -80,7 +80,7 @@ class LibraryHost:
             environment.pop(name, None)
         self.log = (self.session / "game.log").open("w")
         if mode == "native-wii":
-            fleet = game_id == "pocket-rally"
+            fleet = GAMES[game_id].get("native_wii") == "fleet"
             binary = self.reader_builder(fleet)
             self.wii_session = tempfile.TemporaryDirectory(prefix="couch-library-wii-")
             state_path = self.wii_session.name if fleet else str(Path(self.wii_session.name) / "state.json")

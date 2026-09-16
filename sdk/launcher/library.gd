@@ -4,6 +4,7 @@ const INK := Color("f5efdf")
 const MUTED := Color("a5bfbd")
 var games: Array = []
 var cards: Array[Button] = []
+var game_scroll: ScrollContainer
 var controller: OptionButton
 var joycons: OptionButton
 var status: Label
@@ -60,17 +61,26 @@ func _build() -> void:
 	label_at("YOUR GAMES",Vector2(68,250),18,MUTED)
 	label_at("%02d  /  READY TO PLAY" % games.size(),Vector2(1280,250),18,MUTED)
 	var compact := games.size()>3
+	game_scroll = ScrollContainer.new()
+	game_scroll.position = Vector2(62,289)
+	game_scroll.size = Vector2(1476,440)
+	game_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	game_scroll.follow_focus = true
+	add_child(game_scroll)
+	var shelf := Control.new()
+	shelf.custom_minimum_size = Vector2(1454,ceili(games.size()/2.0)*221+10) if compact else Vector2(1454,430)
+	game_scroll.add_child(shelf)
 	for i in games.size():
 		var game: Dictionary = games[i]
 		var card := Button.new()
-		card.position = Vector2(68+(i%2)*745,295+floori(i/2.0)*221) if compact else Vector2(68+i*497,295)
-		card.size = Vector2(720,204) if compact else Vector2(470,420)
+		card.position = Vector2(6+(i%2)*729,6+floori(i/2.0)*221) if compact else Vector2(6+i*489,6)
+		card.size = Vector2(710,204) if compact else Vector2(470,420)
 		card.add_theme_stylebox_override("normal",style(Color("21494f")))
 		card.add_theme_stylebox_override("hover",style(Color("2b5960"),Color("8aafa5")))
 		card.add_theme_stylebox_override("pressed",style(Color("34626a")))
 		card.add_theme_stylebox_override("disabled",style(Color("21494f")))
 		card.add_theme_stylebox_override("focus",style(Color.TRANSPARENT,Color("f6d69c")))
-		add_child(card)
+		shelf.add_child(card)
 		var crop := Control.new()
 		crop.position = Vector2(12,12)
 		crop.size = Vector2(252,180) if compact else Vector2(446,240)
@@ -85,11 +95,13 @@ func _build() -> void:
 		label_at(game.players.to_upper(),Vector2(284,20) if compact else Vector2(24,270),16,Color(game.color),card)
 		label_at(game.title,Vector2(282,53) if compact else Vector2(22,297),30 if compact else 34,INK,card)
 		var description := label_at(game.description,Vector2(284,99) if compact else Vector2(24,347),18,MUTED,card)
-		description.size = Vector2(411 if compact else 422,50)
+		description.size = Vector2(400 if compact else 422,50)
 		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		label_at("PLAY  →",Vector2(284,161) if compact else Vector2(24,380),18,INK,card)
 		card.pressed.connect(func(): launch_game(i))
-		card.focus_entered.connect(func(): selected = i)
+		card.focus_entered.connect(func():
+			selected = i
+			game_scroll.ensure_control_visible.call_deferred(card))
 		cards.append(card)
 	label_at("CONTROLLERS",Vector2(68,749),15,MUTED)
 	controller = OptionButton.new()

@@ -47,6 +47,21 @@ func _draw() -> void:
 		poly([Vector2(91,164),Vector2(211,149),Vector2(207,161)],"d79472")
 		poly([Vector2(183,196),Vector2(213,93),Vector2(230,115),Vector2(211,196)],"de795f")
 		poly([Vector2(152,203),Vector2(192,180),Vector2(247,198),Vector2(205,209)],"f9edd1")
+	elif game_id == "gauntlet":
+		draw_rect(Rect2(0,0,440,270),Color("252431"))
+		for y in 6:
+			for x in 10:
+				if y in [0,5] or x in [0,9] or (x==5 and y<3):
+					draw_rect(Rect2(x*44+2,y*45+2,40,40),Color("625765"))
+					draw_rect(Rect2(x*44+3,y*45+3,38,8),Color("847080"))
+		for i in 4:
+			var at := Vector2(108+i*70,170-(i%2)*32)
+			var colors := [Color("ed775f"),Color("81c6e2"),Color("ba9aef"),Color("a4d478")]
+			draw_circle(at+Vector2(0,15),18,Color("15151e"))
+			draw_rect(Rect2(at-Vector2(11,12),Vector2(22,32)),colors[i])
+			draw_rect(Rect2(at-Vector2(9,26),Vector2(18,16)),Color("ecc19a"))
+			draw_line(at+Vector2(15,7),at+Vector2(26,-20),Color("eacb85"),5)
+		draw_circle(Vector2(329,65),18,Color("c79ae9"))
 	elif game_id == "world-1-1":
 		var map := preload("res://examples/world_1_1/assets/World1-1.png")
 		draw_texture_rect_region(map,Rect2(0,0,440,270),Rect2(192,48,256,192))

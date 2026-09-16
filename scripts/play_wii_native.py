@@ -42,7 +42,7 @@ def main():
     if sys.platform != "darwin":
         raise RuntimeError("The experimental native Wii reader currently requires macOS.")
     executable = resolve_godot(None)
-    fleet = args.game == "pocket-rally"
+    fleet = GAMES[args.game].get("native_wii") == "fleet"
     binary = build_reader(fleet)
     # Private, disposable path shared only with this helper and this game session.
     with tempfile.TemporaryDirectory(prefix="couch-wii-") as session:
@@ -62,8 +62,8 @@ def main():
                    else "World 1-1: 2 joins/jumps, 1 runs/fires, sideways D-pad moves." if args.game == "world-1-1"
                    else "Little World: 2 joins/jumps, sideways D-pad moves."), flush=True)
         if fleet:
-            scene = "res://examples/pocket_rally/rally.tscn"
-            print("Pocket Rally: up to 16 Wii reader channels; physical multi-Remote testing pending. Tilt steers; 2 gas; 1 brake.", flush=True)
+            print(GAMES[args.game]["title"] + ": up to 16 Wii reader channels; physical multi-Remote testing pending. " +
+                  ("2 joins/fires; 1 magic/class; Home starts/pauses." if args.game == "gauntlet" else "Tilt steers; 2 gas; 1 brake."), flush=True)
         helper = subprocess.Popen([str(binary), state_path])
         try:
             return subprocess.call([executable, "--path", str(ROOT / "sdk"), scene], env=environment)

@@ -24,7 +24,8 @@
     "description": "Your car. Your corner of the screen.",
     "controls": "Tilt to steer. Race your friends.",
     "scene": "res://examples/pocket_rally/rally.tscn",
-    "color": "efba87"
+    "color": "efba87",
+    "native_wii": "fleet"
   },
   {
     "id": "world-1-1",
@@ -34,5 +35,15 @@
     "controls": "Run, jump, and find the secret pipe.",
     "scene": "res://examples/world_1_1/world.tscn",
     "color": "e8ba87"
+  },
+  {
+    "id": "gauntlet",
+    "title": "Gauntlet",
+    "players": "1–16 players · Co-op",
+    "description": "Four heroes. One dungeon. A whole couch.",
+    "controls": "Fight the horde. Escape the Ember Vault.",
+    "scene": "res://examples/gauntlet/dungeon.tscn",
+    "color": "c5a0d9",
+    "native_wii": "fleet"
   }
 ]
