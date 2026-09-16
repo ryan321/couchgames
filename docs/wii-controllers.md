@@ -127,3 +127,12 @@ Unknown accessories do not silently create a player with an assumed layout. A ma
 `python3 scripts/test_sdk.py` runs 53 synthetic Wii profile assertions alongside the existing runtime, sixteen-player, and scene tests. `python3 scripts/test_sdk.py --wii` additionally starts the engine with the experimental driver and mapping environment. Neither run uses Wii radio packets or proves physical compatibility.
 
 For each family member: record model, OS, connection path, Godot device name/GUID, selected profile, join, all movement directions, jump, leave, disconnect/rejoin, and a mixed Xbox/PlayStation session. Reconnect after changing an extension and verify the new layout. Track results in [the hardware matrix](controller-test-matrix.md). Sixteen software slots do not establish sixteen wireless connections.
+
+
+## Cloudbound motion experiment
+
+The native `04e8:7021` path now requests report `0x31` (buttons + accelerometer), masks out sensor bits from button decoding, and reads factory acceleration calibration. Invalid/missing calibration falls back to explicitly labeled approximate scaling. It does not write device memory or enable MotionPlus/IR.
+
+Run `python3 scripts/play_wii_native.py --game cloudbound` for the new flying game. See [the complete controls](../sdk/examples/cloudbound/README.md). The SDK exposes fresh per-device/per-player acceleration; the game calibrates a steady neutral pose, filters steering, and pauses when motion becomes stale. Protocol fixtures and synthetic flight tests do not establish physical accelerometer compatibility. Tilt direction, response, motion reconnect, and additional variants remain pending.
+
+Observed on this Mac, September 15, 2026: the saved Cloudbound launcher opened both apps, received fresh accelerometer snapshots, and loaded valid factory calibration. Steering direction and flight feel await user confirmation.

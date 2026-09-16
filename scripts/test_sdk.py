@@ -24,6 +24,9 @@ def main():
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_wii.gd"], "Wii profile checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_native_wii.gd"], "Native Wii checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_playground.gd"], "Playground checks passed:"),
+        (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_flight.gd"], "Flight checks passed:"),
+        (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_controller_motion.gd"], "Controller motion checks passed:"),
+        (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_rally.gd"], "Rally checks passed:"),
     ]:
         result = subprocess.run([executable, *arguments], cwd=root, text=True, capture_output=True, timeout=60, env=environment)
         print(result.stdout, end="")

@@ -4,9 +4,11 @@ extends Node
 const RuntimeCheck = preload("res://addons/couchgames/runtime_check.gd")
 const PlayerInput = preload("res://addons/couchgames/player_input.gd")
 const NativeWii = preload("res://addons/couchgames/native_wii.gd")
+const ControllerMotion = preload("res://addons/couchgames/controller_motion.gd")
 
 var runtime_status: Dictionary = {}
 var input: PlayerInput
+var motion: ControllerMotion
 
 
 func _enter_tree() -> void:
@@ -16,10 +18,14 @@ func _enter_tree() -> void:
 	input = PlayerInput.new()
 	input.name = "PlayerInput"
 	add_child(input)
+	motion = ControllerMotion.new()
+	motion.input_service = input
+	add_child(motion)
 	var native_state := OS.get_environment("COUCH_WII_NATIVE_STATE")
 	if native_state.is_absolute_path():
 		var reader := NativeWii.new()
 		reader.service = input
+		reader.motion_service = motion
 		reader.state_path = native_state
 		add_child(reader)
 

@@ -8,6 +8,7 @@ const BUTTONS := {0x0100:JOY_BUTTON_DPAD_LEFT, 0x0200:JOY_BUTTON_DPAD_RIGHT,
 	0x01:JOY_BUTTON_Y, 0x02:JOY_BUTTON_X, 0x04:JOY_BUTTON_A,
 	0x08:JOY_BUTTON_B, 0x10:JOY_BUTTON_BACK, 0x80:JOY_BUTTON_GUIDE}
 var service: Node
+var motion_service: Node
 var state_path := ""
 var previous := 0
 var active := false
@@ -24,11 +25,16 @@ func _physics_process(_delta: float) -> void:
 
 func accept_state(state: Variant, now: float) -> void:
 	if not valid_state(state, now):
+		if motion_service:
+			motion_service.remove_device(DEVICE)
 		if active:
 			service.device_connection_changed(DEVICE, false)
 		active = false
 		previous = 0
 		return
+	if motion_service:
+		motion_service.submit(DEVICE, state.get("acceleration"), float(state["updated"]),
+			str(state.get("calibration", "approximate")))
 	if not active:
 		service.set_device_profile(DEVICE, "wii_remote")
 		active = true

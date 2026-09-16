@@ -17,7 +17,7 @@ func _run() -> void:
 		"Wii Classic Controller Pro": "wii_classic_pro", "Nintendo Wii U Pro Controller": "wii_u_pro",
 		"Nintendo Wii Remote with Unknown Extension": "wii_unknown", "Nintendo Wii Balance Board": "wii_unknown",
 		"Nintendo RVL-CNT-01-TR": "wii_unknown", "Nintendo Wii U GamePad": "wii_unknown",
-		"Xbox Wireless Controller": "gamepad", "DualSense Wireless Controller": "gamepad", "Nintendo Switch Pro Controller": "gamepad"}
+		"Xbox Wireless Controller": "gamepad", "DualSense Wireless Controller": "gamepad", "Nintendo Switch Pro Controller": "switch_pro"}
 	for name: String in cases:
 		expect(Profiles.detect(name)["id"] == cases[name], "Recognize controller layout: " + name)
 	expect(Profiles.detect("Wireless Controller", {"raw_name": "Nintendo Wii Remote with Nunchuk"})["id"] == "wii_nunchuk", "Use explicit SDL raw name when available")
@@ -27,7 +27,7 @@ func _run() -> void:
 	service.set_physics_process(false)
 	var device := 100
 	for id: String in Profiles.IDS:
-		if id in ["gamepad", "wii_unknown"]:
+		if not id.begins_with("wii_") or id == "wii_unknown":
 			continue
 		service.set_device_profile(device, id)
 		var profile := Profiles.get_profile(id)

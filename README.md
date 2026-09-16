@@ -42,10 +42,34 @@ The script uses `couch doctor` to find a supported installed Godot, imports the 
 
 For experimental Wii Remote/Remote Plus, Nunchuk, Classic/Classic Pro, and Wii U Pro profiles, run `python3 scripts/play.py --wii`. F3 includes per-device layout selection. Physical Wii pairing and play remain unverified; see [Wii setup and coverage](docs/wii-controllers.md).
 
-The tested `Nintendo RVL-CNT-01` variant (`04e8:7021`) needs our native macOS reader. After closing the current game and standalone probe, use **`python3 scripts/play_wii_native.py`**. It builds the small reader with the existing Xcode compiler if needed, launches the reader and game together, and cleans up the reader on exit. One Wii Remote was physically verified for movement/jumping; other Wii variants and multiple native Remotes remain unverified. The native path currently supports one Remote alongside the regular SDK player slots.
+The tested `Nintendo RVL-CNT-01` variant (`04e8:7021`) needs our native macOS reader. After closing the current game and standalone probe, use **`python3 scripts/play_wii_native.py`**. It builds the small reader with the existing Xcode compiler if needed, launches the reader and game together, and cleans up the reader on exit. One Wii Remote was physically verified for movement/jumping; other Wii variants and multiple native Remotes remain unverified. The Little World native path supports one Remote alongside the regular SDK player slots. Pocket Rally has a separate multi-Remote helper.
 
 
 See [the game README](sdk/examples/little_world/README.md) and [wireless setup and hardware tests](docs/controller-test-matrix.md). The software supports sixteen slots. Physical wireless compatibility and simultaneous controller counts still need testing on the listed hardware.
+
+## Play Cloudbound — Wii flying game
+
+```sh
+python3 scripts/play_wii_native.py --game cloudbound
+```
+
+A second **3D source game**, sharing the installed runtime. Hold the Wii Remote **sideways, D-pad left and 1/2 buttons right**. Press **2**, hold steady for one second, then turn left/right to bank. **Roll away from your body to dive; toward yourself to climb.** **B** boosts; **2** recenters. Fly through the golden rings.
+
+The experimental native reader now requests acceleration as well as buttons for the observed `04e8:7021` variant. Live motion status, neutral calibration, and pause on stale input are built in. Sideways Wii flight, live acceleration, and factory calibration are physically confirmed on this Mac. Close the old standalone probe/game before starting this launcher.
+
+For original Switch Joy-Con / Pro motion or keyboard/controller flight: `python3 scripts/play.py --game cloudbound`. Individual Joy-Cons are separate by default; add `--joycons paired` for a grip. Motion uses actual driver capabilities, with an explicit stick fallback. Switch hardware tests are pending; Switch 2 has profiles but needs a compatible driver not included in the pinned runtime. See [Switch coverage and setup](docs/switch-controllers.md). See [Cloudbound controls and verification](sdk/examples/cloudbound/README.md).
+
+## Play Pocket Rally — split-screen driving
+
+```sh
+python3 scripts/play_wii_native.py --game pocket-rally
+```
+
+A separate **1–16 player 3D driving game**, with a chase camera for every car. Two players get side-by-side views; four get a 2×2 grid; sixteen get a 4×4 grid. Hold the Wii sideways, press **2**, and hold steady for one second. **Tilt steers, 2 accelerates, 1 brakes/reverses, Home rescues/recalibrates, and holding minus leaves.** Each controller owns its car and calibration. Disconnecting removes its car and view.
+
+For keyboard or regular controllers: `python3 scripts/play.py --game pocket-rally`. Enter joins; WASD/arrows drive. Xbox A / PlayStation Cross joins and accelerates; left stick steers, X / Square brakes. F11 toggles fullscreen.
+
+Pocket Rally uses a separate native helper with sixteen independent channels for the observed Wii variant. Physical multi-Remote and sixteen-player performance tests remain pending. Cloudbound's game and existing reader are preserved. See [Pocket Rally controls and verification](sdk/examples/pocket_rally/README.md).
 
 ## Prerequisites
 

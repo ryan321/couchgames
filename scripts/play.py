@@ -9,11 +9,14 @@ from godot_tools import ROOT, godot_environment, resolve_godot
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--game", choices=["little-world", "cloudbound", "pocket-rally"], default="little-world")
     parser.add_argument("--godot", help="Explicit executable or macOS .app")
     parser.add_argument("--wii", action="store_true", help="Enable experimental SDL Wii/Remote Plus/Nunchuk/Classic/Wii U Pro input (pairing required)")
+    parser.add_argument("--joycons", choices=["separate", "paired"], default="separate",
+                        help="One sideways Joy-Con per player (default), or a combined pair in a grip")
     args = parser.parse_args()
     executable = resolve_godot(args.godot)
-    environment = godot_environment(args.wii)
+    environment = godot_environment(args.wii, args.joycons)
     if args.wii:
         print("Experimental Wii input enabled. Pair controllers with the computer; press F3 for profiles. See docs/wii-controllers.md.", flush=True)
     # Cold checkouts need an import pass before running scripts/resources.
@@ -24,7 +27,10 @@ def main():
     if imported.returncode or "ERROR:" in imported.stderr:
         print(imported.stdout + imported.stderr, file=sys.stderr)
         return 1
-    return subprocess.call([executable, "--path", str(ROOT / "sdk")], cwd=ROOT, env=environment)
+    scene = "res://examples/cloudbound/flight.tscn" if args.game == "cloudbound" else "res://examples/little_world/world.tscn"
+    if args.game == "pocket-rally":
+        scene = "res://examples/pocket_rally/rally.tscn"
+    return subprocess.call([executable, "--path", str(ROOT / "sdk"), scene], cwd=ROOT, env=environment)
 
 
 if __name__ == "__main__":

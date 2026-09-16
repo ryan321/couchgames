@@ -7,9 +7,12 @@ import subprocess
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def godot_environment(wii=False):
+def godot_environment(wii=False, joycons="separate"):
     """Enable the experimental Wii driver only for the child engine process."""
     environment = os.environ.copy()
+    # One horizontal Joy-Con per player by default. Pair mode is explicit at startup.
+    environment["SDL_JOYSTICK_HIDAPI_COMBINE_JOY_CONS"] = "1" if joycons == "paired" else "0"
+    environment["SDL_JOYSTICK_HIDAPI_VERTICAL_JOY_CONS"] = "0"
     if wii:
         environment["SDL_JOYSTICK_HIDAPI_WII"] = "1"
         # Godot 4.7.2's SDL maps the bare Remote D-pad to a nonexistent hat.

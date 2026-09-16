@@ -54,3 +54,18 @@ For each physical session, record OS/version, Godot version, controller model/fi
 5. Repeat on a TV via direct connection and one screen-sharing setup. Record readability and added input/display latency.
 
 Source-project checks do not validate exported PCK execution, Bluetooth capacity, haptics, or OS isolation.
+
+
+### Cloudbound motion acceptance
+
+Use `python3 scripts/play_wii_native.py --game cloudbound` with the observed `04e8:7021` Remote. Confirm live acceleration, level calibration, left/right bank, sideways D-pad-left steering, roll-away dive/roll-toward climb, B boost, 2 recenter, stale-stream pause, and reconnect/rejoin. The saved launcher opened the game and reader on this Mac; live acceleration snapshots and valid factory calibration were observed on September 15, 2026. User confirmed flight but reported reversed banking in the original lengthwise grip. Sideways grip with away-to-dive is now implemented; user confirmed the revised direction controls; reconnect awaits confirmation. Single-pilot sample; MotionPlus and other Wii variants remain unverified.
+
+
+### Switch motion acceptance
+
+Profiles and a shared motion path cover original Switch Pro, individual Joy-Con L/R, and combined grip mode. None has yet been physically tested here. Switch 2 profiles are recognized, but the pinned runtime lacks its dedicated driver. See [coverage and acceptance checks](switch-controllers.md).
+
+
+### Pocket Rally split-screen driving acceptance
+
+Run `python3 scripts/play_wii_native.py --game pocket-rally` for the observed variant, or `python3 scripts/play.py --game pocket-rally` for regular controllers. Check two Wii Remotes first: press 2 on each, calibrate independently, lower each end to steer that way, hold 2 for gas and 1 for brake/reverse. Home rescues only that car. Disconnect/reconnect one and confirm only its view is removed/recreated. Repeat with mixed Xbox/PlayStation/Wii groups and 4/8/16 players, recording frame rate and Bluetooth dropouts. Inspect 2×2 and 4×4 layouts on the actual TV. Synthetic sixteen-channel tests and rendered 2/4/16 layouts pass on macOS ARM64; physical driving and multi-Remote acceptance are pending. This helper matches the observed `04e8:7021` variant only; it does not establish support for every Wii family or accessory.

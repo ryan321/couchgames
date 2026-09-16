@@ -91,3 +91,14 @@ Version information: [Godot Engine API](https://docs.godotengine.org/en/stable/c
 ### Native macOS Wii prototype
 
 For the physically tested `04e8:7021` variant, the host command `python3 scripts/play_wii_native.py` runs a separate native reader and sets `COUCH_WII_NATIVE_STATE` to a private session file. `Platform` starts the optional `native_wii.gd` consumer only when that absolute path is provided. It translates snapshots into a single device's movement/jump/leave events and removes the player on missing or expired input. Regular launches do not read this file or start native processes. See [native setup and limitations](../docs/wii-controllers.md).
+
+
+## Experimental controller motion and Cloudbound
+
+`Platform.motion.set_enabled(true)` enables motion-capable engine controllers for the current game. Call `set_enabled(false)` on exit. `sample_for_player(id)` / `sample_for_device(id)` return fresh samples or `{}`; `status_for_device(id)` distinguishes available, waiting, unavailable, disconnected, and disabled input. The existing native Wii reader feeds this same service.
+
+Acceleration is in g including gravity, normalized to the current grip: +X toward player, +Y right, +Z out through buttons. The engine adapter handles Godot units/signs; SDL already rotates separate Joy-Cons to horizontal mode. The native Wii uses the confirmed D-pad-left grip. Engine samples may also contain raw Godot gyro rates; Cloudbound uses acceleration.
+
+Engine samples are polled, not hardware-timestamped: the service cannot distinguish a frozen driver cache from an unchanged stationary reading. Native Wii freshness reflects actual HID reports. Both paths clear stale SDK samples and Cloudbound pauses selected motion on loss.
+
+See [Switch controller coverage, modes, API fields, and limitations](../docs/switch-controllers.md) and [Cloudbound](examples/cloudbound/README.md). Original Switch controllers have an implemented path awaiting hardware tests. Switch 2 recognition is included, but its dedicated driver is absent from the pinned runtime; full motion support remains blocked on a validated driver/runtime integration.

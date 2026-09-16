@@ -249,6 +249,7 @@ The SDK should handle:
 - wireless Xbox controllers (Bluetooth-capable models)
 - wireless PlayStation controllers (DualShock 4 and DualSense)
 - the Wii controller family: Remote/Remote Plus, Nunchuk, Classic/Classic Pro, and Wii U Pro; track specialty accessories, GameCube adapters, and Wii U GamePad separately until their connection and input paths are implemented and tested
+- Nintendo Switch Pro and Joy-Con controllers, including individual sideways Joy-Cons and paired grips; Switch 2 is a target pending driver/runtime and hardware qualification
 - common PC controllers
 - Bluetooth controllers
 - USB controllers
