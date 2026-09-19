@@ -4,11 +4,14 @@
 #include <stdint.h>
 #include <string.h>
 
-enum { XPAD_PROTO_NONE = 0, XPAD_PROTO_XID360 = 1 };
+enum { XPAD_PROTO_NONE = 0, XPAD_PROTO_XID360 = 1, XPAD_PROTO_GIP = 2 };
 
 enum {
 	XPAD_QUIRK_NONE = 0,
-	XPAD_QUIRK_SKIP_LED = 1u << 0
+	XPAD_QUIRK_SKIP_LED = 1u << 0,
+	XPAD_QUIRK_GIP_S_INIT = 1u << 1,
+	XPAD_QUIRK_GIP_RUMBLE_INIT = 1u << 2,
+	XPAD_QUIRK_GIP_HORI_ACK = 1u << 3
 };
 
 typedef struct {
@@ -18,27 +21,63 @@ typedef struct {
 	unsigned quirks;
 } XpadDevice;
 
-/* Named rows win over the generic XID match. vid/pid 0 is the catch-all
- * Xbox 360-style interface (USB class ff:5d:01). Add a row to name a pad,
- * force a protocol, or set quirks. HID interfaces are never claimed. */
+/* Named rows win over generic interface matches. vid/pid 0 is a catch-all
+ * for that protocol's USB class. HID interfaces are never claimed. */
+/* Living-room pads first. Generic XID/GIP rows at the end catch unknown VID/PID.
+ * Add a named row to label a pad or attach GIP init quirks. */
 static const XpadDevice xpad_devices[] = {
 	{0x045e, 0x028e, "Xbox 360 Controller", XPAD_PROTO_XID360, 0},
 	{0x045e, 0x028f, "Xbox 360 Controller", XPAD_PROTO_XID360, 0},
+	{0x045e, 0x02d1, "Xbox One Controller", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_S_INIT},
+	{0x045e, 0x02dd, "Xbox One Controller", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_S_INIT},
+	{0x045e, 0x02e3, "Xbox One Elite", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_S_INIT},
+	{0x045e, 0x02ea, "Xbox One S Controller", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_S_INIT},
+	{0x045e, 0x0b00, "Xbox One Elite 2", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_S_INIT},
+	{0x045e, 0x0b0a, "Xbox Adaptive Controller", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_S_INIT},
+	{0x045e, 0x0b12, "Xbox Series Controller", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_S_INIT},
+	{0x046d, 0xc21d, "Logitech F310", XPAD_PROTO_XID360, 0},
+	{0x046d, 0xc21e, "Logitech F510", XPAD_PROTO_XID360, 0},
+	{0x046d, 0xc21f, "Logitech F710", XPAD_PROTO_XID360, 0},
+	{0x0e6f, 0x0139, "PDP Afterglow Xbox One", XPAD_PROTO_GIP, 0},
+	{0x0e6f, 0x0146, "PDP Rock Candy Xbox One", XPAD_PROTO_GIP, 0},
+	{0x0e6f, 0x0165, "PDP Titanfall 2", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_HORI_ACK},
 	{0x0e6f, 0x0213, "Afterglow Gamepad", XPAD_PROTO_XID360, 0},
+	{0x0e6f, 0x02a4, "PDP Xbox One Controller", XPAD_PROTO_GIP, 0},
+	{0x0e6f, 0x02a6, "PDP Xbox One Camo", XPAD_PROTO_GIP, 0},
+	{0x0e6f, 0x02ab, "PDP Xbox One Controller", XPAD_PROTO_GIP, 0},
+	{0x0f0d, 0x0067, "HORIPAD ONE", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_HORI_ACK},
 	{0x146b, 0x0601, "Bigben Xbox 360 Controller", XPAD_PROTO_XID360, 0},
 	{0x146b, 0x0603, "Nacon Compact", XPAD_PROTO_XID360, 0},
 	{0x146b, 0x0604, "Nacon Daija Arcade Stick", XPAD_PROTO_XID360, 0},
+	{0x20d6, 0x2001, "PowerA Xbox Series Controller", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_RUMBLE_INIT},
+	{0x20d6, 0x2009, "PowerA Enhanced Wired Xbox", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_RUMBLE_INIT},
+	{0x20d6, 0x2064, "PowerA Wired Xbox Controller", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_RUMBLE_INIT},
 	{0x24c6, 0x5300, "PowerA Xbox 360 Controller", XPAD_PROTO_XID360, 0},
+	{0x24c6, 0x541a, "PowerA Xbox One Mini", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_RUMBLE_INIT},
+	{0x24c6, 0x543a, "PowerA Xbox One Controller", XPAD_PROTO_GIP, XPAD_QUIRK_GIP_RUMBLE_INIT},
+	{0x2dc8, 0x2000, "8BitDo Pro 2 for Xbox", XPAD_PROTO_GIP, 0},
+	{0x2dc8, 0x200f, "8BitDo Ultimate for Xbox", XPAD_PROTO_GIP, 0},
+	{0x2dc8, 0x3106, "8BitDo Ultimate / Pro 2", XPAD_PROTO_XID360, 0},
+	{0x3285, 0x0603, "Nacon Pro Compact Xbox", XPAD_PROTO_GIP, 0},
 	{0x0000, 0x0000, "Xbox 360-style wired pad", XPAD_PROTO_XID360, 0}
 };
 
 static const XpadDevice xpad_generic_xid360 = {0, 0, "Xbox 360-style wired pad", XPAD_PROTO_XID360, 0};
+static const XpadDevice xpad_generic_gip = {0, 0, "Xbox One-style wired pad", XPAD_PROTO_GIP, 0};
 
 static inline int xpad_is_xid360_interface(int cls, int sub, int proto) {
 	return cls == 0xff && sub == 0x5d && proto == 0x01;
 }
 
+static inline int xpad_is_gip_interface(int cls, int sub, int proto) {
+	return cls == 0xff && sub == 0x47 && proto == 0xd0;
+}
+
 static inline int xpad_is_hid_interface(int cls) { return cls == 3; }
+
+static inline int xpad_protocol_supported(int protocol) {
+	return protocol == XPAD_PROTO_XID360 || protocol == XPAD_PROTO_GIP;
+}
 
 static inline int xpad_ignore_product(const char *name) {
 	if (!name || !name[0]) return 0;
@@ -67,7 +106,7 @@ static inline int xpad_scan_config(const uint8_t *desc, size_t length, int *cls,
 				offset += b_len;
 				continue;
 			}
-			if (xpad_is_xid360_interface(icls, isub, iproto)) {
+			if (xpad_is_xid360_interface(icls, isub, iproto) || xpad_is_gip_interface(icls, isub, iproto)) {
 				*cls = icls;
 				*sub = isub;
 				*proto = iproto;
@@ -95,7 +134,20 @@ static inline const XpadDevice *xpad_lookup(uint16_t vid, uint16_t pid, int cls,
 			return device->protocol == XPAD_PROTO_NONE ? NULL : device;
 	}
 	if (xpad_is_xid360_interface(cls, sub, proto)) return &xpad_generic_xid360;
+	if (xpad_is_gip_interface(cls, sub, proto)) return &xpad_generic_gip;
 	return NULL;
+}
+
+static inline unsigned xpad_generic_gip_quirks(uint16_t vid, uint16_t pid) {
+	unsigned quirks = XPAD_QUIRK_GIP_S_INIT | XPAD_QUIRK_GIP_RUMBLE_INIT;
+	if (vid == 0x0f0d || (vid == 0x0e6f && pid == 0x0165)) quirks |= XPAD_QUIRK_GIP_HORI_ACK;
+	return quirks;
+}
+
+static inline const char *xpad_protocol_token(int protocol) {
+	if (protocol == XPAD_PROTO_GIP) return "XPAD_PROTO_GIP";
+	if (protocol == XPAD_PROTO_XID360) return "XPAD_PROTO_XID360";
+	return "XPAD_PROTO_NONE";
 }
 
 #endif

@@ -55,12 +55,15 @@ def build_reader():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--game", choices=list(GAMES), default="little-world")
-    parser.add_argument("--check", action="store_true", help="Open the USB pad, confirm Xbox 360 reports, then exit")
+    parser.add_argument("--check", action="store_true", help="Open matching USB pads, confirm input reports, then exit")
+    parser.add_argument("--dump", action="store_true", help="Print USB candidates and catalog rows for an unknown pad")
     parser.add_argument("--compatibility", action="store_true", help="Use the simpler renderer on older graphics hardware")
     args = parser.parse_args()
     if sys.platform != "darwin":
         raise RuntimeError("The wired USB reader currently requires macOS.")
     binary = build_reader()
+    if args.dump:
+        return subprocess.call([str(binary), "--dump"])
     if args.check:
         return subprocess.call([str(binary), "--check"])
     executable = resolve_godot(None)

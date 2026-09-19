@@ -94,7 +94,7 @@ Version information: [Godot Engine API](https://docs.godotengine.org/en/stable/c
 
 For the physically tested `04e8:7021` variant, the host command `python3 scripts/play_wii_native.py` runs a separate native reader and sets `COUCH_WII_NATIVE_STATE` to a private session file. `Platform` starts the optional `native_wii.gd` consumer only when that absolute path is provided. It translates snapshots into a single device's movement/jump/leave events and removes the player on missing or expired input. Regular launches do not read this file or start native processes. See [native setup and limitations](../docs/wii-controllers.md).
 
-Vendor-class Xbox 360-style USB pads use the same host-file pattern as the Wii reader: `COUCH_XPAD_NATIVE_STATE` and `native_xpad.gd`. `python3 scripts/play.py` starts `tools/macos/xpad_reader.m` when a matching pad is plugged in. The helper matches Xbox 360 XID (`ff:5d:01`) plus named rows in `tools/macos/xpad_devices.h`; HID DualShock/Xbox pads stay on Godot/SDL. See [wired USB controllers](../docs/wired-usb-controllers.md) and [the controller matrix](../docs/controller-test-matrix.md).
+Vendor-class Xbox 360 XID and Xbox One GIP USB pads use the same host-file pattern as the Wii reader: `COUCH_XPAD_NATIVE_STATE` and `native_xpad.gd`. `python3 scripts/play.py` starts `tools/macos/xpad_reader.m` when a matching pad is plugged in. The helper matches `ff:5d:01` / `ff:47:d0` plus named rows in `tools/macos/xpad_devices.h`; HID DualShock/Xbox Bluetooth stay on Godot/SDL. See [wired USB controllers](../docs/wired-usb-controllers.md) and [the controller matrix](../docs/controller-test-matrix.md).
 
 
 ## Experimental controller motion and Cloudbound

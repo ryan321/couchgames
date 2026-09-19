@@ -38,6 +38,7 @@ Updated September 15, 2026. The user connected two Xbox Wireless Controllers ove
 | macOS + Windows / USB and mixed USB/Bluetooth | Xbox + PlayStation | 1, 4, 8, 16 | Pending |
 | macOS ARM64 / USB | Nacon/Bigben PC Compact (`146b:0603`) via native XID reader | 1 | USB open, idle reports, and Little World join/move confirmed with the helper |
 | macOS ARM64 / USB | Other Xbox 360 XID vendor-class pads (`ff:5d:01`) | 1+ | Generic match implemented; physical tests pending |
+| macOS ARM64 / USB | Xbox One / Series and PowerA/PDP GIP (`ff:47:d0`) | 1+ | Decode and init implemented; physical USB press pending. Bluetooth Xbox already works via Godot |
 | macOS ARM64 / synthetic mapped events | Sixteen independent device IDs | 16 | SDK and scene/physics checks passed |
 | macOS ARM64 / Bluetooth | Wii Remote Plus RVL-CNT-01-TR | 1 | Standard pairing hit PIN prompt; helper 1.2.1 failed with incorrect-PIN log; release, local diagnostic build, and game-closed attempt all failed before input; PIN callback absent; compatibility unverified |
 | macOS ARM64 / Bluetooth + native reader | Nintendo RVL-CNT-01, reported 04e8:7021 | 1 | Connected with 0000; user-confirmed movement/jump via live native bridge. Saved launcher, reconnect, mixed play pending |

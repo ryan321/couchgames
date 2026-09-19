@@ -2,7 +2,7 @@
 
 macOS Game Controller / HID already covers DualShock 4, DualSense, Xbox Bluetooth, Switch, and most HID USB pads. Godot sees those without a helper. Press A / Cross to join.
 
-Some cheap “PS4/PC” and Xbox 360-style wired pads talk **Xbox 360 XID** over a vendor-class USB interface (`ff:5d:01`). Darwin never binds that class, so Little World would not see them. The host helper `tools/macos/xpad_reader.m` claims those devices, parses 20-byte `00 14` reports, and publishes `COUCH_XPAD_NATIVE_STATE`. `native_xpad.gd` turns that file into standard gamepad events.
+Some cheap “PS4/PC” and Xbox 360-style wired pads talk **Xbox 360 XID** (`ff:5d:01`). Wired Xbox One / Series and many PowerA/PDP/8BitDo Xbox pads talk **GIP** (`ff:47:d0`). Darwin binds neither, so Little World would not see them. The host helper `tools/macos/xpad_reader.m` claims those devices, decodes input, and publishes `COUCH_XPAD_NATIVE_STATE`. `native_xpad.gd` turns that file into standard gamepad events.
 
 This is the same host-file pattern as the native Wii reader. It is not a kernel driver and it is not used for HID pads.
 
@@ -18,22 +18,28 @@ Quit Chrome/Brave if they grabbed the USB device. F3 shows whether the helper is
 
 ## What is claimed
 
-The helper walks every `IOUSBHostDevice`, reads its configuration descriptor **before** `SetConfiguration`, and claims a pad only when `xpad_lookup` in `tools/macos/xpad_devices.h` returns `XPAD_PROTO_XID360`. HID interfaces (class 3), hubs, NICs, and disks are skipped.
+The helper walks every `IOUSBHostDevice`, reads its configuration descriptor **before** `SetConfiguration`, and claims a pad when `xpad_lookup` in `tools/macos/xpad_devices.h` returns `XPAD_PROTO_XID360` or `XPAD_PROTO_GIP`. HID interfaces (class 3), hubs, NICs, and disks are skipped. Official Xbox pads that macOS already exposes as HID/Game Controller are left alone.
 
-Unknown VID/PID still matches if the interface is Xbox 360 XID. Named rows override the generic name and can set quirks.
+Unknown VID/PID still matches XID or GIP by interface class. Named rows override the generic name and can set quirks. GIP pads get a power-on / LED / auth init sequence (plus One S and some PowerA extras).
 
-## Add a controller
+## Unknown pad (for a person or an agent)
 
-1. Plug it in and note USB vendor/product (`ioreg -p IOUSB -l` or System Information).
-2. If macOS already lists it as a gamepad, do nothing — Godot will use it.
-3. If it is vendor-class XID (`ff:5d:01`), it should work through the generic match. Add a named row only to label it or set quirks:
+Quit Little World, Chrome, and Brave so nothing holds USB. Plug the pad in over USB, then:
 
-```c
-{0x1234, 0x5678, "Example Pad", XPAD_PROTO_XID360, 0},
+```sh
+python3 scripts/play_xpad_native.py --dump
 ```
 
-4. If it uses another protocol (Xbox One GIP, DualShock HID over a vendor class, etc.), add `XPAD_PROTO_…` and a decoder next to `xpad_decode` in `xpad_reports.h`. Do not put USB code in the Godot game.
+Read the JSON:
 
-Rebuild happens automatically from `play.py` when the helper sources change. Physical join still needs a button press after launch.
+| `match` | What to do |
+| --- | --- |
+| `xid360` or `gip` | Already claimed. Relaunch `python3 scripts/play.py` and press A. Add `catalog_row` to `tools/macos/xpad_devices.h` only to name it or set quirks. |
+| `hid-leave-to-godot` | macOS/Godot should see it. No helper row. If buttons are wrong, that is an SDL mapping issue, not USB. |
+| `none` | New protocol. Keep the dump. Add `XPAD_PROTO_…` and a decoder in `xpad_reports.h`, then a named row. Do not put USB code in the Godot game. |
 
-Xbox One/Series **wired** GIP pads are not implemented. Touchpad, headset jack, and rumble are out of scope.
+Paste the dump into an agent with: add this pad to `tools/macos/xpad_devices.h` using `catalog_row`, or implement a decoder if `match` is `none`. Rebuild is automatic on the next `play.py`.
+
+GIP pads get power-on, One S init, LED, auth, and a short rumble init so PowerA/PDP clones are more likely to start sending reports. HORI-style analog-stick ack is sent for HORI/Titanfall VID/PIDs.
+
+Xbox One/Series **wired** GIP is implemented; it has not been physically pressed on this Mac. Bluetooth Xbox pads already work through Godot and do not use this reader. Touchpad, headset jack, and rumble-as-a-feature are out of scope.
