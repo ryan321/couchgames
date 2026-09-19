@@ -131,6 +131,8 @@ func _tree(at: Vector3) -> void:
 
 
 func _spawn_player(id: int) -> void:
+	if characters.has(id) and is_instance_valid(characters[id]):
+		return
 	var character := Character.new()
 	character.player_id = id
 	character.color = COLORS[id - 1]
@@ -272,7 +274,13 @@ func _refresh_diagnostics() -> void:
 
 func _add_device_controls(device: int) -> void:
 	var profile: Dictionary = _input_service.profile_for_device(device)
-	var heading := "Device %d · %s · Player %d" % [device, Input.get_joy_name(device), _input_service.player_for_device(device)]
+	var player := int(_input_service.player_for_device(device))
+	var status := "unassigned"
+	if player > 0:
+		status = "Player %d" % player
+	elif _input_service.is_shadow_device(device):
+		status = "duplicate ignored"
+	var heading := "Device %d · %s · %s" % [device, Input.get_joy_name(device), status]
 	var device_label := _label(heading, 20, Color("294d56"))
 	device_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_diagnostic_rows.add_child(device_label)

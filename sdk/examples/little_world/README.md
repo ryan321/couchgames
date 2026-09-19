@@ -25,7 +25,7 @@ Pair wireless controllers with the computer before joining; no cable is required
 
 For experimental Wii family profiles, run `python3 scripts/play.py --wii`. Use F3 to inspect or select a device layout. A sideways Remote/Remote Plus uses D-pad movement and **2** to join/jump; Nunchuk and Classic/Pro layouts use the left stick and **A**. Hold **minus** to leave; **plus** toggles fullscreen. Physical Wii pairing and input still need testing. [Wii setup and current limits](../../../docs/wii-controllers.md).
 
-Disconnecting removes your character and frees its slot immediately. Reconnect and press A / Cross once to join again with a fresh character. Other players keep their characters and numbers. Hold B / Circle to leave while keeping the controller connected; a keyboard player leaves with Backspace.
+Disconnecting removes your character and frees its slot immediately. Reconnect and press A / Cross once to join again with a fresh character. Other players keep their characters and numbers. Hold B / Circle to leave while keeping the controller connected; a keyboard player leaves with Backspace. Falling teleports that same character back to its spawn; it does not create another player. If macOS also exposes a combined copy of a Joy-Con pair, F3 shows it as **duplicate ignored** and jump/respawn will not join it.
 
 ## Integration and checks
 

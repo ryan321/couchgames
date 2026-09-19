@@ -35,6 +35,8 @@ func run() -> void:
 	for name: String in names:
 		var profile := Profiles.detect(name)
 		expect(profile["id"] == names[name], "Recognize " + name)
+		expect(Profiles.joycon_role(profile["id"]) == ("left" if "left" in names[name] else "right" if "right" in names[name] else "pair" if "pair" in names[name] else ""),
+			"Joy-Con role for " + name)
 		service.set_device_profile(150, profile["id"])
 		for button in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_X, JOY_BUTTON_Y]:
 			var event := InputEventJoypadButton.new()

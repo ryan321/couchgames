@@ -29,6 +29,7 @@ Updated September 15, 2026. The user connected two Xbox Wireless Controllers ove
 | Host / connection | Controller group | Counts to test | Status |
 | --- | --- | --- | --- |
 | macOS ARM64 / Bluetooth | Xbox Wireless Controllers (exact models unrecorded) | 1, 2 | Playable; user-reported. Updated disconnect removal pending |
+| macOS ARM64 / Bluetooth | Switch Joy-Con (L) + (R) | 2 | User paired both halves and played Little World. One A press joined two players; fall/jump created a third that shared a controller. SDK now ignores the extra combined/MFI device. After relaunch, two-player join/move/fall worked; Godot still logged `Couldn't load stick calibration` opening SDL gamepad index 3 (failed extra pad, not a fourth player). Independent-half retest otherwise pending |
 | macOS ARM64 / Bluetooth | Xbox Series / Bluetooth Xbox One | 4, 8, 16 | Pending |
 | macOS ARM64 / Bluetooth | PS5 DualSense / PS4 DualShock 4 | 1, 2, 4, 8, 16 | Pending |
 | macOS ARM64 / Bluetooth | Mixed Xbox + PlayStation | 2, 4, 8, 16 | Pending |
@@ -63,7 +64,7 @@ Use `python3 scripts/play_wii_native.py --game cloudbound` with the observed `04
 
 ### Switch motion acceptance
 
-Profiles and a shared motion path cover original Switch Pro, individual Joy-Con L/R, and combined grip mode. None has yet been physically tested here. Switch 2 profiles are recognized, but the pinned runtime lacks its dedicated driver. See [coverage and acceptance checks](switch-controllers.md).
+Profiles and a shared motion path cover original Switch Pro, individual Joy-Con L/R, and combined grip mode. Original left and right Joy-Cons were paired over Bluetooth on this Mac and used in Little World: one A press joined two players, then a fall/jump created a third character that shared one controller. The SDK now suppresses the extra combined/MFI device; a physical retest of two independent halves, jump, fall/respawn, and leave is pending. Switch 2 profiles are recognized, but the pinned runtime lacks its dedicated driver. See [coverage and acceptance checks](switch-controllers.md).
 
 
 ### Pocket Rally split-screen driving acceptance

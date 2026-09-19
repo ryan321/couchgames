@@ -14,6 +14,9 @@ const LEAVE_HOLD_SECONDS := 1.25
 
 var keyboard_enabled := false
 var players: Dictionary = {}
+var backend: Object = Input
+# SDL default is combined; our launcher sets 0 so each half is its own player.
+var combine_joy_cons := OS.get_environment("SDL_JOYSTICK_HIDAPI_COMBINE_JOY_CONS") != "0"
 var _devices: Dictionary = {}
 var _profile_overrides: Dictionary = {}
 
@@ -52,7 +55,7 @@ func handle_event(event: InputEvent) -> void:
 	var device := event.device
 	if not _devices.has(device):
 		if event is InputEventJoypadButton and event.pressed:
-			if event.button_index in profile_for_device(device)["join"]:
+			if event.button_index in profile_for_device(device)["join"] and not is_shadow_device(device):
 				_assign(device)
 		return
 	var state: Dictionary = players[_devices[device]]
@@ -107,7 +110,40 @@ func player_for_device(device: int) -> int:
 func profile_for_device(device: int) -> Dictionary:
 	if _profile_overrides.has(device):
 		return Profiles.get_profile(_profile_overrides[device])
-	return Profiles.detect(Input.get_joy_name(device), Input.get_joy_info(device))
+	return Profiles.detect(_joy_name(device), _joy_info(device))
+
+
+func is_shadow_device(device: int) -> bool:
+	# macOS can expose HIDAPI Joy-Con halves and a combined/MFI copy of the same pair.
+	# A later jump (also A) on the copy must not create a third player.
+	if device == KEYBOARD_DEVICE:
+		return false
+	var role := _joycon_role(device)
+	var listed := _is_listed(device)
+	if listed and role == "pair" and not combine_joy_cons and _has_joycon_role(["left", "right"]):
+		return true
+	if listed and role in ["left", "right"] and combine_joy_cons and _has_joycon_role(["pair"]):
+		return true
+	if listed and _is_nintendo_mfi(device) and _has_joycon_role(["left", "right", "pair"]):
+		return true
+	var key := _physical_key(device)
+	if key != "":
+		for other: int in _connected_devices():
+			if other == device:
+				continue
+			if _physical_key(other) != key:
+				continue
+			if _devices.has(other) or _prefers_device(other, device):
+				return true
+	if role == "pair":
+		for other: int in _devices:
+			if _joycon_role(other) in ["left", "right"]:
+				return true
+	if role in ["left", "right"]:
+		for other: int in _devices:
+			if _joycon_role(other) == "pair":
+				return true
+	return false
 
 
 func device_profile_override(device: int) -> String:
@@ -150,6 +186,8 @@ func device_connection_changed(device: int, connected: bool) -> void:
 	if not connected and _devices.has(device):
 		leave(_devices[device])
 	else:
+		if connected:
+			_release_shadow_players()
 		roster_changed.emit()
 
 
@@ -159,7 +197,7 @@ func clear_actions() -> void:
 
 
 func _assign(device: int) -> void:
-	if _devices.has(device):
+	if _devices.has(device) or is_shadow_device(device):
 		return
 	var player_id := 0
 	for candidate in range(1, MAX_PLAYERS + 1):
@@ -168,7 +206,7 @@ func _assign(device: int) -> void:
 			break
 	if player_id == 0:
 		return
-	var device_name := "Keyboard" if device == KEYBOARD_DEVICE else Input.get_joy_name(device)
+	var device_name := "Keyboard" if device == KEYBOARD_DEVICE else _joy_name(device)
 	if device_name.is_empty():
 		device_name = "Controller %d" % (device + 1)
 	players[player_id] = {"device": device, "name": device_name, "connected": true,
@@ -204,3 +242,89 @@ func _clear_state(state: Dictionary) -> void:
 	state["keys"].clear()
 	state["jump"] = false
 	state["leave_time"] = 0.0
+
+
+func _release_shadow_players() -> void:
+	var release: Array[int] = []
+	for id: int in players:
+		var assigned: int = players[id]["device"]
+		if assigned != KEYBOARD_DEVICE and is_shadow_device(assigned):
+			release.append(id)
+	for id in release:
+		leave(id)
+
+
+func _joy_name(device: int) -> String:
+	return str(backend.get_joy_name(device))
+
+
+func _joy_info(device: int) -> Dictionary:
+	if device not in Array(backend.get_connected_joypads()):
+		return {}
+	var info: Variant = backend.get_joy_info(device)
+	return info if info is Dictionary else {}
+
+
+func _joy_guid(device: int) -> String:
+	if device not in Array(backend.get_connected_joypads()):
+		return ""
+	return str(backend.get_joy_guid(device))
+
+
+func _connected_devices() -> Array:
+	var connected := Array(backend.get_connected_joypads())
+	for device: int in _devices:
+		if device != KEYBOARD_DEVICE and device not in connected:
+			connected.append(device)
+	return connected
+
+
+func _is_listed(device: int) -> bool:
+	return device in Array(backend.get_connected_joypads()) or _devices.has(device)
+
+
+func _joycon_role(device: int) -> String:
+	return Profiles.joycon_role(profile_for_device(device)["id"])
+
+
+func _has_joycon_role(roles: Array) -> bool:
+	for device in _connected_devices():
+		if _joycon_role(device) in roles:
+			return true
+	return false
+
+
+func _is_nintendo_mfi(device: int) -> bool:
+	var name := _joy_name(device).to_lower()
+	var info := _joy_info(device)
+	var raw := str(info.get("raw_name", "")).to_lower()
+	if "mfi" not in name and "mfi" not in raw:
+		return false
+	if "joy-con" in name or "joy-con" in raw or "nintendo" in name or "nintendo" in raw:
+		return true
+	return str(info.get("vendor_id", "")) in ["1406", "057e", "0x057e"]
+
+
+func _physical_key(device: int) -> String:
+	var info := _joy_info(device)
+	var serial := str(info.get("serial_number", "")).strip_edges()
+	if serial != "":
+		return "serial:%s" % serial
+	var guid := _joy_guid(device).strip_edges()
+	if guid != "":
+		return "guid:%s" % guid
+	return ""
+
+
+func _prefers_device(candidate: int, than: int) -> bool:
+	# Prefer a named Joy-Con half over a combined/MFI copy of the same hardware.
+	var rank := {"left": 2, "right": 2, "pair": 1}
+	var candidate_rank: int = rank.get(_joycon_role(candidate), 0)
+	var than_rank: int = rank.get(_joycon_role(than), 0)
+	if _is_nintendo_mfi(candidate):
+		candidate_rank = 0
+	if _is_nintendo_mfi(than):
+		than_rank = 0
+	if candidate_rank != than_rank:
+		return candidate_rank > than_rank
+	return candidate < than

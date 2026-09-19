@@ -46,6 +46,7 @@ func _run() -> void:
 	first.position.y = -9.0
 	await frames(3)
 	expect(first.position.distance_to(first.spawn) < 0.2, "Falling respawns at the player's own spawn")
+	expect(world.characters.size() == 16 and world.characters[1] == first, "Falling does not create another character")
 	service.device_connection_changed(DEVICE_OFFSET, false)
 	axis(0, 1.0)
 	expect(service.movement(1) == Vector2.ZERO, "A disconnected device cannot keep moving")

@@ -67,6 +67,7 @@ func _run() -> void:
 	button(31, JOY_BUTTON_B, true)
 	service._physics_process(1.3)
 	expect(not service.players.has(2), "Hold east face button releases a slot")
+	_joycon_duplicates()
 	# Keyboard is opt-in, occupies one of the same sixteen slots, and is isolated.
 	service.keyboard_enabled = true
 	key(KEY_ENTER, true)
@@ -82,6 +83,80 @@ func _run() -> void:
 	if not failures:
 		print("SDK input checks passed: %d synthetic assertions; physical controllers not tested." % checks)
 	quit(1 if failures else 0)
+
+
+func _joycon_duplicates() -> void:
+	var shadow := PlayerInput.new()
+	root.add_child(shadow)
+	shadow.set_process_input(false)
+	shadow.set_physics_process(false)
+	shadow.combine_joy_cons = false
+	var fake := FakeJoy.new()
+	fake.pads = [1, 2, 3]
+	fake.names = {1: "Joy-Con (L)", 2: "Joy-Con (R)", 3: "Joy-Con (L/R)"}
+	shadow.backend = fake
+	press(shadow, 2, JOY_BUTTON_A, true)
+	press(shadow, 3, JOY_BUTTON_A, true)
+	expect(shadow.players.size() == 1 and shadow.player_for_device(2) == 1 and shadow.player_for_device(3) == 0,
+		"One A press cannot join both a Joy-Con and the combined copy")
+	press(shadow, 3, JOY_BUTTON_A, false)
+	press(shadow, 3, JOY_BUTTON_A, true)
+	expect(shadow.players.size() == 1, "Jump on the combined copy does not spawn a third player")
+	press(shadow, 1, JOY_BUTTON_A, true)
+	expect(shadow.player_for_device(1) == 2 and shadow.players.size() == 2,
+		"The other physical Joy-Con still joins as its own player")
+	expect(shadow.is_shadow_device(3), "Combined device stays marked as a duplicate")
+	shadow.leave(1)
+	shadow.leave(2)
+	shadow.combine_joy_cons = true
+	press(shadow, 3, JOY_BUTTON_A, true)
+	press(shadow, 1, JOY_BUTTON_A, true)
+	press(shadow, 2, JOY_BUTTON_A, true)
+	expect(shadow.player_for_device(3) == 1 and shadow.players.size() == 1,
+		"Paired grip keeps one player and ignores the halves")
+	shadow.leave(1)
+	shadow.combine_joy_cons = false
+	fake.pads = [4, 5]
+	fake.names = {4: "Joy-Con (R)", 5: "MFi Gamepad"}
+	fake.infos = {
+		4: {"vendor_id": "1406", "product_id": "8199", "serial_number": "R123"},
+		5: {"vendor_id": "1406", "product_id": "8199", "serial_number": "R123"}}
+	press(shadow, 4, JOY_BUTTON_A, true)
+	press(shadow, 5, JOY_BUTTON_A, true)
+	expect(shadow.player_for_device(4) == 1 and shadow.players.size() == 1,
+		"HIDAPI and MFI copies of the same Joy-Con share one player")
+	shadow.leave(1)
+	fake.pads = [6, 7]
+	fake.names = {6: "Xbox Wireless Controller", 7: "Xbox Wireless Controller"}
+	fake.infos = {6: {"vendor_id": "1118", "product_id": "2834"}, 7: {"vendor_id": "1118", "product_id": "2834"}}
+	fake.guids = {6: "xbox-a", 7: "xbox-b"}
+	press(shadow, 6, JOY_BUTTON_A, true)
+	press(shadow, 7, JOY_BUTTON_A, true)
+	expect(shadow.players.size() == 2, "Two ordinary controllers still join independently")
+	shadow.queue_free()
+
+
+func press(target: Node, device: int, index: int, pressed: bool) -> void:
+	var event := InputEventJoypadButton.new()
+	event.device = device
+	event.button_index = index
+	event.pressed = true if pressed else false
+	target.handle_event(event)
+
+
+class FakeJoy:
+	var names := {}
+	var infos := {}
+	var guids := {}
+	var pads: Array = []
+	func get_joy_name(device: int) -> String:
+		return str(names.get(device, ""))
+	func get_joy_info(device: int) -> Dictionary:
+		return infos.get(device, {})
+	func get_joy_guid(device: int) -> String:
+		return str(guids.get(device, ""))
+	func get_connected_joypads() -> Array:
+		return pads
 
 
 func button(device: int, index: int, pressed: bool) -> void:

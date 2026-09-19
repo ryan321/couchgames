@@ -5,7 +5,7 @@
 | Controller | SDK / Cloudbound implementation | Hardware status |
 | --- | --- | --- |
 | Original Switch Pro Controller | Auto-detected profile; engine motion, normal grip | Physical test pending |
-| Original Joy-Con (L) or (R) | Separate player by default; sideways, SL/SR edge up; driver normalizes axes | Physical test pending |
+| Original Joy-Con (L) or (R) | Separate player by default; sideways, SL/SR edge up; driver normalizes axes | User paired both halves over Bluetooth on this Mac and reached Little World join/move/fall. A combined/MFI copy of the pair also joined, so one A press created two players and a later jump/respawn created a third that shared input. SDK now ignores that duplicate; physical retest pending |
 | Original Joy-Con pair in a grip | Explicit paired mode; engine uses right Joy-Con's motion as the shared sensor | Physical test pending |
 | Switch 2 Pro; Joy-Con 2 left, right, or pair | Profile recognition; uses motion only if the host driver exposes it; explicit unavailable state and stick fallback | **Native driver missing in pinned runtime; not claimed supported** |
 | Third-party Switch-compatible controllers | Generic buttons/sticks; motion selected only from reported capabilities | Model/firmware/connection dependent; not all have sensors |
@@ -30,6 +30,10 @@ python3 scripts/play.py --game cloudbound --joycons paired
 ```
 
 These options also work with Little World and `play_wii_native.py`. The native Wii launcher is needed only for the observed Wii variant, not original Switch controllers. Restart the game to change separate/paired mode. Direct editor launches follow their inherited SDL settings instead of the launcher's explicit policy.
+
+On macOS, SDL can list both HIDAPI Joy-Con halves and a combined Apple/MFI copy of the same controllers. Join and jump use the same south face button, so that extra device used to become another player the next time someone jumped or fell. The SDK ignores the combined copy when separate halves are connected, and ignores the halves when paired grip mode is on. Two physical Joy-Cons remain two players. F3 labels an ignored copy as **duplicate ignored**. This is a software guard, not a claim that every Switch pairing path is qualified.
+
+Godot may also print `Error opening gamepad at index N: Couldn't load stick calibration` from `drivers/sdl/joypad_sdl.cpp` while opening an extra Switch-family pad. The index is SDL's device id, not a player number. SDL's Switch HIDAPI driver failed to read that pad's stick calibration, so Godot skips it and it never becomes a connected controller. Observed here with two Bluetooth Joy-Cons after the join-guard fix: play still used the two halves. We cannot hide that engine line from the game. If a connected Joy-Con's stick actually drifts, that is a separate calibration problem on a pad that *did* open.
 
 If motion isn't available, the game says so. Press **Menu / + / −**, **M**, or click **Use stick** to select stick control. Keyboard Enter/arrow keys/Space remain available. Losing a selected motion stream pauses flight; it does not silently swap control modes.
 

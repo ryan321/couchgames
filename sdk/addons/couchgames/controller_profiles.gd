@@ -74,3 +74,13 @@ static func detect(device_name: String, info: Dictionary = {}) -> Dictionary:
 		if "rvl-cnt" in name:
 			return get_profile("wii_unknown")
 	return get_profile("gamepad")
+
+
+static func joycon_role(profile_id: String) -> String:
+	if profile_id.ends_with("joycon_left"):
+		return "left"
+	if profile_id.ends_with("joycon_right"):
+		return "right"
+	if profile_id.ends_with("joycon_pair"):
+		return "pair"
+	return ""
