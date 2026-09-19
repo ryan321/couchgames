@@ -85,7 +85,7 @@ func _draw() -> void:
 		draw_rect(Rect2(0,0,1600,900),Color(0.025,0.08,0.12,0.20))
 		for i in 80:
 			draw_rect(Rect2(i*12,0,12,900),Color(0.025,0.09,0.13,0.88*(1-float(i)/80)))
-		label("COUCH GAMES   /   ORIGINALS",Vector2(112,96),18,AQUA)
+		label("GIGA COUCH   /   ORIGINALS",Vector2(112,96),18,AQUA)
 		label("SUNBREAK",Vector2(106,245),86)
 		label("SINGLE PLAYER  /  ISLAND SKIRMISH",Vector2(113,291),20,AQUA)
 		var line := "Clear the outpost. Stay ahead of the storm."

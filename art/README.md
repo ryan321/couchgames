@@ -1,6 +1,6 @@
 # Blender art workflow
 
-Blender is an authoring tool for Couch Games models, shapes, props and animation. Players use the exported assets through Godot and do not need Blender installed.
+Blender is an authoring tool for Giga Couch models, shapes, props and animation. Players use the exported assets through Godot and do not need Blender installed.
 
 ## Local setup
 

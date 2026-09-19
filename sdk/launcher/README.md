@@ -1,4 +1,4 @@
-# Couch Games library
+# Giga Couch library
 
 ```sh
 python3 scripts/library.py

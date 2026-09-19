@@ -54,7 +54,7 @@ var _end_guard := 0.0
 var help := false
 
 func _ready() -> void:
-	DisplayServer.window_set_title("Gauntlet · The Ember Vault · Couch Games")
+	DisplayServer.window_set_title("Gauntlet · The Ember Vault · Giga Couch")
 	service = get_node("/root/Platform").input
 	service.keyboard_enabled = true
 	service.player_joined.connect(join)

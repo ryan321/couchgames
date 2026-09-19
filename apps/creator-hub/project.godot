@@ -1,8 +1,8 @@
 config_version=5
 [application]
-config/name="Couch Games Creator Hub"
+config/name="Giga Couch Creator Hub"
 config/use_custom_user_dir=true
-config/custom_user_dir_name="CouchGames/CreatorHub"
+config/custom_user_dir_name="GigaCouch/CreatorHub"
 run/main_scene="res://hub.tscn"
 [display]
 window/size/viewport_width=1100

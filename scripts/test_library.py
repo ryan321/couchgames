@@ -4,8 +4,9 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from library import GAMES, LibraryHost
+from library import GAMES, LibraryHost, startup_status, startup_ready, publish_foreground
 from game_catalog import rendering_arguments
+from godot_tools import resolve_godot
 
 class Process:
     def __init__(self):
@@ -31,6 +32,36 @@ class HostTests(unittest.TestCase):
                     self.assertEqual(rendering_arguments(game_id), [])
         with patch('sys.platform', 'win32'):
             self.assertEqual(rendering_arguments('gauntlet'), ['--rendering-method', 'forward_plus'])
+    @patch.dict('os.environ', {'COUCH_CLI': '/local app/Contents/Resources/couch'})
+    @patch('godot_tools.subprocess.run')
+    def test_player_app_uses_bundled_doctor_without_cargo(self, run):
+        run.return_value.returncode = 0
+        run.return_value.stdout = json.dumps({'data': {'godot': {'executable': '/installed/Godot'}}})
+        self.assertEqual(resolve_godot('/custom/Godot.app'), '/installed/Godot')
+        self.assertEqual(run.call_args.args[0], ['/local app/Contents/Resources/couch', '--json', '--godot', '/custom/Godot.app', 'doctor', '--require-godot'])
+
+    def test_startup_does_not_report_ready_before_renderer_signal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'status.json'
+            with patch.dict('os.environ', {'COUCH_PLAYER_STARTUP': str(path)}):
+                for phase in ('checking', 'importing', 'opening'):
+                    startup_status(phase)
+                    self.assertEqual(json.loads(path.read_text())['phase'], phase)
+                    self.assertFalse(startup_ready(path))
+                path.write_text('{"phase":"ready"}')
+                self.assertTrue(startup_ready(path))
+                path.write_text('{incomplete')
+                self.assertFalse(startup_ready(path))
+                path.unlink()
+                self.assertFalse(startup_ready(path))
+
+    def test_reopen_tracks_library_then_game_then_library(self):
+        with tempfile.TemporaryDirectory() as directory:
+            startup = Path(directory) / 'status.json'
+            for game_pid, expected in [(None, 101), (202, 202), (None, 101)]:
+                publish_foreground(startup, 101, game_pid)
+                self.assertEqual(json.loads((startup.parent / 'foreground.json').read_text()), {'pid': expected, 'library_pid': 101})
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.calls = []
@@ -98,11 +129,23 @@ class HostTests(unittest.TestCase):
         self.request(action='stop')
         self.assertTrue(game.terminated)
         self.assertEqual(self.host.state['phase'],'idle')
-    @patch.dict('os.environ',{'COUCH_WII_NATIVE_STATE':'/old','COUCH_WII_FLEET_DIR':'/old','COUCH_LIBRARY_SESSION':'/host'})
+    @patch.dict('os.environ',{'COUCH_WII_NATIVE_STATE':'/old','COUCH_WII_FLEET_DIR':'/old','COUCH_XPAD_NATIVE_STATE':'/old','COUCH_LIBRARY_SESSION':'/host','COUCH_PLAYER_STARTUP':'/private/startup.json'})
     def test_child_does_not_inherit_another_session(self):
         self.request(action='launch',game='cloudbound')
         environment = self.calls[-1][1]['env']
-        for name in ['COUCH_WII_NATIVE_STATE','COUCH_WII_FLEET_DIR','COUCH_LIBRARY_SESSION']:
-            self.assertNotIn(name,environment)
+        for name in ['COUCH_WII_NATIVE_STATE','COUCH_WII_FLEET_DIR','COUCH_XPAD_NATIVE_STATE','COUCH_LIBRARY_SESSION','COUCH_PLAYER_STARTUP']:
+            self.assertFalse(name in environment, name + " must not reach the game")
+    def test_xpad_helper_when_pad_present(self):
+        self.host.xpad_builder = lambda: '/xpad/reader'
+        self.host.xpad_available = lambda: True
+        self.request(action='launch', game='little-world')
+        self.assertEqual(self.calls[0][0][0], '/xpad/reader')
+        self.assertEqual(self.calls[-1][0][0], '/existing/Godot')
+        environment = self.calls[-1][1]['env']
+        self.assertTrue(environment['COUCH_XPAD_NATIVE_STATE'].endswith('state.json'))
+        helper = self.host.xpad_helper
+        self.host.game.returncode = 0
+        self.host.tick()
+        self.assertTrue(helper.terminated)
 
 if __name__=='__main__': unittest.main()

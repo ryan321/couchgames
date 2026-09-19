@@ -14,7 +14,7 @@ from game_catalog import GAMES, rendering_arguments
 def build_reader(fleet=False):
     """Build the selected helper with an existing compiler; never install tools."""
     source = ROOT / ("tools/macos/wii_fleet.m" if fleet else "tools/macos/wii_reader.m")
-    app = ROOT / (".couchgames/Wii Fleet.app" if fleet else ".couchgames/Wii Reader.app")
+    app = ROOT / (".gigacouch/Wii Fleet.app" if fleet else ".gigacouch/Wii Reader.app")
     binary = app / "Contents/MacOS/CouchWiiReader"
     dependencies = [source, source.with_name("wii_reports.h")]
     if fleet:
@@ -25,9 +25,9 @@ def build_reader(fleet=False):
         binary.parent.mkdir(parents=True, exist_ok=True)
         (app / "Contents/Info.plist").write_bytes(plistlib.dumps({
             "CFBundleExecutable": "CouchWiiReader",
-            "CFBundleIdentifier": "local.couchgames.WiiFleet" if fleet else "local.couchgames.WiiReader",
-            "CFBundleName": "Couch Games Wii Reader", "CFBundlePackageType": "APPL",
-            "NSBluetoothAlwaysUsageDescription": "Read your connected Wii controller for Couch Games.",
+            "CFBundleIdentifier": "local.gigacouch.WiiFleet" if fleet else "local.gigacouch.WiiReader",
+            "CFBundleName": "Giga Couch Wii Reader", "CFBundlePackageType": "APPL",
+            "NSBluetoothAlwaysUsageDescription": "Read your connected Wii controller for Giga Couch.",
             "NSHighResolutionCapable": True,
         }))
         subprocess.run(["xcrun", "clang", "-fobjc-arc", "-framework", "Cocoa", "-framework", "IOKit",

@@ -25,7 +25,9 @@ def godot_environment(wii=False, joycons="separate"):
 
 
 def resolve_godot(override=None):
-    command = ["cargo", "run", "--quiet", "--locked", "-p", "couch-cli", "--", "--json"]
+    # The local player app supplies its bundled CLI, so Finder launches never build Rust.
+    cli = os.environ.get("COUCH_CLI")
+    command = [cli, "--json"] if cli else ["cargo", "run", "--quiet", "--locked", "-p", "couch-cli", "--", "--json"]
     if override:
         command += ["--godot", override]
     command += ["doctor", "--require-godot"]

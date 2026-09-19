@@ -4,7 +4,7 @@ An original single-player first-person island skirmish: warm coastal buildings, 
 
 ## Play
 
-Choose **Sunbreak** in the Couch Games library, or run from the repository root:
+Choose **Sunbreak** in the Giga Couch library, or run from the repository root:
 
 ```sh
 python3 scripts/play.py --game sunbreak

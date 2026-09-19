@@ -78,7 +78,7 @@ static void matched(void *context, IOReturn result, void *sender, IOHIDDeviceRef
 @implementation AppDelegate
 - (void)applicationDidFinishLaunching:(NSNotification*)notification {
     self.window=[[NSWindow alloc] initWithContentRect:NSMakeRect(0,0,620,230) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable backing:NSBackingStoreBuffered defer:NO];
-    self.window.title=@"Couch Games — Wii reader";
+    self.window.title=@"Giga Couch — Wii reader";
     label=[NSTextField wrappingLabelWithString:@"Looking for the connected Wii device…"];
     label.frame=NSMakeRect(24,24,570,170);label.font=[NSFont systemFontOfSize:19];
     [self.window.contentView addSubview:label];[self.window center];[self.window makeKeyAndOrderFront:nil];[NSApp activateIgnoringOtherApps:YES];

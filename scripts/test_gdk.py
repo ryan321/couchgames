@@ -22,12 +22,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--keep", help="Keep the installed test kit under this parent folder for UI testing")
     args = parser.parse_args()
-    output = ROOT / ".couchgames/gdk"
+    output = ROOT / ".gigacouch/gdk"
     payload = output / APP / "Contents/Resources/payload"
     executable = resolve_godot()
     test_binary = output / "setup-tests"
     run(["xcrun", "swiftc", "-swift-version", "5", "-framework", "CryptoKit",
          str(ROOT / "apps/gdk-setup/macos/SetupCore.swift"),
+         str(ROOT / "apps/gdk-setup/macos/AgentCore.swift"),
          str(ROOT / "tests/gdk/SetupCoreTests.swift"), "-o", str(test_binary)])
     with tempfile.TemporaryDirectory(prefix="couch-gdk-independent-") as temp:
         install_parent = Path(args.keep).resolve() if args.keep else Path(temp) / "installed"
@@ -40,7 +41,7 @@ def main():
         game = Path(temp) / "our-first-game"
         run([executable, "--headless", "--editor", "--path", str(game), "--quit"])
         run([executable, "--headless", "--path", str(game), "--quit-after", "20"])
-        run(["codesign", "--verify", "--deep", "--strict", str(installed / "Couch Games Creator.app")])
+        run(["codesign", "--verify", "--deep", "--strict", str(installed / "Giga Couch Creator.app")])
         print("Fresh GDK install, standalone project import/run, and launcher signature checks passed. Physical controllers not tested.")
 
 

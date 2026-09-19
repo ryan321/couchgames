@@ -16,7 +16,7 @@ var _sun: DirectionalLight3D
 var _previous_window_mode := DisplayServer.WINDOW_MODE_MAXIMIZED
 
 func _ready() -> void:
-	DisplayServer.window_set_title("Pocket Rally · Couch Games")
+	DisplayServer.window_set_title("Pocket Rally · Giga Couch")
 	service = get_node("/root/Platform").input
 	motion = get_node("/root/Platform").motion
 	service.keyboard_enabled = true

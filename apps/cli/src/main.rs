@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 #[command(
     name = "couch",
     version,
-    about = "Couch Games local package tools (no engine required)"
+    about = "Giga Couch local package tools (no engine required)"
 )]
 struct Cli {
     /// Print one JSON result envelope, including operational errors.
@@ -101,7 +101,7 @@ fn data_dir(cli: &Cli) -> Result<PathBuf> {
     if let Some(path) = &cli.data_dir {
         return Ok(path.clone());
     }
-    directories::ProjectDirs::from("", "", "CouchGames")
+    directories::ProjectDirs::from("", "", "GigaCouch")
         .map(|dirs| dirs.data_local_dir().to_path_buf())
         .context("could not determine application directory; pass --data-dir")
 }
@@ -151,7 +151,7 @@ async fn run(cli: &Cli) -> Result<(Value, String)> {
             Ok((
                 value,
                 format!(
-                    "Couch Games {}\nData directory: {}\n{godot_message}\nPackage and library commands require no Godot.\nRuntime installation and game launch are not implemented. No tools are downloaded.",
+                    "Giga Couch {}\nData directory: {}\n{godot_message}\nPackage and library commands require no Godot.\nRuntime installation and game launch are not implemented. No tools are downloaded.",
                     env!("CARGO_PKG_VERSION"),
                     root.display()
                 ),

@@ -4,6 +4,7 @@ extends Node
 const RuntimeCheck = preload("res://addons/couchgames/runtime_check.gd")
 const PlayerInput = preload("res://addons/couchgames/player_input.gd")
 const NativeWii = preload("res://addons/couchgames/native_wii.gd")
+const NativeXpad = preload("res://addons/couchgames/native_xpad.gd")
 const ControllerMotion = preload("res://addons/couchgames/controller_motion.gd")
 
 var runtime_status: Dictionary = {}
@@ -14,7 +15,7 @@ var motion: ControllerMotion
 func _enter_tree() -> void:
 	runtime_status = RuntimeCheck.check()
 	if not runtime_status.get("supported", false):
-		push_error("Couch Games runtime unsupported: " + "\n".join(runtime_status.get("instructions", [])))
+		push_error("Giga Couch runtime unsupported: " + "\n".join(runtime_status.get("instructions", [])))
 	input = PlayerInput.new()
 	input.name = "PlayerInput"
 	add_child(input)
@@ -28,6 +29,13 @@ func _enter_tree() -> void:
 		reader.motion_service = motion
 		reader.state_path = native_state
 		add_child(reader)
+	var xpad_state := OS.get_environment("COUCH_XPAD_NATIVE_STATE")
+	if xpad_state.is_absolute_path():
+		var xpad := NativeXpad.new()
+		xpad.name = "NativeXpad"
+		xpad.service = input
+		xpad.state_path = xpad_state
+		add_child(xpad)
 
 
 func is_runtime_supported() -> bool:

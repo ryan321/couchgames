@@ -23,7 +23,7 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation",18)
 	margin.add_child(column)
-	column.add_child(label("COUCH GAMES     /     CREATOR PREVIEW",13,Color("8bd8bb")))
+	column.add_child(label("GIGA COUCH     /     CREATOR PREVIEW",13,Color("8bd8bb")))
 	column.add_child(label("Your next game starts here.",36))
 	column.add_child(label("Start with a small world. Make it yours in Godot. Play together.",18,Color("acbac7")))
 	var actions := HBoxContainer.new()

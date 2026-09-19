@@ -18,6 +18,12 @@ struct KitManifest: Codable {
     let files: [KitFile]
     var totalBytes: Int { files.reduce(0) { $0 + $1.size } }
 }
+struct KitPresence {
+    let installed: URL?
+    let previousVersion: String?
+    let conflict: String?
+}
+
 struct CommandResult {
     let status: Int32
     let output: Data
@@ -77,6 +83,32 @@ final class SetupCore {
         for file in result.files { _ = try checkedFile(file, root: root) }
         return result
     }
+    static func inspectInstallation(payload: URL, parent: URL) -> KitPresence {
+        do {
+            let kit = try manifest(at: payload)
+            let target = parent.appendingPathComponent(kit.version)
+            if fm.fileExists(atPath: target.path) {
+                let attrs = try fm.attributesOfItem(atPath: target.path)
+                guard attrs[.type] as? FileAttributeType == .typeDirectory,
+                      try Data(contentsOf: target.appendingPathComponent("kit.json")) == Data(contentsOf: payload.appendingPathComponent("kit.json")) else {
+                    return KitPresence(installed: nil, previousVersion: nil, conflict: "A different build is already in this folder. Choose another location.")
+                }
+                _ = try verify(target)
+                return KitPresence(installed: target, previousVersion: nil, conflict: nil)
+            }
+            // Older versions are inventory only, never selected as compatible without verification.
+            let children = (try? fm.contentsOfDirectory(at: parent, includingPropertiesForKeys: nil)) ?? []
+            let earlier = children.compactMap { url -> String? in
+                guard let attrs = try? fm.attributesOfItem(atPath: url.path), attrs[.type] as? FileAttributeType == .typeDirectory,
+                      let found = try? manifest(at: url), found.version == url.lastPathComponent else { return nil }
+                return found.version
+            }.sorted { $0.compare($1, options: .numeric) == .orderedAscending }.last
+            return KitPresence(installed: nil, previousVersion: earlier, conflict: nil)
+        } catch {
+            return KitPresence(installed: nil, previousVersion: nil, conflict: "This installation needs attention. Choose another folder to keep its files intact.")
+        }
+    }
+
     static func install(payload: URL, parent: URL) throws -> URL {
         let kit = try verify(payload)
         try fm.createDirectory(at: parent, withIntermediateDirectories: true)
@@ -113,7 +145,7 @@ final class SetupCore {
     }
     static func environment() -> [String: String] {
         var env = ProcessInfo.processInfo.environment
-        for key in ["COUCH_LIBRARY_SESSION", "COUCH_WII_NATIVE_STATE", "COUCH_WII_FLEET_DIR"] { env.removeValue(forKey: key) }
+        for key in ["COUCH_LIBRARY_SESSION", "COUCH_WII_NATIVE_STATE", "COUCH_WII_FLEET_DIR", "COUCH_XPAD_NATIVE_STATE"] { env.removeValue(forKey: key) }
         return env
     }
     static func run(_ executable: URL, _ arguments: [String], timeout: TimeInterval = 120) throws -> CommandResult {

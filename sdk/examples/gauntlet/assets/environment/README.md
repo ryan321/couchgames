@@ -1,6 +1,6 @@
 # Original Blender dungeon assets
 
-Eleven original GLBs authored for Couch Games, with no new downloads or external dependencies. Players do not need Blender.
+Eleven original GLBs authored for Giga Couch, with no new downloads or external dependencies. Players do not need Blender.
 
 - **VaultChest, JadePotion, EmberBrazier:** consolidated versions of the original prop study, now used for treasure, potions and torches.
 - **RunicKey, FeastPlatter:** carved key and a pewter platter with roast, bread and fruit. Key tint still matches the lock.

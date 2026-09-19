@@ -16,24 +16,24 @@
       "architecture": "x86_64",
       "renderer": "gl_compatibility",
       "file": "fixture-windows-x86_64.pck",
-      "size_bytes": 63,
-      "sha256": "99cc747b0ece8708a074876b94214f652a17e84459653876bdc26c532c4d142b"
+      "size_bytes": 62,
+      "sha256": "19fddf39fa031a3ff304a8eee71df5aee64a6a03fca3bec7074a7ae0b4c51010"
     },
     {
       "os": "macos",
       "architecture": "x86_64",
       "renderer": "gl_compatibility",
       "file": "fixture-macos-x86_64.pck",
-      "size_bytes": 63,
-      "sha256": "99cc747b0ece8708a074876b94214f652a17e84459653876bdc26c532c4d142b"
+      "size_bytes": 62,
+      "sha256": "19fddf39fa031a3ff304a8eee71df5aee64a6a03fca3bec7074a7ae0b4c51010"
     },
     {
       "os": "macos",
       "architecture": "aarch64",
       "renderer": "gl_compatibility",
       "file": "fixture-macos-aarch64.pck",
-      "size_bytes": 63,
-      "sha256": "99cc747b0ece8708a074876b94214f652a17e84459653876bdc26c532c4d142b"
+      "size_bytes": 62,
+      "sha256": "19fddf39fa031a3ff304a8eee71df5aee64a6a03fca3bec7074a7ae0b4c51010"
     }
   ]
 }

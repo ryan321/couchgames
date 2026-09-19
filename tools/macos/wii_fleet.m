@@ -223,7 +223,7 @@ static void matched(void *context, IOReturn result, void *sender, IOHIDDeviceRef
     dispatch_source_set_event_handler(termination,^{ [NSApp terminate:nil]; });
     dispatch_resume(termination);
     self.window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0,0,600,220) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable backing:NSBackingStoreBuffered defer:NO];
-    self.window.title = @"Couch Games — Wii controllers";
+    self.window.title = @"Giga Couch — Wii controllers";
     label = [NSTextField wrappingLabelWithString:@"Looking for connected Wii Remotes…\nPair them with this computer first."];
     label.frame = NSMakeRect(24,20,552,176);
     label.font = [NSFont systemFontOfSize:19];

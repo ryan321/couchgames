@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Couch Games provisional manifest v1",
+  "title": "Giga Couch provisional manifest v1",
   "description": "Metadata validation only. The CLI also enforces unique targets/filenames and checks artifact bytes. No playability or security certification is implied.",
   "type": "object",
   "additionalProperties": false,

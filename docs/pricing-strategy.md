@@ -6,11 +6,11 @@ Related: [Product vision](../PRODUCT.md), [technical architecture](../TECH_STACK
 
 ## 1. Current direction: sell the play-and-create experience
 
-The latest direction is to sell CouchGames as a product people enjoy in its own right:
+The latest direction is to sell Giga Couch as a product people enjoy in its own right:
 
 > Play a collection of multiplayer games. Modify them or make your own. Bring your people together, with up to 16 players as a target. Share or sell your creations when you want to.
 
-The base purchase could include a substantial collection of games, approachable creation tools, and multiplayer support. Community sharing and a creator marketplace would add value on top, with CouchGames taking a percentage of marketplace sales.
+The base purchase could include a substantial collection of games, approachable creation tools, and multiplayer support. Community sharing and a creator marketplace would add value on top, with Giga Couch taking a percentage of marketplace sales.
 
 **Making a game for your own party is valuable even if you never publish it.** The product should justify its price for someone who only plays, personalizes games for friends, or creates privately. Revenue should not depend entirely on customers becoming successful sellers.
 
@@ -35,7 +35,7 @@ These options can be combined, but a launch offering should be simple enough to 
 
 | Option | What customers pay for | Main advantage | Main difficulty |
 | --- | --- | --- | --- |
-| Free platform, marketplace commission | Paid games; CouchGames keeps a percentage | Easy adoption and broad creator participation | Free users and free games generate costs without direct revenue |
+| Free platform, marketplace commission | Paid games; Giga Couch keeps a percentage | Easy adoption and broad creator participation | Free users and free games generate costs without direct revenue |
 | Creator service subscription | Managed distribution, storage, multiplayer connectivity, and tools | Developers avoid operating their own backend | Charges creators before they necessarily earn anything; players may produce most usage |
 | Universal membership: $5/month | Playing and creating, included games, and defined online services | Recurring funding for development and operations | Subscription friction, especially if every guest must subscribe |
 | One-time platform purchase: $20 | Included games and the local play-and-create product | Familiar game purchase; immediate development funding | Each sale must support a long-lived customer without recurring base revenue |
@@ -51,7 +51,7 @@ The original adoption-first proposal:
 
 - Free creation tools and storefront access.
 - Games marked free cost the player nothing.
-- Creators can charge for games; CouchGames receives a percentage of sales.
+- Creators can charge for games; Giga Couch receives a percentage of sales.
 - Everyone is encouraged to try making something.
 
 A 10% or 15% commission is a hypothesis to model, not an agreed rate. The business needs enough paid sales to cover the whole platform, including people who only play free games.
@@ -60,9 +60,9 @@ The central problem is that **free distribution still costs money**: storage, do
 
 ### B. Charge creators for managed services
 
-The earlier server-business idea was to let developers use CouchGames networking instead of building and operating their own backend. Illustrative creator-plan ideas ranged from $5 to roughly $15/month, with higher usage priced separately; neither figure came from measured costs.
+The earlier server-business idea was to let developers use Giga Couch networking instead of building and operating their own backend. Illustrative creator-plan ideas ranged from $5 to roughly $15/month, with higher usage priced separately; neither figure came from measured costs.
 
-The current network design is a **message relay**. Player-owned computers run the games; CouchGames forwards messages and manages connections. Developers still implement game rules and synchronization using SDK support. Hosting the entire game simulation would be a different, more demanding service.
+The current network design is a **message relay**. Player-owned computers run the games; Giga Couch forwards messages and manages connections. Developers still implement game rules and synchronization using SDK support. Hosting the entire game simulation would be a different, more demanding service.
 
 This could become a standalone developer offering or a higher-capacity add-on. It need not be the primary identity of the consumer product. See [multiplayer responsibilities and metering](multiplayer.md).
 
@@ -81,7 +81,7 @@ The first does not automatically grant access to everything in the marketplace. 
 
 ### D. Sell the platform once for $20
 
-This matches the idea of selling CouchGames like a game: buy it, receive games to play immediately, and gain the ability to customize and create more.
+This matches the idea of selling Giga Couch like a game: buy it, receive games to play immediately, and gain the ability to customize and create more.
 
 Define the entitlement before selling:
 
@@ -92,7 +92,7 @@ Define the entitlement before selling:
 
 A permanent local license can coexist with optional paid cloud services, expansions, or major upgrades. Avoid implying that $20 includes unlimited hosting, every future game, and every future update forever unless those promises are intentional and affordable.
 
-For comparison, LaunchBox separates permanent software ownership from the period of included updates. That is an example of a licensing structure, not evidence that its exact pricing fits CouchGames. [LaunchBox Premium](https://www.launchbox-app.com/premium)
+For comparison, LaunchBox separates permanent software ownership from the period of included updates. That is an example of a licensing structure, not evidence that its exact pricing fits Giga Couch. [LaunchBox Premium](https://www.launchbox-app.com/premium)
 
 ### E. One-time purchase plus optional online membership
 
@@ -118,7 +118,7 @@ If every person needs a $5 membership, six people represent $30/month and 16 rep
 
 **Working recommendation to test:** free guest participation, especially phone remotes, with payment attached to the host or household. This is an alternative to the earlier “everyone subscribes” proposal, not a settled change to it.
 
-Also separate the platform license from a game's license. A host owning CouchGames does not automatically establish whether other computers may download and run a paid creator's game under that host's purchase.
+Also separate the platform license from a game's license. A host owning Giga Couch does not automatically establish whether other computers may download and run a paid creator's game under that host's purchase.
 
 ## 4. Included games and the creator marketplace
 
@@ -137,7 +137,7 @@ These are different permissions. Commission or license suitable games and assets
 
 ### Marketplace revenue
 
-Creators could offer free games, paid games, and appropriately licensed templates or asset packs. A purchase commission lets CouchGames earn more as creators sell more, while the base product earns revenue from private creation and play.
+Creators could offer free games, paid games, and appropriately licensed templates or asset packs. A purchase commission lets Giga Couch earn more as creators sell more, while the base product earns revenue from private creation and play.
 
 Before choosing a percentage, define:
 
@@ -202,11 +202,11 @@ Open source could encourage trust, integrations, contributions, and self-hosting
 | Paid official builds of open-source software | Supporters can pay for convenient distribution and development | Others may redistribute under the license; payment cannot be assumed universal |
 | Open software with separately licensed game collection | Community improves the tools while included content supports the bundle's value | Code and content rights must be clear and independently managed |
 
-Godot's MIT license permits commercial products and does not require games created with it to use the same license. CouchGames' own code, included games, and individual assets still need their own licensing decisions and applicable notices. [Godot license](https://godotengine.org/license/)
+Godot's MIT license permits commercial products and does not require games created with it to use the same license. Giga Couch's own code, included games, and individual assets still need their own licensing decisions and applicable notices. [Godot license](https://godotengine.org/license/)
 
-GDevelop provides an example of an open-source engine combined with paid service plans. This demonstrates a possible structure, not that contributions or subscription revenue will automatically cover CouchGames' costs. [GDevelop plans](https://gdevelop.io/pricing)
+GDevelop provides an example of an open-source engine combined with paid service plans. This demonstrates a possible structure, not that contributions or subscription revenue will automatically cover Giga Couch's costs. [GDevelop plans](https://gdevelop.io/pricing)
 
-Potential contributions are valuable but require documentation, review, maintenance, and project direction. Do not count volunteer work as guaranteed development capacity. Self-hosting also does not entitle someone to unlimited use of CouchGames-operated servers.
+Potential contributions are valuable but require documentation, review, maintenance, and project direction. Do not count volunteer work as guaranteed development capacity. Self-hosting also does not entitle someone to unlimited use of Giga Couch-operated servers.
 
 **Open decision:** how much to open, and under which licenses. No source-release decision is made by this document.
 
@@ -222,9 +222,9 @@ A remote input connection also does not automatically show a remote player's gam
 
 Minecraft illustrates selling a compelling creative product early, then expanding the surrounding business. Its alpha price was €9.95; the beta transition in December 2010 raised the price to €14.95. Early buyers received different future-update promises from later buyers. The lesson is to define founding-customer entitlements carefully. [Contemporary pricing report](https://www.gamedeveloper.com/game-platforms/pricier-beta-version-of-i-minecraft-i-to-hit-december-20), [archived announcement by Notch](https://blog.omniarchive.net/post/2175441966/minecraft-beta-december-20-2010/)
 
-For CouchGames, the useful analogy is that **playing and creating can justify a purchase before a marketplace exists**. It supports testing a paid early product with real included value. It does not prove that $20 is the right price, that lifetime online services are affordable, or that a similar commercial outcome is likely.
+For Giga Couch, the useful analogy is that **playing and creating can justify a purchase before a marketplace exists**. It supports testing a paid early product with real included value. It does not prove that $20 is the right price, that lifetime online services are affordable, or that a similar commercial outcome is likely.
 
-Minecraft also separates software from hosting: players can run their own server, while Realms offers paid managed hosting. The Marketplace arrived in 2017, years after the original paid game. These illustrate ways to add services and creator commerce around an already valuable product. CouchGames' proposed relay performs less work than a hosted game server, so Realms pricing would not directly establish relay economics. [Minecraft server software](https://www.minecraft.net/en-us/download/server), [Realms](https://www.minecraft.net/en-us/realms), [Marketplace anniversary](https://www.minecraft.net/nb-no/article/marketplace-5-year-celebration)
+Minecraft also separates software from hosting: players can run their own server, while Realms offers paid managed hosting. The Marketplace arrived in 2017, years after the original paid game. These illustrate ways to add services and creator commerce around an already valuable product. Giga Couch's proposed relay performs less work than a hosted game server, so Realms pricing would not directly establish relay economics. [Minecraft server software](https://www.minecraft.net/en-us/download/server), [Realms](https://www.minecraft.net/en-us/realms), [Marketplace anniversary](https://www.minecraft.net/nb-no/article/marketplace-5-year-celebration)
 
 The revenue question from the discussion provides historical scale:
 
@@ -234,7 +234,7 @@ The revenue question from the discussion provides historical scale:
 
 Those rough figures add to about $650 million through 2013. This is a sum of reported company revenues, not profit, personal earnings, or an exact Minecraft-only total through the acquisition date. Dollar conversions vary across reports. Microsoft completed the acquisition on November 6, 2014 for $2.5 billion, net of acquired cash; that purchase price is separate from game-sales revenue. [Microsoft acquisition disclosure](https://www.sec.gov/Archives/edgar/data/789019/000119312515272806/R17.htm)
 
-Treat Minecraft as an exceptional case and a product-model reference, not a CouchGames forecast.
+Treat Minecraft as an exceptional case and a product-model reference, not a Giga Couch forecast.
 
 ## 9. How to choose without guessing
 

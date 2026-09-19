@@ -36,7 +36,7 @@ var _previous_window_mode := DisplayServer.WINDOW_MODE_MAXIMIZED
 
 
 func _ready() -> void:
-	DisplayServer.window_set_title("Cloudbound · Couch Games")
+	DisplayServer.window_set_title("Cloudbound · Giga Couch")
 	_service = get_node("/root/Platform").input
 	_motion = get_node("/root/Platform").motion
 	_motion.set_enabled(true)
@@ -293,7 +293,7 @@ func _build_ui() -> void:
 	var heading := VBoxContainer.new()
 	heading.position = Vector2(52, 38)
 	root.add_child(heading)
-	heading.add_child(_label("C O U C H   G A M E S   /   0 0 2", 17, Color("244c61")))
+	heading.add_child(_label("G I G A   C O U C H   /   0 0 2", 17, Color("244c61")))
 	heading.add_child(_label("Cloudbound", 58, Color("173c52")))
 	heading.add_child(_label("Find your wings.", 23, Color("315c6c")))
 	var stats := VBoxContainer.new()

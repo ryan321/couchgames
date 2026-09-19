@@ -10,7 +10,7 @@ After closing the standalone input probe and previous game window:
 python3 scripts/play_wii_native.py
 ```
 
-This explicit developer command builds `tools/macos/wii_reader.m` using the existing macOS compiler (no downloads), caches the app under ignored `.couchgames/`, and starts the reader and normal game. It matches only vendor `04e8`, product `7021`, name `Nintendo RVL-CNT-01`. Pair the Remote with the computer first; the user successfully used `0000` for this particular device.
+This explicit developer command builds `tools/macos/wii_reader.m` using the existing macOS compiler (no downloads), caches the app under ignored `.gigacouch/`, and starts the reader and normal game. It matches only vendor `04e8`, product `7021`, name `Nintendo RVL-CNT-01`. Pair the Remote with the computer first; the user successfully used `0000` for this particular device.
 
 Hold sideways with 1/2 on the right. **2** joins/jumps, D-pad moves, and hold **minus** to leave. This native prototype does not map plus to fullscreen; use the on-screen button or F11. The reader supports one Remote per session; Xbox/PlayStation can use the other regular player slots, but that mixed physical session has not yet been tested.
 
@@ -66,7 +66,7 @@ If an existing Wii entry prevents fresh pairing, forget only that Wii controller
 Source inspection found no guard against repeated discovery callbacks starting overlapping pairing attempts. Apple’s public `IOBluetoothDevicePair.h` also documents that the framework can legitimately perform two low-level attempts; duplicate start log entries alone do not prove an application race. A separate **WiimotePair Couch Test.app** was built from the v1.2.1 source with a [small local patch](wiimote-pair-local.patch): serialize discovery/pairing, ignore stale completion callbacks, and log whether the binary-PIN callback runs. No PIN values are logged. This is a diagnostic experiment, not an established fix for the observed failure.
 
 - Source: upstream v1.2.1, tree `8e7f9b12db2da520e4f868305c4861cdf58fa15f`; upstream code is GPL-2.0-or-later.
-- Build: existing Xcode, Release ARM64, separate bundle ID `local.couchgames.WiimotePairTest`, ad hoc signing with the existing Bluetooth entitlement. Compilation and signature verification passed.
+- Build: existing Xcode, Release ARM64, separate bundle ID `local.gigacouch.WiimotePairTest`, ad hoc signing with the existing Bluetooth entitlement. Compilation and signature verification passed.
 - Local path: `~/Applications/WiimotePair Couch Test.app`. The original release is retained but was closed before testing this build.
 - App opened with Bluetooth Ready and HID Monitoring. A fresh red-SYNC attempt also failed. The diagnostic PIN callback never ran; macOS logged a Just Works pairing path, then incorrect PIN. The serialization patch did not resolve pairing. An isolated attempt with Little World closed also failed at 18:46:39 local log time. It again reported status 2 and incorrect PIN with no PIN callback; the game running concurrently is not required to reproduce the failure. Do not run both helpers at once.
 

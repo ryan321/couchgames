@@ -1,7 +1,7 @@
 --- a/WiimotePair/ViewController.m
 +++ b/WiimotePair/ViewController.m
 @@ -834,0 +835,2 @@
-+    // Couch Games local diagnostic patch: serialize duplicate discovery callbacks.
++    // Giga Couch local diagnostic patch: serialize duplicate discovery callbacks.
 +    if (_devicePair != nil || _pairedDevice != nil) { return; }
 @@ -858,0 +861,2 @@
 +    [self transitionToState:WiimoteConnectionStateConnecting];

@@ -24,7 +24,7 @@ static func create(template: String, parent: String, title: String) -> Dictionar
 		if error==OK:
 			config.set_value("application","config/name",title)
 			config.set_value("application","config/use_custom_user_dir",true)
-			config.set_value("application","config/custom_user_dir_name","CouchGames/Projects/"+safe+"-"+str(Time.get_unix_time_from_system()).replace(".","-"))
+			config.set_value("application","config/custom_user_dir_name","GigaCouch/Projects/"+safe+"-"+str(Time.get_unix_time_from_system()).replace(".","-"))
 			error = config.save(stage.path_join("project.godot"))
 	if error==OK: error = DirAccess.rename_absolute(stage,target)
 	if error!=OK:

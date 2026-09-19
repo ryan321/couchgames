@@ -6,11 +6,11 @@ Commercial follow-up, September 16, 2026: [pricing strategy options](pricing-str
 
 ## 1. The product
 
-CouchGames should let people play the same game across multiple computers and screens, with one or several local players on each computer.
+Giga Couch should let people play the same game across multiple computers and screens, with one or several local players on each computer.
 
-For online play, **CouchGames operates a message relay. Game simulation stays on player-owned computers.** The relay manages connections and forwards game messages; it does not load game packages, run Godot, simulate physics, or render video.
+For online play, **Giga Couch operates a message relay. Game simulation stays on player-owned computers.** The relay manages connections and forwards game messages; it does not load game packages, run Godot, simulate physics, or render video.
 
-A developer can use the CouchGames SDK and managed relay service instead of deploying their own networking backend. A proposed monthly subscription includes connection capacity and relay traffic. Developers still implement their game's multiplayer rules, assisted by SDK templates.
+A developer can use the Giga Couch SDK and managed relay service instead of deploying their own networking backend. A proposed monthly subscription includes connection capacity and relay traffic. Developers still implement their game's multiplayer rules, assisted by SDK templates.
 
 Example: two people on the living-room PC join three people on another family's Mac. Each computer runs the game, receives input from its own controllers, and renders its own view of the shared world.
 
@@ -20,7 +20,7 @@ Example: two people on the living-room PC join three people on another family's 
 | --- | --- | --- |
 | Same-screen couch play | Local input within one game process | No |
 | LAN multiplayer | Direct connection between computers on the local network | No |
-| Online multiplayer | Computers connect outward to a CouchGames relay | Yes |
+| Online multiplayer | Computers connect outward to a Giga Couch relay | Yes |
 
 The initial network design targets private family/friends sessions. Preserve the existing 1–16 local-player capability. Start network testing with four total players across two computers; a proposed initial ceiling of 16 total session players must be tested separately from the number of connected computers.
 
@@ -40,7 +40,7 @@ Computer B: game client + local players
 
 ```mermaid
 flowchart LR
-    A[Computer A: game host and local players] <-->|Game messages| R[CouchGames relay]
+    A[Computer A: game host and local players] <-->|Game messages| R[Giga Couch relay]
     B[Computer B: game client and local players] <-->|Game messages| R
     C[Computer C: game client and local players] <-->|Game messages| R
 ```
@@ -180,7 +180,7 @@ Use authenticated encrypted online connections with certificate verification. En
 
 ## 9. Monthly developer service
 
-Proposed offering: **CouchGames Online — rooms, invitations, message delivery, SDK integration, diagnostics, and usage visibility.** Developers pay for managed connectivity; players run the game.
+Proposed offering: **Giga Couch Online — rooms, invitations, message delivery, SDK integration, diagnostics, and usage visibility.** Developers pay for managed connectivity; players run the game.
 
 | Proposed plan | Included capability |
 | --- | --- |

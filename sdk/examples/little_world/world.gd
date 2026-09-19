@@ -169,7 +169,7 @@ func _build_ui() -> void:
 	var title := VBoxContainer.new()
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
-	title.add_child(_label("C O U C H   G A M E S   /   0 0 1", 17, Color("497078")))
+	title.add_child(_label("G I G A   C O U C H   /   0 0 1", 17, Color("497078")))
 	title.add_child(_label("Little World", 52, Color("294d56")))
 	title.add_child(_label("A tiny island. A whole couch of friends.", 21, Color("50777b")))
 	var status := VBoxContainer.new()
@@ -268,6 +268,17 @@ func _refresh_diagnostics() -> void:
 	_diagnostic_rows.add_child(_label("CONTROLLERS: %d   ·   F3 to close" % Input.get_connected_joypads().size(), 24, Color("294d56")))
 	var hint := "Wii driver requested: %s · Pairing and physical Wii compatibility still need testing." % ("ON" if OS.get_environment("SDL_JOYSTICK_HIDAPI_WII") == "1" else "OFF (launch with --wii)")
 	_diagnostic_rows.add_child(_label(hint, 17, Color("50777b")))
+	var xpad_path := OS.get_environment("COUCH_XPAD_NATIVE_STATE")
+	if xpad_path.is_empty():
+		_diagnostic_rows.add_child(_label("Wired USB helper OFF. Relaunch play.py with a vendor-class pad plugged in.", 17, Color("50777b")))
+	else:
+		var xpad := get_node_or_null("/root/Platform/NativeXpad")
+		var detail := "waiting for USB reports"
+		if xpad and xpad.active:
+			detail = "live · %d pad(s)" % xpad.live_count
+			if xpad.previous_stick != Vector2.INF:
+				detail += " · buttons %d · stick %.2f, %.2f" % [xpad.previous, xpad.previous_stick.x, xpad.previous_stick.y]
+		_diagnostic_rows.add_child(_label("Wired USB helper ON · " + detail + " · press A / Cross to join", 17, Color("50777b")))
 	for device: int in Input.get_connected_joypads():
 		_add_device_controls(device)
 

@@ -1,4 +1,4 @@
-# Couch Games: Technical Architecture and Build Plan
+# Giga Couch: Technical Architecture and Build Plan
 
 Status: target architecture, based on [PRODUCT.md](PRODUCT.md). See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the execution checklist and [README.md](README.md) for what is currently implemented.
 
@@ -97,7 +97,7 @@ The host starts both the launcher and compatible games using that installed engi
 Conceptual local layout:
 
 ```text
-CouchGames/
+GigaCouch/
   runtimes/1/<os>-<architecture>/
   launcher/<release-id>/launcher.pck
   games/<game-id>/<release-id>/game.pck

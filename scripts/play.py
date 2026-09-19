@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Run a source game using the platform-selected Godot. Downloads no engine/templates."""
 import argparse
+from pathlib import Path
 import subprocess
 import sys
+import tempfile
 
 from godot_tools import ROOT, godot_environment, resolve_godot
 from game_catalog import GAMES, rendering_arguments
+from play_xpad_native import build_reader as build_xpad_reader, pad_connected as xpad_connected
 
 
 def main():
@@ -32,7 +35,26 @@ def main():
     scene = GAMES[args.game]["scene"]
     if args.game == "pocket-rally":
         scene = "res://examples/pocket_rally/rally.tscn"
-    return subprocess.call([executable, *rendering_arguments(args.game, compatibility=args.compatibility), "--path", str(ROOT / "sdk"), scene], cwd=ROOT, env=environment)
+    helper = None
+    session = None
+    if xpad_connected():
+        session = tempfile.TemporaryDirectory(prefix="couch-xpad-")
+        state_path = str(Path(session.name) / "state.json")
+        environment["COUCH_XPAD_NATIVE_STATE"] = state_path
+        helper = subprocess.Popen([str(build_xpad_reader()), state_path])
+        print("Wired USB reader started. Keep its window open and press A / Cross to join.", flush=True)
+    try:
+        return subprocess.call([executable, *rendering_arguments(args.game, compatibility=args.compatibility), "--path", str(ROOT / "sdk"), scene], cwd=ROOT, env=environment)
+    finally:
+        if helper is not None and helper.poll() is None:
+            helper.terminate()
+            try:
+                helper.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                helper.kill()
+                helper.wait()
+        if session is not None:
+            session.cleanup()
 
 
 if __name__ == "__main__":

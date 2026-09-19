@@ -1,4 +1,4 @@
-# Couch Games Game Development Kit
+# Giga Couch Game Development Kit
 
 Status: product definition and delivery plan, September 16, 2026. **The repository contains a working prototype, not a released GDK.** “Available” below means implemented in this checkout; “planned” means part of the kit we still need to deliver.
 
@@ -6,7 +6,7 @@ This document turns the promise in [PRODUCT.md](PRODUCT.md) into a creator-facin
 
 ## 1. What is the GDK?
 
-**The Couch Games GDK is everything a developer—or their AI assistant—needs to turn an ordinary Godot project into a controller-first game that runs on the Couch Games platform.**
+**The Giga Couch GDK is everything a developer—or their AI assistant—needs to turn an ordinary Godot project into a controller-first game that runs on the Giga Couch platform.**
 
 Godot supplies the engine. The GDK supplies the common living-room experience and the path from an editable project to an installed, privately shared game.
 
@@ -216,8 +216,8 @@ For the observed native Wii setup on this Mac, use `python3 scripts/play_wii_nat
 ### Add the current addon to your own game
 
 1. Create or open an ordinary project in the supported Godot editor.
-2. Copy `sdk/addons/couchgames/` from this repository into your project's `addons/couchgames/`.
-3. Enable **Couch Games** under Project Settings → Plugins.
+2. Copy `sdk/addons/couchgames/` from this repository into your project's `addons/couchgames/` (the addon folder name is the SDK identifier; the plugin displays as **Giga Couch**).
+3. Enable **Giga Couch** under Project Settings → Plugins.
 4. Add `res://addons/couchgames/platform.gd` as the autoload **Platform**.
 5. Use the current player API below, then run the project with Godot's Run Project control. Registering it with the platform's source library still requires catalog integration work.
 6. When developing an export, include `addons/couchgames/runtime_policy.json` in the non-resource file filter. Export/package execution must be checked separately.

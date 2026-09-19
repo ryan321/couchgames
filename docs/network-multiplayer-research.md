@@ -20,7 +20,7 @@ Example: two players on the living-room PC, one on a laptop, and three on a remo
 | LAN or online network play | A game process on every computer; inputs and world state cross the network | Recommended direction for independent views |
 | Remote couch streaming | One computer runs the game; guests receive video and send controller input | Useful separate route for existing same-screen games |
 
-Streaming can preserve an existing local game's logic, but ordinarily shares the host's view. Independent views would require additional rendering/streaming work. Steam Remote Play Together is an example of the remote couch model, not an integration already available to CouchGames. [Steam Remote Play documentation](https://partner.steamgames.com/doc/features/remoteplay)
+Streaming can preserve an existing local game's logic, but ordinarily shares the host's view. Independent views would require additional rendering/streaming work. Steam Remote Play Together is an example of the remote couch model, not an integration already available to Giga Couch. [Steam Remote Play documentation](https://partner.steamgames.com/doc/features/remoteplay)
 
 For network play, camera design is a game choice: one view following that computer's local group, local split-screen, or a common arena view rendered independently everywhere. Private information, such as a card hand, must only be sent to authorized recipients; hiding it in the camera is insufficient.
 
@@ -80,7 +80,7 @@ Native Godot WebRTC has an official extension implementation. Treat its inclusio
 
 Nakama provides a Godot 4 client and both relayed and authoritative matches. Relaying forwards game messages; it does not validate game rules. Its authoritative model requires custom server logic, not automatic execution of our existing GDScript games. A Godot high-level multiplayer adapter must be evaluated against the actual SDK/runtime; older Fish Game examples are not proof of current compatibility. [Godot client](https://heroiclabs.com/docs/nakama/client-libraries/godot/), [relayed matches](https://heroiclabs.com/docs/nakama/concepts/multiplayer/relayed/), [authoritative matches](https://heroiclabs.com/docs/nakama/concepts/multiplayer/authoritative/)
 
-Steam Datagram Relay is another mature transport, but access outside Steam has eligibility and integration conditions, including shipping a version of the game on Steam. Its open-source networking library does not itself provide access to Valve's relay network. It should not be assumed available to every privately created CouchGames title. [Valve's requirements](https://partner.steamgames.com/doc/features/multiplayer/steamdatagramrelay)
+Steam Datagram Relay is another mature transport, but access outside Steam has eligibility and integration conditions, including shipping a version of the game on Steam. Its open-source networking library does not itself provide access to Valve's relay network. It should not be assumed available to every privately created Giga Couch title. [Valve's requirements](https://partner.steamgames.com/doc/features/multiplayer/steamdatagramrelay)
 
 Recommendation: prove WebRTC direct and forced-relay connections before selecting it. Preserve a small transport boundary so LAN ENet and online networking can share gameplay logic. Changing transports still needs tests for ordering, reliability, message limits, and connection lifecycle; it is not automatically a drop-in swap.
 

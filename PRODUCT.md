@@ -1,6 +1,10 @@
 # AI-Native Living Room Game Platform
 
-Creator delivery specification: [Couch Games Game Development Kit](GDK.md), covering what developers get, how they run it and the remaining release work.
+The consumer platform is **Giga Couch** ([gigacouch.com](https://gigacouch.com)).
+
+Creator delivery specification: [Giga Couch Game Development Kit](GDK.md), covering what developers get, how they run it and the remaining release work.
+
+Player experience specification: [Giga Couch player app](docs/giga-couch-app.md), the controller-operated TV library, accounts and social experience, separate from Creator Hub.
 
 ## Product Vision
 

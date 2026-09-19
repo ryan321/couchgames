@@ -1,9 +1,10 @@
-# Couch Games
+# Giga Couch
 
-A controller-first platform for playing and privately sharing Godot games on your own computer, displayed on a TV through a direct connection or screen sharing.
+A controller-first platform for playing and privately sharing Godot games on your own computer, displayed on a TV through a direct connection or screen sharing. The public site is [gigacouch.com](https://gigacouch.com).
 
 - [Product vision](PRODUCT.md)
 - [Game Development Kit: contents, workflow, and delivery plan](GDK.md)
+- [Giga Couch player app: TV library, controllers, accounts and social](docs/giga-couch-app.md)
 - [Technical architecture and stack](TECH_STACK.md)
 - [V1 implementation plan](IMPLEMENTATION_PLAN.md)
 - [Multiplayer design: LAN and managed online relaying](docs/multiplayer.md)
@@ -16,10 +17,10 @@ Build and open the native macOS Apple Silicon installer:
 
 ```sh
 python3 scripts/build_gdk.py
-open '.couchgames/gdk/Couch Games GDK Setup.app'
+open '.gigacouch/gdk/Giga Couch GDK Setup.app'
 ```
 
-The setup screen works without Godot. It reuses a supported editor or offers the official download page and an editor picker, then installs a small versioned GDK. Creator Hub can create an independent 3D game, open it in Godot, and run it after its first import. The built app includes the CLI and needs no Rust/Python on the creator's machine. This is an ad-hoc-signed internal preview; Windows, public signing/notarization and automatic editor downloads remain planned. [Build, testing and installation details](apps/gdk-setup/README.md).
+The native setup screen works without Godot. Its editor and kit cards compare what you need with what is on your Mac, show readiness and disk space, and recognize an already-installed kit. An optional AI assistant card detects Codex, Claude Code, Grok, Kiro and Cursor CLIs, accepts your existing agent, or guides you through a chosen vendor’s CLI installation. It reuses a supported editor or offers the official download page and an editor picker, then installs a small versioned GDK. Creator Hub can create an independent 3D game, open it in Godot, and run it after its first import. The built app includes the CLI and needs no Rust/Python on the creator's machine. This is an ad-hoc-signed internal preview; Windows, public signing/notarization and automatic editor downloads remain planned. [Build, testing and installation details](apps/gdk-setup/README.md).
 
 ## Current implementation
 
@@ -39,6 +40,8 @@ The first V1 slice is **local package validation and installation**:
 A source-game library screen is implemented. The production desktop host, full input/save SDK, runtime installation, packaged game launch, OS sandbox, Neon API, sign-in, downloads, and sharing remain planned work. Little World is a playable source prototype, not a complete V1 platform release.
 
 ## Open the game library
+
+On this Mac, double-click **Giga Couch.app** on the Desktop. This separate player app opens the existing controller-navigable game library; **Giga Couch Creator.app** opens Creator Hub. Rebuild the local player shortcut with `python3 scripts/build_player.py --desktop`. The preview reuses this checkout, existing Python and Godot, and a bundled doctor CLI; opening it does not build Rust or duplicate the game assets. A loading window stays visible through resource preparation until the library has rendered. Reopening the app brings the existing library or active game forward and restores a minimized library. [Player app details](apps/player/README.md).
 
 ```sh
 python3 scripts/library.py
@@ -98,6 +101,8 @@ The script uses `couch doctor` to find a supported installed Godot, imports the 
 For experimental Wii Remote/Remote Plus, Nunchuk, Classic/Classic Pro, and Wii U Pro profiles, run `python3 scripts/play.py --wii`. F3 includes per-device layout selection. Physical Wii pairing and play remain unverified; see [Wii setup and coverage](docs/wii-controllers.md).
 
 The tested `Nintendo RVL-CNT-01` variant (`04e8:7021`) needs our native macOS reader. After closing the current game and standalone probe, use **`python3 scripts/play_wii_native.py`**. It builds the small reader with the existing Xcode compiler if needed, launches the reader and game together, and cleans up the reader on exit. One Wii Remote was physically verified for movement/jumping; other Wii variants and multiple native Remotes remain unverified. The Little World native path supports one Remote alongside the regular SDK player slots. Pocket Rally has a separate multi-Remote helper.
+
+Wired DualShock 4 / DualSense / Xbox HID pads join through Godot. Vendor-class Xbox 360-style USB pads (the Walmart Nacon compact and others with interface `ff:5d:01`) need the host USB helper. **`python3 scripts/play.py`** starts it when such a pad is plugged in. Keep the **wired USB reader** window open. Press **A** to join. F3 shows whether the helper is live. Add another model in `tools/macos/xpad_devices.h`. See [wired USB controllers](docs/wired-usb-controllers.md).
 
 
 See [the game README](sdk/examples/little_world/README.md) and [wireless setup and hardware tests](docs/controller-test-matrix.md). The software supports sixteen slots. Physical wireless compatibility and simultaneous controller counts still need testing on the listed hardware.

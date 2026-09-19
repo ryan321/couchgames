@@ -1,6 +1,6 @@
 # Super Mario Bros. — World 1-1 recreation
 
-A single-player Godot recreation of the original NES World 1-1, using captured original sprites and scenery. Open **Super Mario Bros.** in the Couch Games library:
+A single-player Godot recreation of the original NES World 1-1, using captured original sprites and scenery. Open **Super Mario Bros.** in the Giga Couch library:
 
 ```sh
 python3 scripts/library.py

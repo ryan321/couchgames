@@ -23,6 +23,7 @@ def main():
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_input.gd"], "SDK input checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_wii.gd"], "Wii profile checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_native_wii.gd"], "Native Wii checks passed:"),
+        (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_native_xpad.gd"], "Native Xpad checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_playground.gd"], "Playground checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_flight.gd"], "Flight checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_controller_motion.gd"], "Controller motion checks passed:"),

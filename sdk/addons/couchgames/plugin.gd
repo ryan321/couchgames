@@ -13,9 +13,9 @@ func _enter_tree() -> void:
 	var label := Label.new()
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if report.get("supported", false):
-		label.text = "Couch Games: Godot %s is supported." % report["policy"]["godot_version"]
+		label.text = "Giga Couch: Godot %s is supported." % report["policy"]["godot_version"]
 	else:
-		label.text = "Couch Games: runtime setup needed.\n" + "\n".join(report.get("instructions", []))
+		label.text = "Giga Couch: runtime setup needed.\n" + "\n".join(report.get("instructions", []))
 	panel.add_child(label)
 	if not report.get("supported", false) and report.has("policy"):
 		var button := Button.new()
@@ -23,7 +23,7 @@ func _enter_tree() -> void:
 		var url: String = report["policy"]["download_url"]
 		button.pressed.connect(func() -> void: OS.shell_open(url))
 		panel.add_child(button)
-	add_control_to_bottom_panel(panel, "Couch Games")
+	add_control_to_bottom_panel(panel, "Giga Couch")
 
 
 func _exit_tree() -> void:

@@ -19,7 +19,7 @@ var _request_id := ""
 var _cooldown := 0.0
 
 func _ready() -> void:
-	DisplayServer.window_set_title("Couch Games · Your library")
+	DisplayServer.window_set_title("Giga Couch · Your library")
 	games = JSON.parse_string(FileAccess.get_file_as_string("res://launcher/games.json"))
 	session = OS.get_environment("COUCH_LIBRARY_SESSION")
 	# Library navigation does not join game players or claim motion sensors.
@@ -30,6 +30,23 @@ func _ready() -> void:
 	cards[0].grab_focus()
 	if session.is_empty():
 		status.text = "Open with: python3 scripts/library.py"
+	_report_ready_after_draw()
+
+func _report_ready_after_draw() -> void:
+	var startup := OS.get_environment("COUCH_PLAYER_STARTUP")
+	if startup.is_empty() or DisplayServer.get_name() == "headless":
+		return
+	# Let layout settle and render before dismissing the native loading window.
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	DisplayServer.window_set_title("Giga Couch · Your library")
+	var temporary := startup + ".ready"
+	var file := FileAccess.open(temporary, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify({"phase": "ready"}))
+		file.close()
+		DirAccess.rename_absolute(temporary, startup)
 
 func label_at(text: String, at: Vector2, font_size: int, color := INK, parent: Node = self) -> Label:
 	var label := Label.new()
@@ -55,7 +72,7 @@ func _build() -> void:
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
-	label_at("C O U C H  G A M E S",Vector2(68,44),22,Color("b2d1c3"))
+	label_at("G I G A  C O U C H",Vector2(68,44),22,Color("b2d1c3"))
 	label_at("Tonight, we play.",Vector2(65,94),64)
 	label_at("Pick a world. Grab a controller. Make room on the couch.",Vector2(68,175),24,MUTED)
 	label_at("YOUR GAMES",Vector2(68,250),18,MUTED)
@@ -187,6 +204,15 @@ func _process(delta: float) -> void:
 	if _poll < 0.15 or session.is_empty():
 		return
 	_poll = 0
+	var startup := OS.get_environment("COUCH_PLAYER_STARTUP")
+	if not startup.is_empty():
+		var focus_request := startup.get_base_dir().path_join("focus-library")
+		if FileAccess.file_exists(focus_request):
+			DirAccess.remove_absolute(focus_request)
+			if not busy:
+				if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_MINIMIZED:
+					DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED)
+				DisplayServer.window_move_to_foreground()
 	var path := session.path_join("status.json")
 	if not FileAccess.file_exists(path):
 		return

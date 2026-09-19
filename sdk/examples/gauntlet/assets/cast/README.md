@@ -1,6 +1,6 @@
 # Blender-authored Gauntlet cast
 
-Original meshes and materials created for Couch Games with Blender 5.2.2 LTS. No external creature/armor assets or textures were downloaded for this pass. These models supplement the existing, separately credited CC0 Quaternius hero rigs and animation library.
+Original meshes and materials created for Giga Couch with Blender 5.2.2 LTS. No external creature/armor assets or textures were downloaded for this pass. These models supplement the existing, separately credited CC0 Quaternius hero rigs and animation library.
 
 ## Models
 
