@@ -1,3 +1,4 @@
+mod host;
 mod project;
 
 use anyhow::{Context, Result};
@@ -63,6 +64,15 @@ enum Command {
     },
     /// List all installed releases, including inactive previous versions.
     Library,
+    /// Run the local Game Player host (library UI + game launch). Uses an installed Godot.
+    Host {
+        /// Giga Couch checkout or kit root containing sdk/ and tools/.
+        #[arg(long)]
+        root: PathBuf,
+        /// Godot project path for the library UI. Defaults to <root>/sdk.
+        #[arg(long)]
+        sdk: Option<PathBuf>,
+    },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -276,6 +286,24 @@ async fn run(cli: &Cli) -> Result<(Value, String)> {
                 result.target
             );
             Ok((serde_json::to_value(result)?, human))
+        }
+        Command::Host { root, sdk } => {
+            let godot = if let Some(path) = &cli.godot {
+                path.clone()
+            } else {
+                let mut discovery = couch_runtime::Discovery::system(None);
+                discovery.probe_timeout = std::time::Duration::from_secs(cli.godot_timeout_secs);
+                discovery
+                    .check()
+                    .await
+                    .executable
+                    .context("pass --godot with a supported Godot executable")?
+            };
+            let sdk = sdk.clone().unwrap_or_else(|| root.join("sdk"));
+            let data = data_dir(cli)?;
+            let startup = std::env::var_os("COUCH_PLAYER_STARTUP").map(PathBuf::from);
+            let code = host::run(&godot, root, &sdk, &data, startup.as_deref()).await?;
+            std::process::exit(code);
         }
         Command::Library => {
             let library = Library::open(&data_dir(cli)?).await?;

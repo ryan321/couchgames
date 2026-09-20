@@ -15,9 +15,26 @@ var controller: OptionButton
 var joycons: OptionButton
 var status: Label
 var stop_button: Button
+var profile_button: OptionButton
+var info_button: Button
+var refresh_button: Button
+var settings_button: Button
+var hint_label: Label
+var ready_pill: Panel
+var worlds_label: Label
+var details_layer: Control
+var settings_layer: Control
+var details_title: Label
+var details_body: Label
+var details_meta: Label
 var session := ""
 var busy := false
 var selected := 0
+var catalog_revision := 0
+var shelf: Control
+var card_w := 598
+var card_h := 164
+var card_gap := 14
 var _phase := ""
 var _poll := 0.0
 var _requested_at := 0.0
@@ -173,9 +190,8 @@ func _build() -> void:
 	label_at("YOUR LIBRARY", Vector2(left, 28), 12, MINT)
 	label_at("Tonight, we play.", Vector2(left, 48), 38)
 	label_at("Pick a world. Grab a controller. Make room on the couch.", Vector2(left, 98), 16, MUTED)
-	pill_at("%d OF %d READY" % [games.size(), games.size()], Vector2(left, 130), MINT)
-	label_at("%02d  WORLDS" % games.size(), Vector2(1288, 134), 13, MUTED)
-	var compact := games.size() > 3
+	ready_pill = pill_at("%d OF %d READY" % [games.size(), games.size()], Vector2(left, 130), MINT)
+	worlds_label = label_at("%02d  WORLDS" % games.size(), Vector2(1288, 134), 13, MUTED)
 	game_scroll = ScrollContainer.new()
 	game_scroll.position = Vector2(left, 170)
 	game_scroll.size = Vector2(1228, 540)
@@ -183,46 +199,9 @@ func _build() -> void:
 	game_scroll.follow_focus = true
 	game_scroll.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	add_child(game_scroll)
-	var card_w := 598
-	var card_h := 164
-	var gap := 14
-	var shelf := Control.new()
-	var rows := ceili(games.size() / 2.0) if compact else 1
-	shelf.custom_minimum_size = Vector2(1210, rows * card_h + maxi(rows - 1, 0) * gap + 12)
+	shelf = Control.new()
 	game_scroll.add_child(shelf)
-	for i in games.size():
-		var game: Dictionary = games[i]
-		var card := Button.new()
-		card.position = Vector2(6 + (i % 2) * (card_w + gap), 6 + floori(i / 2.0) * (card_h + gap)) if compact else Vector2(6 + i * (card_w + gap), 6)
-		card.size = Vector2(card_w, card_h)
-		card.add_theme_stylebox_override("normal", style(PANEL, BORDER, 16, 1))
-		card.add_theme_stylebox_override("hover", style(PANEL.lightened(0.05), MINT.darkened(0.2), 16, 1))
-		card.add_theme_stylebox_override("pressed", style(PANEL.lightened(0.08), MINT, 16, 1))
-		card.add_theme_stylebox_override("disabled", style(PANEL, BORDER, 16, 1))
-		card.add_theme_stylebox_override("focus", style(PANEL, MINT, 16, 2))
-		shelf.add_child(card)
-		var crop := Control.new()
-		crop.position = Vector2(16, 16)
-		crop.size = Vector2(176, 132)
-		crop.clip_contents = true
-		crop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.add_child(crop)
-		var cover := Cover.new()
-		cover.game_id = str(game.get("id", ""))
-		cover.tint = Color(str(game.get("color", "8ce8be")))
-		cover.size = crop.size
-		crop.add_child(cover)
-		label_at(game.players.to_upper(), Vector2(210, 16), 12, Color(game.color), card)
-		label_at(game.title, Vector2(208, 38), 24, INK, card)
-		var description := label_at(game.description, Vector2(210, 72), 15, MUTED, card)
-		description.size = Vector2(368, 40)
-		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		label_at("Play  →", Vector2(210, 122), 15, MINT, card)
-		card.pressed.connect(func(): launch_game(i))
-		card.focus_entered.connect(func():
-			selected = i
-			game_scroll.ensure_control_visible.call_deferred(card))
-		cards.append(card)
+	fill_shelf()
 	var bar := Panel.new()
 	bar.position = Vector2(left, 716)
 	bar.size = Vector2(1228, 152)
@@ -243,26 +222,51 @@ func _build() -> void:
 	label_at("JOY-CONS", Vector2(left + 340, 732), 11, MINT)
 	joycons = OptionButton.new()
 	joycons.position = Vector2(left + 340, 758)
-	joycons.size = Vector2(220, 40)
+	joycons.size = Vector2(200, 40)
 	joycons.add_item("Separate controllers")
 	joycons.add_item("Paired grip")
 	paint_option(joycons)
 	add_child(joycons)
-	status = label_at("Choose something to play.", Vector2(left + 580, 762), 16, INK)
-	status.size = Vector2(360, 44)
+	label_at("WHO'S PLAYING", Vector2(left + 560, 732), 11, MINT)
+	profile_button = OptionButton.new()
+	profile_button.position = Vector2(left + 560, 758)
+	profile_button.size = Vector2(160, 40)
+	profile_button.add_item("Family")
+	profile_button.add_item("Guest")
+	profile_button.item_selected.connect(func(index): _send({"action": "profile", "profile": ["family", "guest"][index]}))
+	paint_option(profile_button)
+	add_child(profile_button)
+	status = label_at("Choose something to play.", Vector2(left + 740, 762), 16, INK)
+	status.size = Vector2(280, 44)
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label_at("Arrows / D-pad + A / Cross / Enter   ·   F11 fullscreen", Vector2(left + 20, 814), 13, MUTED)
+	hint_label = label_at("D-pad + %s / Enter   ·   F11 fullscreen" % confirm_glyph(), Vector2(left + 20, 814), 13, MUTED)
 	stop_button = chrome_button("Close game & return", true)
 	stop_button.position = Vector2(left + 956, 808)
 	stop_button.size = Vector2(248, 42)
 	stop_button.visible = false
 	stop_button.pressed.connect(func(): _send({"action": "stop"}))
 	add_child(stop_button)
+	refresh_button = chrome_button("Refresh")
+	refresh_button.position = Vector2(1048, 36)
+	refresh_button.size = Vector2(110, 40)
+	refresh_button.pressed.connect(func(): _send({"action": "refresh"}))
+	add_child(refresh_button)
+	info_button = chrome_button("Game info")
+	info_button.position = Vector2(1166, 36)
+	info_button.size = Vector2(120, 40)
+	info_button.pressed.connect(open_details)
+	add_child(info_button)
+	settings_button = chrome_button("Settings")
+	settings_button.position = Vector2(1294, 36)
+	settings_button.size = Vector2(110, 40)
+	settings_button.pressed.connect(open_settings)
+	add_child(settings_button)
 	var quit_button := chrome_button("Quit library")
-	quit_button.position = Vector2(1394, 36)
-	quit_button.size = Vector2(170, 40)
+	quit_button.position = Vector2(1412, 36)
+	quit_button.size = Vector2(152, 40)
 	quit_button.pressed.connect(func(): get_tree().quit())
 	add_child(quit_button)
+	_build_overlays()
 
 func _send(request: Dictionary) -> bool:
 	if session.is_empty() or not session.is_absolute_path():
@@ -283,16 +287,94 @@ func _send(request: Dictionary) -> bool:
 	_request_id = request_id
 	return true
 
+func confirm_glyph() -> String:
+	var name := Input.get_joy_name(0).to_lower()
+	if "playstation" in name or "dualshock" in name or "dualsense" in name:
+		return "Cross"
+	return "A"
+
+func source_label(game: Dictionary) -> String:
+	match str(game.get("source", "sample")):
+		"creator":
+			return "YOUR GAME"
+		"installed":
+			return "INSTALLED"
+		_:
+			return "SAMPLE"
+
+func fill_shelf() -> void:
+	for child in shelf.get_children():
+		child.queue_free()
+	cards.clear()
+	var compact := games.size() > 3
+	var rows := ceili(games.size() / 2.0) if compact else 1
+	shelf.custom_minimum_size = Vector2(1210, rows * card_h + maxi(rows - 1, 0) * card_gap + 12)
+	for i in games.size():
+		var game: Dictionary = games[i]
+		var card := Button.new()
+		card.position = Vector2(6 + (i % 2) * (card_w + card_gap), 6 + floori(i / 2.0) * (card_h + card_gap)) if compact else Vector2(6 + i * (card_w + card_gap), 6)
+		card.size = Vector2(card_w, card_h)
+		card.add_theme_stylebox_override("normal", style(PANEL, BORDER, 16, 1))
+		card.add_theme_stylebox_override("hover", style(PANEL.lightened(0.05), MINT.darkened(0.2), 16, 1))
+		card.add_theme_stylebox_override("pressed", style(PANEL.lightened(0.08), MINT, 16, 1))
+		card.add_theme_stylebox_override("disabled", style(PANEL, BORDER, 16, 1))
+		card.add_theme_stylebox_override("focus", style(PANEL, MINT, 16, 2))
+		shelf.add_child(card)
+		var crop := Control.new()
+		crop.position = Vector2(16, 16)
+		crop.size = Vector2(176, 132)
+		crop.clip_contents = true
+		crop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(crop)
+		var cover := Cover.new()
+		cover.game_id = str(game.get("id", ""))
+		cover.tint = Color(str(game.get("color", "8ce8be")))
+		cover.size = crop.size
+		crop.add_child(cover)
+		var accent := Color(str(game.get("color", "8ce8be")))
+		label_at("%s  ·  %s" % [source_label(game), str(game.get("players", "1–16 players")).to_upper()], Vector2(210, 16), 12, accent, card)
+		label_at(str(game.get("title", "Game")), Vector2(208, 38), 24, INK, card)
+		var description := label_at(str(game.get("description", "")), Vector2(210, 72), 15, MUTED, card)
+		description.size = Vector2(368, 40)
+		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var play := "Folder missing" if game.get("missing") else ("Not playable yet" if game.get("playable") == false else "Play  →")
+		label_at(play, Vector2(210, 122), 15, MUTED if play != "Play  →" else MINT, card)
+		var index := i
+		card.pressed.connect(func(): launch_game(index))
+		card.focus_entered.connect(func():
+			selected = index
+			game_scroll.ensure_control_visible.call_deferred(card))
+		cards.append(card)
+	if ready_pill and ready_pill.get_child_count():
+		var label := ready_pill.get_child(0) as Label
+		if label:
+			var ready := 0
+			for game in games:
+				if game.get("playable", true) and not game.get("missing"):
+					ready += 1
+			label.text = "%d OF %d READY" % [ready, games.size()]
+	if worlds_label:
+		worlds_label.text = "%02d  WORLDS" % games.size()
+
 func launch_game(index: int) -> void:
 	if busy or _cooldown > 0 or index < 0 or index >= games.size():
 		return
 	selected = index
-	if _send({"action":"launch","game":games[index].id,
+	var game: Dictionary = games[index]
+	if game.get("missing"):
+		status.text = str(game.get("reason", "This project folder moved. Open it from Creator Hub."))
+		return
+	if game.get("playable") == false:
+		status.text = str(game.get("reason", "This package isn't playable yet."))
+		return
+	var profile := "guest" if profile_button and profile_button.selected == 1 else "family"
+	if _send({"action":"launch","game":game.id,
 		"input":["standard","native-wii","sdl-wii"][controller.selected],
-		"joycons":"paired" if joycons.selected else "separate"}):
+		"joycons":"paired" if joycons.selected else "separate",
+		"profile": profile}):
 		_phase = "requested"
 		_requested_at = Time.get_unix_time_from_system()
-		status.text = "Opening " + games[index].title + "…"
+		status.text = "Opening " + str(game.title) + "…"
 		_set_busy(true)
 
 func _set_busy(value: bool) -> void:
@@ -301,6 +383,14 @@ func _set_busy(value: bool) -> void:
 		card.disabled = value
 	controller.disabled = value
 	joycons.disabled = value
+	if profile_button:
+		profile_button.disabled = value
+	if refresh_button:
+		refresh_button.disabled = value
+	if info_button:
+		info_button.disabled = value
+	if settings_button:
+		settings_button.disabled = value
 	stop_button.visible = value
 
 func _process(delta: float) -> void:
@@ -349,6 +439,96 @@ func apply_status(state: Dictionary) -> void:
 	elif _cooldown <= 0:
 		_set_busy(false)
 	_phase = phase
+	if hint_label:
+		hint_label.text = "D-pad + %s / Enter   ·   F11 fullscreen" % confirm_glyph()
+	var revision := int(state.get("catalog_revision", 0))
+	if revision > 0 and revision != catalog_revision:
+		catalog_revision = revision
+		var catalog := OS.get_environment("COUCH_LIBRARY_CATALOG")
+		if not catalog.is_empty() and FileAccess.file_exists(catalog):
+			var parsed = JSON.parse_string(FileAccess.get_file_as_string(catalog))
+			if parsed is Array and parsed.size() > 0:
+				games = parsed
+				fill_shelf()
+				if selected < cards.size():
+					cards[selected].grab_focus()
+
+func _build_overlays() -> void:
+	details_layer = _overlay()
+	var detail_box := _overlay_box(details_layer)
+	details_title = label_at("Game", Vector2(0, 0), 32, INK, detail_box)
+	details_meta = label_at("", Vector2(0, 44), 16, MINT, detail_box)
+	details_body = label_at("", Vector2(0, 80), 18, MUTED, detail_box)
+	details_body.size = Vector2(640, 80)
+	details_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var play := chrome_button("Play", true)
+	play.position = Vector2(0, 180)
+	play.size = Vector2(200, 44)
+	play.pressed.connect(func():
+		details_layer.visible = false
+		launch_game(selected))
+	detail_box.add_child(play)
+	var close_details := chrome_button("Back")
+	close_details.position = Vector2(220, 180)
+	close_details.size = Vector2(160, 44)
+	close_details.pressed.connect(func():
+		details_layer.visible = false
+		if selected < cards.size():
+			cards[selected].grab_focus())
+	detail_box.add_child(close_details)
+	settings_layer = _overlay()
+	var settings_box := _overlay_box(settings_layer)
+	label_at("Settings", Vector2(0, 0), 32, INK, settings_box)
+	label_at("Who's playing is Family or Guest. Saves are kept per profile and game under Application Support/GigaCouch/saves.", Vector2(0, 52), 16, MUTED, settings_box).size = Vector2(640, 70)
+	label_at("This preview still uses your installed Godot editor as the runtime. A dedicated player-only engine is not bundled yet.", Vector2(0, 128), 16, MUTED, settings_box).size = Vector2(640, 70)
+	label_at("F11 toggles fullscreen. Pair controllers with this computer, not the TV.", Vector2(0, 204), 16, MUTED, settings_box).size = Vector2(640, 48)
+	var close_settings := chrome_button("Back")
+	close_settings.position = Vector2(0, 268)
+	close_settings.size = Vector2(160, 44)
+	close_settings.pressed.connect(func():
+		settings_layer.visible = false
+		if selected < cards.size():
+			cards[selected].grab_focus())
+	settings_box.add_child(close_settings)
+
+func _overlay() -> Control:
+	var layer := Control.new()
+	layer.visible = false
+	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.z_index = 20
+	add_child(layer)
+	var dim := ColorRect.new()
+	dim.color = Color(0.04, 0.06, 0.08, 0.82)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+	return layer
+
+func _overlay_box(layer: Control) -> Control:
+	var box := Control.new()
+	box.position = Vector2(420, 180)
+	box.size = Vector2(760, 360)
+	layer.add_child(box)
+	var panel := Panel.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.add_theme_stylebox_override("panel", style(PANEL, MINT, 16, 1))
+	box.add_child(panel)
+	var inner := Control.new()
+	inner.position = Vector2(36, 28)
+	inner.size = Vector2(688, 300)
+	box.add_child(inner)
+	return inner
+
+func open_details() -> void:
+	if selected < 0 or selected >= games.size():
+		return
+	var game: Dictionary = games[selected]
+	details_title.text = str(game.get("title", "Game"))
+	details_meta.text = "%s · %s" % [source_label(game), str(game.get("players", "1–16 players"))]
+	details_body.text = str(game.get("description", ""))
+	details_layer.visible = true
+
+func open_settings() -> void:
+	settings_layer.visible = true
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:

@@ -39,12 +39,10 @@ final class PlayerApp: NSObject, NSApplicationDelegate {
         starting = true
         DispatchQueue.global().async {
             do {
-                guard let rootPath = Bundle.main.object(forInfoDictionaryKey: "GigaSourceRoot") as? String,
-                      let python = Bundle.main.object(forInfoDictionaryKey: "GigaPython") as? String else { throw SetupFailure("This app is incomplete. Rebuild it with scripts/build_player.py.") }
+                guard let rootPath = Bundle.main.object(forInfoDictionaryKey: "GigaSourceRoot") as? String else { throw SetupFailure("This app is incomplete. Rebuild it with scripts/build_player.py.") }
                 let root = URL(fileURLWithPath: rootPath)
-                let script = root.appendingPathComponent("scripts/library.py")
-                guard FileManager.default.fileExists(atPath: script.path), FileManager.default.isExecutableFile(atPath: python) else {
-                    throw SetupFailure("The source checkout or Python has moved. Run scripts/build_player.py from the project to refresh this local app.")
+                guard FileManager.default.fileExists(atPath: root.appendingPathComponent("sdk/launcher/library.tscn").path) else {
+                    throw SetupFailure("The source checkout has moved. Run scripts/build_player.py from the project to refresh this local app.")
                 }
                 let tool = Bundle.main.resourceURL!.appendingPathComponent("couch")
                 let selected = UserDefaults(suiteName: "com.gigacouch.gdk")?.string(forKey: "selectedGodot")
@@ -60,8 +58,8 @@ final class PlayerApp: NSObject, NSApplicationDelegate {
                 FileManager.default.createFile(atPath: logURL.path, contents: nil)
                 let output = try FileHandle(forWritingTo: logURL)
                 let process = Process()
-                process.executableURL = URL(fileURLWithPath: python)
-                process.arguments = [script.path, "--godot", engine]
+                process.executableURL = tool
+                process.arguments = ["host", "--godot", engine, "--root", root.path, "--sdk", root.appendingPathComponent("sdk").path]
                 process.currentDirectoryURL = root
                 var environment = SetupCore.environment()
                 environment["COUCH_CLI"] = tool.path

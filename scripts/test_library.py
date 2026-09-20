@@ -70,6 +70,7 @@ class HostTests(unittest.TestCase):
         self.calls = []
         self._projects = patch.dict('os.environ', {
             'COUCH_CREATOR_PROJECTS': str(Path(self.directory.name) / 'creator-projects.json'),
+            'COUCH_DATA_DIR': self.directory.name,
         })
         self._projects.start()
         def popen(command, **kwargs):
@@ -96,6 +97,9 @@ class HostTests(unittest.TestCase):
             command, kwargs, _ = self.calls[-1]
             self.assertEqual(command[command.index('--path') + 1], str(ROOT / 'sdk'))
             self.assertEqual(kwargs['cwd'], ROOT)
+            environment = kwargs['env']
+            self.assertIn(game_id, environment['COUCH_SAVE_DIR'])
+            self.assertEqual(environment.get('COUCH_PROFILE'), 'family')
             self.host.game.returncode = 0
             self.host.tick()
             self.assertEqual(self.host.state['phase'],'idle')
@@ -166,6 +170,7 @@ class CreatorLibraryTests(unittest.TestCase):
         self.calls = []
         self._projects = patch.dict('os.environ', {
             'COUCH_CREATOR_PROJECTS': str(Path(self.directory.name) / 'creator-projects.json'),
+            'COUCH_DATA_DIR': self.directory.name,
         })
         self._projects.start()
         def popen(command, **kwargs):
@@ -225,7 +230,7 @@ class CreatorLibraryTests(unittest.TestCase):
         self.request(action='launch', game='local:demo-game')
         self.assertEqual(self.host.state['phase'], 'error')
         self.assertFalse(self.calls)
-        self.assertIn('missing', self.host.state['message'].lower())
+        self.assertTrue('missing' in self.host.state['message'].lower() or 'unreadable' in self.host.state['message'].lower())
 
     @patch('library.sys.platform', 'darwin')
     def test_creator_game_skips_wii_helper(self):

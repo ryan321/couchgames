@@ -14,8 +14,16 @@ from godot_tools import ROOT, godot_environment, resolve_godot
 from play_wii_native import build_reader
 from play_xpad_native import build_reader as build_xpad_reader, pad_connected as xpad_connected
 
-from creator_projects import launch_spec, merged_catalog
+from creator_projects import launch_spec
 from game_catalog import CATALOG, GAMES, rendering_arguments
+from player_catalog import (
+    data_dir,
+    load_player_state,
+    pck_is_playable,
+    save_dir,
+    save_player_state,
+    shelf_catalog,
+)
 
 SESSION_VARS = (
     "COUCH_WII_NATIVE_STATE",
@@ -24,6 +32,8 @@ SESSION_VARS = (
     "COUCH_LIBRARY_SESSION",
     "COUCH_PLAYER_STARTUP",
     "COUCH_LIBRARY_CATALOG",
+    "COUCH_SAVE_DIR",
+    "COUCH_PROFILE",
 )
 
 
@@ -55,12 +65,26 @@ class LibraryHost:
         self.xpad_builder = xpad_builder
         self.xpad_available = xpad_available or (lambda: False)
         self.game = self.helper = self.xpad_helper = self.wii_session = self.xpad_session = self.log = None
-        self.state = {"phase": "idle", "message": "Choose something to play.", "native_wii": sys.platform == "darwin"}
-        self.games = merged_catalog(CATALOG)
-        self.by_id = {game["id"]: game for game in self.games}
+        self.data_root = data_dir()
+        self.player = load_player_state(self.data_root)
+        self.state = {
+            "phase": "idle",
+            "message": "Choose something to play.",
+            "native_wii": sys.platform == "darwin",
+            "profile": self.player["profile"],
+            "profiles": self.player["profiles"],
+            "saves": str(self.data_root / "saves"),
+            "catalog_revision": 0,
+        }
         self.catalog_path = self.session / "catalog.json"
-        self.write_catalog()
+        self.reload_catalog()
         self.publish()
+
+    def reload_catalog(self):
+        self.games = shelf_catalog(CATALOG, root=self.data_root)
+        self.by_id = {game["id"]: game for game in self.games}
+        self.state["catalog_revision"] = self.state.get("catalog_revision", 0) + 1
+        self.write_catalog()
 
     def write_catalog(self):
         temporary = self.catalog_path.with_suffix(".tmp")
@@ -100,23 +124,39 @@ class LibraryHost:
             raise ValueError("That game or controller setup is unavailable.")
         if mode == "native-wii" and sys.platform != "darwin":
             raise ValueError("The native Wii reader requires macOS.")
-        path, scene = launch_spec(game)
-        if not isinstance(scene, str) or not scene.startswith("res://"):
-            raise ValueError("That game or controller setup is unavailable.")
-        try:
-            readable = path.is_dir() and (path / "project.godot").is_file()
-        except OSError:
-            readable = False
-        if not readable:
-            if game.get("project"):
-                raise ValueError("This project folder is missing or unreadable. Open it again from Creator Hub.")
-            raise ValueError("That game or controller setup is unavailable.")
+        if game.get("missing"):
+            raise ValueError("This project folder is missing or unreadable. Open it again from Creator Hub.")
+        if game.get("playable") is False:
+            raise ValueError(game.get("reason") or "This package isn't playable yet.")
+        profile = request.get("profile") or self.player.get("profile") or "family"
+        if profile not in self.player.get("profiles", []):
+            profile = self.player.get("profile") or "family"
+        pck = game.get("pck") or ""
+        if pck:
+            pack = Path(pck)
+            if not pck_is_playable(pack):
+                raise ValueError("This unsigned import has no playable Godot pack.")
+            path, scene = pack.parent, ""
+        else:
+            path, scene = launch_spec(game)
+            if not isinstance(scene, str) or not scene.startswith("res://"):
+                raise ValueError("That game or controller setup is unavailable.")
+            try:
+                readable = path.is_dir() and (path / "project.godot").is_file()
+            except OSError:
+                readable = False
+            if not readable:
+                if game.get("project"):
+                    raise ValueError("This project folder is missing or unreadable. Open it again from Creator Hub.")
+                raise ValueError("That game or controller setup is unavailable.")
         self.state.update(phase="starting", game=game_id, message="Opening " + game["title"] + "…")
         self.publish()
         environment = clean_environment()
         environment.update(godot_environment(mode != "standard", joycons))
         for name in SESSION_VARS:
             environment.pop(name, None)
+        environment["COUCH_SAVE_DIR"] = str(save_dir(game_id, profile, self.data_root))
+        environment["COUCH_PROFILE"] = profile
         self.log = (self.session / "game.log").open("w")
         # Samples keep Wii helpers. Creator rows only get one when they declare native_wii.
         if mode == "native-wii" and (game.get("native_wii") or not game.get("project")):
@@ -131,9 +171,13 @@ class LibraryHost:
             xpad_path = str(Path(self.xpad_session.name) / "state.json")
             environment["COUCH_XPAD_NATIVE_STATE"] = xpad_path
             self.xpad_helper = self.popen([str(self.xpad_builder()), xpad_path], stdout=self.log, stderr=subprocess.STDOUT, env=clean_environment())
-        cwd = path if game.get("project") else ROOT
-        self.game = self.popen([self.executable, *rendering_arguments(game_id), "--path", str(path), scene],
-                               cwd=cwd, env=environment, stdout=self.log, stderr=subprocess.STDOUT)
+        if pck:
+            command = [self.executable, "--main-pack", pck]
+            cwd = path
+        else:
+            cwd = path if game.get("project") else ROOT
+            command = [self.executable, *rendering_arguments(game_id), "--path", str(path), scene]
+        self.game = self.popen(command, cwd=cwd, env=environment, stdout=self.log, stderr=subprocess.STDOUT)
         self.state.update(phase="running", message=game["title"] + " is playing. Close its window to come back.")
         self.publish()
 
@@ -160,6 +204,17 @@ class LibraryHost:
                 elif request.get("action") == "stop":
                     self.cleanup()
                     self.state.update(phase="idle", message="Back to your games.")
+                elif request.get("action") == "refresh":
+                    self.reload_catalog()
+                    self.state.update(phase="idle", message="Library updated.")
+                elif request.get("action") == "profile":
+                    name = request.get("profile")
+                    if name not in self.player.get("profiles", []):
+                        raise ValueError("Unknown player profile.")
+                    self.player["profile"] = name
+                    save_player_state(self.player, self.data_root)
+                    self.state["profile"] = name
+                    self.state.update(phase="idle", message=f"Playing as {name}.")
                 else:
                     raise ValueError("Unknown library action.")
             except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:

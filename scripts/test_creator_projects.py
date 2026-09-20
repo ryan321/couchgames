@@ -46,7 +46,7 @@ class RegistryTests(unittest.TestCase):
         sample_path, _ = launch_spec(catalog[0])
         self.assertEqual(sample_path, ROOT / "sdk")
 
-    def test_missing_project_skipped(self):
+    def test_missing_project_skipped_by_source_merge(self):
         self.registry.write_text(json.dumps({"format": 1, "projects": [{"id": "gone", "title": "Gone", "path": "/nope"}]}))
         catalog = merged_catalog([], load_registry(self.registry))
         self.assertEqual(catalog, [])

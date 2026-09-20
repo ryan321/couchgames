@@ -39,7 +39,8 @@ Lives on the player’s computer. Never goes inside a game. This is the console.
 | --- | --- | --- |
 | Game Player app | `apps/player/` | TV library, Play, return after quit or crash |
 | Library UI | `sdk/launcher/` | Browse included source games plus **registered creator projects** |
-| Launch host | `scripts/library.py` today; Rust host planned | Start a separate Godot process (`--path` is the sample SDK or the creator project); pause library input while a game is up |
+| Launch host | `couch host` (Player.app); `scripts/library.py` remains a test/dev supervisor | Start a separate Godot process; samples, Hub projects, and unsigned installs; pause library input while a game is up |
+| Save namespace | `Application Support/GigaCouch/saves/<profile>/<game>/` | Host sets `COUCH_SAVE_DIR` per Family/Guest profile so games do not share saves |
 | Creator project registry | `~/Library/Application Support/GigaCouch/creator-projects.json` | Hub / `couch init` register a source project; Player merges it into the TV library |
 | Shared Godot runtime | Installed editor/runtime, policy in `sdk/addons/couchgames/runtime_policy.json` | One engine; players do not install the Godot editor |
 | Doctor at launch | bundled `couch` CLI | Find a supported Godot **4.7.2** standard build |
@@ -51,12 +52,10 @@ HID pads (Xbox Bluetooth, DualShock/DualSense, Switch, most USB HID) are **not**
 
 ### Planned
 
-- Install and update of packed games; signed releases
+- Signed packed-game install and a **player-only** Godot runtime (preview still uses the installed editor; synthetic `.pck` fixtures are not playable)
 - Accounts, private share, authorized downloads
-- Per-game/profile save files on disk (the host namespace; the game talks to a save API, not SQLite)
 - Sandbox: game process must not open unauthorized network or the platform database
-- Restore library focus and input after crash
-- Production Rust desktop host replacing the Python supervisor
+- Notarized portable Player.app (preview still points at this checkout)
 
 **Rule:** the platform owns process lifecycle, library, runtime, and USB claiming. It does not own jump physics.
 
