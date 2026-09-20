@@ -6,7 +6,7 @@ The player product is **Giga Couch** ([gigacouch.com](https://gigacouch.com)).
 
 **Giga Couch** is the app on the computer connected to the TV. Open it to browse your library, choose who is playing, launch games, and return to your library. Every normal player action must work with a controller.
 
-**Giga Couch Creator Hub** is the creator workspace. The native **GDK Setup** prepares Godot, the development kit, and an optional AI coding assistant. Creators use their own agent and Godot to make games; players do not need either an AI agent or a development toolchain.
+**Giga Couch Creator Hub** is the creator workspace. The native **GDK Setup** prepares Godot, the development kit, and an optional AI coding assistant. Creators use their own agent and Godot to make games; players do not need either an AI agent or a development toolchain. What the Player owns versus what the GDK ships in the game, as scripts, and as agent instructions is listed in [platform and GDK inventory](platform-and-gdk.md).
 
 Both products use the same dark navy and mint-green visual language. The player app needs large type, obvious controller focus, TV-safe margins, and readable distance-based layouts rather than desktop-sized setup cards.
 

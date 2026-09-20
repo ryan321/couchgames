@@ -1,0 +1,9 @@
+{
+  "format": 1,
+  "id": "my-game",
+  "title": "My game",
+  "scene": "res://examples/little_world/world.tscn",
+  "players": "1–16 players",
+  "description": "A Giga Couch 3D starter. Join with A / Cross.",
+  "color": "8ce8be"
+}

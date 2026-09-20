@@ -21,6 +21,7 @@ def main():
         (["--headless", "--editor", "--path", str(root / "sdk"), "--quit"], None),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_runtime.gd"], "SDK runtime checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_input.gd"], "SDK input checks passed:"),
+        (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_platform_shell.gd"], "SDK platform shell checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_wii.gd"], "Wii profile checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_native_wii.gd"], "Native Wii checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_native_xpad.gd"], "Native Xpad checks passed:"),

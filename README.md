@@ -4,6 +4,7 @@ A controller-first platform for playing and privately sharing Godot games on you
 
 - [Product vision](PRODUCT.md)
 - [Game Development Kit: contents, workflow, and delivery plan](GDK.md)
+- [What the platform and GDK provide: code, scripts, and instructions](docs/platform-and-gdk.md)
 - [Giga Couch player app: TV library, controllers, accounts and social](docs/giga-couch-app.md)
 - [Technical architecture and stack](TECH_STACK.md)
 - [V1 implementation plan](IMPLEMENTATION_PLAN.md)
@@ -160,13 +161,14 @@ The fixture contains three tiny text files with `.pck` filenames. **They are syn
 
 The explicit target makes this content-only demo work on any development OS. Real imports default to the current computer's target. Provisional targets are `windows-x86_64`, `macos-x86_64`, and `macos-aarch64`; runtime/hardware support has not yet been verified.
 
-`doctor` is read-only. `install` and `library` initialize their data directory and SQLite database. Without `--data-dir`, they use the OS's per-user application-data location. No Neon or other cloud connection is made.
+`doctor` is read-only and does not create the data directory. `init` copies a template project and writes `creator-projects.json` under the data directory. `install` and `library` initialize their data directory and SQLite database. Without `--data-dir`, they use the OS's per-user application-data location. No Neon or other cloud connection is made. None of these commands install Godot or run a game.
 
 ### Commands
 
 | Command | Behavior |
 | --- | --- |
-| `doctor [--require-godot]` | Detect Godot, check the supported version, and show setup guidance; optional readiness failure exit |
+| `doctor [--require-godot] [--project <path>]` | Detect Godot and optionally inspect a project without launching Godot; `--require-godot` fails if no supported editor is found |
+| `init <title> --parent <dir> [--template <path>]` | Copy a template into a new project folder and register it for Giga Couch |
 | `validate <release.json>` | Validate metadata and all declared artifacts |
 | `install <release.json> [--target <target>]` | Verify and import the selected target as unsigned local content |
 | `library` | List installed releases; `*` marks the active release |

@@ -41,7 +41,12 @@ func _ready() -> void:
 	column.add_child(actions)
 	actions.add_child(button("+  New 3D game",new_project))
 	actions.add_child(button("Open existing project",open_project))
-	actions.add_child(button("First-game guide",func(): OS.shell_open(kit_root.path_join("docs/index.html"))))
+	actions.add_child(button("First-game guide",func(): open_kit_doc("index.html")))
+	var guides := HBoxContainer.new()
+	guides.add_theme_constant_override("separation",14)
+	column.add_child(guides)
+	guides.add_child(button("How to talk about games",func(): open_kit_doc("terminology.md")))
+	guides.add_child(button("Asset sources for your AI",func(): open_kit_doc("asset_source_guide.md")))
 	column.add_child(HSeparator.new())
 	column.add_child(label("RECENT PROJECTS",13,Color("acbac7")))
 	var scroll := ScrollContainer.new()
@@ -119,7 +124,7 @@ func create_project() -> void:
 		message.text = result.error
 		return
 	remember(result.path)
-	message.text = "Project created. Open it in Godot to edit, or play it now."
+	message.text = "Project created and added to Giga Couch. Reopen Giga Couch to play it on the TV. Agents: open the folder and read AGENTS.md."
 
 func open_project() -> void:
 	picker.file_mode = FileDialog.FILE_MODE_OPEN_FILE
@@ -135,6 +140,7 @@ func project_selected(path: String) -> void:
 	remember(path.get_base_dir())
 
 func remember(path: String) -> void:
+	Projects.register(path)
 	var paths: Array = config.get_value("projects","recent",[])
 	paths.erase(path)
 	paths.push_front(path)
@@ -165,7 +171,16 @@ func refresh() -> void:
 		row.add_child(details)
 		row.add_child(button("Open in Godot",func(): launch(path,true)))
 		row.add_child(button("Play",func(): launch(path,false)))
+		row.add_child(button("Show folder",func(): OS.shell_show_in_file_manager(path)))
 		recent.add_child(row)
+
+func open_kit_doc(filename: String) -> void:
+	for folder in [kit_root.path_join("docs"), kit_root.get_base_dir().path_join("docs")]:
+		var path := folder.path_join(filename)
+		if FileAccess.file_exists(path):
+			OS.shell_open(path)
+			return
+	message.text = "That guide is missing from this kit. Reinstall the GDK or open docs in the Giga Couch checkout."
 
 func launch(path: String, editor: bool) -> void:
 	if not FileAccess.file_exists(path.path_join("project.godot")):

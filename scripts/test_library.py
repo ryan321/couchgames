@@ -1,12 +1,14 @@
 """Source-library supervision tests; fake children never launch hardware helpers."""
 import json
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 from unittest.mock import patch
+from creator_projects import launch_spec, load_registry, merged_catalog, register_project
 from library import GAMES, LibraryHost, startup_status, startup_ready, publish_foreground
 from game_catalog import rendering_arguments
-from godot_tools import resolve_godot
+from godot_tools import ROOT, resolve_godot
 
 class Process:
     def __init__(self):
@@ -30,6 +32,7 @@ class HostTests(unittest.TestCase):
             for game_id in GAMES:
                 if GAMES[game_id].get('renderer') != 'forward_plus':
                     self.assertEqual(rendering_arguments(game_id), [])
+            self.assertEqual(rendering_arguments('local:demo-game'), [])
         with patch('sys.platform', 'win32'):
             self.assertEqual(rendering_arguments('gauntlet'), ['--rendering-method', 'forward_plus'])
     @patch.dict('os.environ', {'COUCH_CLI': '/local app/Contents/Resources/couch'})
@@ -65,14 +68,20 @@ class HostTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.calls = []
+        self._projects = patch.dict('os.environ', {
+            'COUCH_CREATOR_PROJECTS': str(Path(self.directory.name) / 'creator-projects.json'),
+        })
+        self._projects.start()
         def popen(command, **kwargs):
             process = Process()
             self.calls.append((command, kwargs, process))
             return process
+        self.popen = popen
         self.host = LibraryHost('/existing/Godot', self.directory.name, popen=popen,
                                 reader_builder=lambda fleet: '/reader/fleet' if fleet else '/reader/single')
     def tearDown(self):
         self.host.cleanup()
+        self._projects.stop()
         self.directory.cleanup()
     def request(self, **request):
         Path(self.directory.name,'request.json').write_text(json.dumps(request))
@@ -84,6 +93,9 @@ class HostTests(unittest.TestCase):
             self.assertEqual(self.host.state['request_id'],game_id)
             self.assertEqual(self.calls[-1][0][0],'/existing/Godot')
             self.assertEqual(self.calls[-1][0][-1],game['scene'])
+            command, kwargs, _ = self.calls[-1]
+            self.assertEqual(command[command.index('--path') + 1], str(ROOT / 'sdk'))
+            self.assertEqual(kwargs['cwd'], ROOT)
             self.host.game.returncode = 0
             self.host.tick()
             self.assertEqual(self.host.state['phase'],'idle')
@@ -129,11 +141,11 @@ class HostTests(unittest.TestCase):
         self.request(action='stop')
         self.assertTrue(game.terminated)
         self.assertEqual(self.host.state['phase'],'idle')
-    @patch.dict('os.environ',{'COUCH_WII_NATIVE_STATE':'/old','COUCH_WII_FLEET_DIR':'/old','COUCH_XPAD_NATIVE_STATE':'/old','COUCH_LIBRARY_SESSION':'/host','COUCH_PLAYER_STARTUP':'/private/startup.json'})
+    @patch.dict('os.environ',{'COUCH_WII_NATIVE_STATE':'/old','COUCH_WII_FLEET_DIR':'/old','COUCH_XPAD_NATIVE_STATE':'/old','COUCH_LIBRARY_SESSION':'/host','COUCH_PLAYER_STARTUP':'/private/startup.json','COUCH_LIBRARY_CATALOG':'/old/catalog.json'})
     def test_child_does_not_inherit_another_session(self):
         self.request(action='launch',game='cloudbound')
         environment = self.calls[-1][1]['env']
-        for name in ['COUCH_WII_NATIVE_STATE','COUCH_WII_FLEET_DIR','COUCH_XPAD_NATIVE_STATE','COUCH_LIBRARY_SESSION','COUCH_PLAYER_STARTUP']:
+        for name in ['COUCH_WII_NATIVE_STATE','COUCH_WII_FLEET_DIR','COUCH_XPAD_NATIVE_STATE','COUCH_LIBRARY_SESSION','COUCH_PLAYER_STARTUP','COUCH_LIBRARY_CATALOG']:
             self.assertFalse(name in environment, name + " must not reach the game")
     def test_xpad_helper_when_pad_present(self):
         self.host.xpad_builder = lambda: '/xpad/reader'
@@ -147,5 +159,125 @@ class HostTests(unittest.TestCase):
         self.host.game.returncode = 0
         self.host.tick()
         self.assertTrue(helper.terminated)
+
+class CreatorLibraryTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.calls = []
+        self._projects = patch.dict('os.environ', {
+            'COUCH_CREATOR_PROJECTS': str(Path(self.directory.name) / 'creator-projects.json'),
+        })
+        self._projects.start()
+        def popen(command, **kwargs):
+            process = Process()
+            self.calls.append((command, kwargs, process))
+            return process
+        self.project = Path(self.directory.name) / 'demo-game'
+        self.project.mkdir()
+        (self.project / 'project.godot').write_text('[application]\nconfig/name="Demo Game"\n')
+        (self.project / 'couch.game.json').write_text(json.dumps({
+            'format': 1,
+            'id': 'demo-game',
+            'title': 'Demo Game',
+            'scene': 'res://examples/little_world/world.tscn',
+            'players': '1–16 players',
+            'description': 'A local creator project.',
+            'color': '8ce8be',
+        }))
+        register_project(self.project, title='Demo Game', game_id='demo-game')
+        self.host = LibraryHost('/existing/Godot', self.directory.name, popen=popen,
+                                reader_builder=lambda fleet: '/reader/fleet' if fleet else '/reader/single')
+
+    def tearDown(self):
+        self.host.cleanup()
+        self._projects.stop()
+        self.directory.cleanup()
+
+    def request(self, **request):
+        Path(self.directory.name, 'request.json').write_text(json.dumps(request))
+        self.host.tick()
+
+    def test_merged_catalog_includes_registered_project(self):
+        ids = [game['id'] for game in self.host.games]
+        self.assertIn('little-world', ids)
+        self.assertIn('local:demo-game', ids)
+        catalog = json.loads((Path(self.directory.name) / 'catalog.json').read_text())
+        self.assertTrue(any(game['id'] == 'local:demo-game' for game in catalog))
+
+    def test_creator_launch_uses_project_path(self):
+        self.request(action='launch', game='local:demo-game')
+        self.assertEqual(self.host.state['phase'], 'running')
+        command, kwargs, _ = self.calls[-1]
+        self.assertEqual(command[0], '/existing/Godot')
+        self.assertEqual(command[command.index('--path') + 1], str(self.project.resolve()))
+        self.assertNotEqual(command[command.index('--path') + 1], str(ROOT / 'sdk'))
+        self.assertEqual(command[-1], 'res://examples/little_world/world.tscn')
+        self.assertEqual(Path(kwargs['cwd']), self.project.resolve())
+
+    def test_sample_launch_still_uses_sdk_path(self):
+        self.request(action='launch', game='little-world')
+        command, kwargs, _ = self.calls[-1]
+        self.assertEqual(command[command.index('--path') + 1], str(ROOT / 'sdk'))
+        self.assertEqual(kwargs['cwd'], ROOT)
+
+    def test_missing_creator_project_does_not_spawn(self):
+        shutil.rmtree(self.project)
+        self.request(action='launch', game='local:demo-game')
+        self.assertEqual(self.host.state['phase'], 'error')
+        self.assertFalse(self.calls)
+        self.assertIn('missing', self.host.state['message'].lower())
+
+    @patch('library.sys.platform', 'darwin')
+    def test_creator_game_skips_wii_helper(self):
+        self.request(action='launch', game='local:demo-game', input='native-wii')
+        self.assertEqual(self.host.state['phase'], 'running')
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(self.calls[0][0][0], '/existing/Godot')
+
+
+class RegistryMergeTests(unittest.TestCase):
+    def test_register_project_and_merged_catalog(self):
+        with tempfile.TemporaryDirectory() as directory:
+            registry = Path(directory) / 'creator-projects.json'
+            project = Path(directory) / 'alpha'
+            project.mkdir()
+            (project / 'project.godot').write_text('[application]\n')
+            (project / 'couch.game.json').write_text(json.dumps({
+                'format': 1,
+                'id': 'alpha',
+                'title': 'Alpha',
+                'scene': 'res://examples/little_world/world.tscn',
+            }))
+            row = register_project(project, title='Alpha', game_id='alpha', path=registry)
+            self.assertEqual(row['id'], 'alpha')
+            saved = load_registry(registry)
+            self.assertEqual(saved['projects'][0]['path'], str(project.resolve()))
+            catalog = merged_catalog(
+                [{'id': 'little-world', 'title': 'Little World', 'scene': 'res://x.tscn'}],
+                saved,
+            )
+            self.assertEqual(catalog[0]['id'], 'little-world')
+            self.assertEqual(catalog[1]['id'], 'local:alpha')
+            path, scene = launch_spec(catalog[1])
+            self.assertEqual(path, project.resolve())
+            self.assertTrue(scene.startswith('res://'))
+            sample_path, _ = launch_spec(catalog[0])
+            self.assertEqual(sample_path, ROOT / 'sdk')
+
+    def test_register_project_prepends_and_keeps_other_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            registry = Path(directory) / 'creator-projects.json'
+            first = Path(directory) / 'one'
+            second = Path(directory) / 'two'
+            for folder in (first, second):
+                folder.mkdir()
+                (folder / 'project.godot').write_text('[application]\n')
+            register_project(first, title='One', game_id='one', path=registry)
+            register_project(second, title='Two', game_id='two', path=registry)
+            register_project(first, title='One', game_id='one', path=registry)
+            projects = load_registry(registry)['projects']
+            self.assertEqual([row['id'] for row in projects], ['one', 'two'])
+            self.assertEqual(projects[0]['path'], str(first.resolve()))
+            self.assertEqual(projects[1]['path'], str(second.resolve()))
 
 if __name__=='__main__': unittest.main()

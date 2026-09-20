@@ -24,9 +24,17 @@ var _requested_at := 0.0
 var _request_id := ""
 var _cooldown := 0.0
 
+func load_games() -> Array:
+	var catalog := OS.get_environment("COUCH_LIBRARY_CATALOG")
+	if not catalog.is_empty() and FileAccess.file_exists(catalog):
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string(catalog))
+		if parsed is Array and parsed.size() > 0:
+			return parsed
+	return JSON.parse_string(FileAccess.get_file_as_string("res://launcher/games.json"))
+
 func _ready() -> void:
 	DisplayServer.window_set_title("Giga Couch · Your library")
-	games = JSON.parse_string(FileAccess.get_file_as_string("res://launcher/games.json"))
+	games = load_games()
 	session = OS.get_environment("COUCH_LIBRARY_SESSION")
 	# Library navigation does not join game players or claim motion sensors.
 	get_node("/root/Platform").input.set_process_input(false)
@@ -200,8 +208,8 @@ func _build() -> void:
 		crop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(crop)
 		var cover := Cover.new()
-		cover.game_id = game.id
-		cover.tint = Color(game.color)
+		cover.game_id = str(game.get("id", ""))
+		cover.tint = Color(str(game.get("color", "8ce8be")))
 		cover.size = crop.size
 		crop.add_child(cover)
 		label_at(game.players.to_upper(), Vector2(210, 16), 12, Color(game.color), card)

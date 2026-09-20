@@ -2,7 +2,7 @@
 
 Status: product definition and delivery plan, September 16, 2026. **The repository contains a working prototype, not a released GDK.** “Available” below means implemented in this checkout; “planned” means part of the kit we still need to deliver.
 
-This document turns the promise in [PRODUCT.md](PRODUCT.md) into a creator-facing product. [TECH_STACK.md](TECH_STACK.md) defines the platform architecture; [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) tracks implementation.
+This document turns the promise in [PRODUCT.md](PRODUCT.md) into a creator-facing product. [What the platform and GDK provide](docs/platform-and-gdk.md) is the inventory of platform code, in-game SDK code, creator scripts, and instructions (shipped vs planned). [TECH_STACK.md](TECH_STACK.md) defines the platform architecture; [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) tracks implementation.
 
 ## 1. What is the GDK?
 
@@ -29,15 +29,15 @@ The first released kit should contain the following versioned deliverables.
 
 | Deliverable | What the creator receives | Current position |
 | --- | --- | --- |
-| Godot addon | `addons/couchgames/`, the `Platform` autoload, documented types/signals and runtime policy | Runtime checks, player input and experimental motion exist; complete service API planned |
-| Reusable couch UI | Join/ready lobby, selection cards, input prompts, pause/settings, disconnect handling and confirmations | Implemented in individual examples; extraction into reusable scenes planned |
-| Two small starters | Independent 2D and 3D projects with a working create/play/save/exit loop | A standalone Little World-based 3D starter is bundled in the setup preview; a clean 2D starter and full create/play/save/exit contract remain planned |
+| Godot addon | `addons/couchgames/`, the `Platform` autoload, documented types/signals and runtime policy | Runtime checks, player input, pause overlay, JSON save slots, quit-to-library; lobby/remap still planned |
+| Reusable couch UI | Join/ready lobby, selection cards, input prompts, pause/settings, disconnect handling and confirmations | Pause/quit shell exists (`install_shell`); lobby still lives in example games |
+| Two small starters | Independent 2D and 3D projects with a working create/play/save/exit loop | 3D Little World starter with `AGENTS.md` and `couch.game.json`; 2D starter planned |
 | Godot editor tools | Setup/status panel, project settings, action definitions, validation and platform playtest entry | Runtime status panel exists; remaining tools planned |
-| Creator CLI | Project creation, diagnosis, playtest, checks, packing, local install and private publishing | `doctor`, artifact `validate`, unsigned `install` and `library` exist; setup preview bundles a prebuilt macOS CLI |
-| Local platform playtest | Run a developer project through the same lifecycle used by installed games | Source catalog and Python supervisor exist; generic project registration and production host planned |
+| Creator CLI | Project creation, diagnosis, playtest, checks, packing, local install and private publishing | `init`, `doctor` / `doctor --project`, artifact `validate`, unsigned `install` and `library` exist; `pack` / `publish` planned |
+| Local platform playtest | Run a developer project through the same lifecycle used by installed games | Hub/`init` register source projects; Game Player launches them. Packed-game host planned |
 | Reference examples | Small recipes for motion, split-screen, shared cameras, selection and feedback | Playable examples exist; focused recipes planned |
 | Creator documentation | First-game guide, API reference, recipes, errors, migrations and troubleshooting | Setup preview includes an offline first-game guide; complete API/recipe documentation remains planned |
-| AI integration pack | `AGENTS.md`, machine-readable API/manifest schemas, runnable examples and structured diagnostics | Manifest schema and CLI JSON exist; creator-specific integration pack planned |
+| AI integration pack | `AGENTS.md`, machine-readable API/manifest schemas, runnable examples and structured diagnostics | Starter `AGENTS.md`, `docs/asset_source_guide.md`, `docs/terminology.md`; CLI `--json`; fuller recipe/schema pack still planned |
 | Release checks | Project checks, runtime tests, controller/TV checklist and a report describing what was tested | Internal synthetic/engine tests exist; reusable creator test harness planned |
 
 The core kit must stay small. Large demonstration games, Blender sources and optional art packs should be separate downloads. Starting a new game should not copy Gauntlet, Sunbreak or their entire asset collections.
@@ -239,7 +239,9 @@ These methods exist today. `Platform.input.action(...)`, `Platform.save(...)` an
 
 The CLI also supports `validate <release.json>`, `install <release.json>` and `library`. These verify/import/list local artifacts. **`install` does not run a game.** Files in `tests/fixtures/package/` are synthetic, non-playable bytes. They demonstrate storage and validation only.
 
-### Intended released workflow — commands not implemented yet
+### Intended released workflow
+
+`couch init <title> --parent <dir> [--template <path>]` and `doctor --project` are implemented in the Rust CLI. They copy or inspect a Godot project on disk and do not install Godot or run a game. Remaining commands below are still proposed.
 
 The released GDK should provide prebuilt `couch` tools, a download of the addon/starters and equivalent editor entry points. Creators should not have to build the platform to make a game.
 
@@ -247,8 +249,8 @@ Proposed command contract:
 
 | Step | Proposed command | Result |
 | --- | --- | --- |
-| Create | `couch init my-game --template 3d-couch` | Independent playable project with a pinned SDK |
-| Diagnose | `couch doctor --project my-game` | Check project, engine and prerequisites; `--project` is new |
+| Create | `couch init my-game --parent ~/Games --template 3d-couch` | Independent playable project with a pinned SDK |
+| Diagnose | `couch doctor --project my-game` | Check project, engine and prerequisites; `--project` is implemented |
 | Playtest | `couch run my-game` | Launch through the local platform development session |
 | Check | `couch check my-game --json` | Structured static compatibility diagnostics |
 | Test | `couch test my-game` | Run the declared integration harness and report coverage |

@@ -1,3 +1,5 @@
+mod project;
+
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use couch_local_library::Library;
@@ -35,6 +37,20 @@ enum Command {
         /// Exit with status 1 unless a supported Godot installation is found.
         #[arg(long)]
         require_godot: bool,
+        /// Inspect a Godot project without launching Godot.
+        #[arg(long, value_name = "PATH")]
+        project: Option<PathBuf>,
+    },
+    /// Copy a template into a new project folder and register it. Never installs Godot.
+    Init {
+        /// Game title (1–80 characters). The folder name is a lowercase slug.
+        title: String,
+        /// Existing directory that will contain the new project folder.
+        #[arg(long)]
+        parent: PathBuf,
+        /// Template project to copy.
+        #[arg(long, value_name = "PATH")]
+        template: Option<PathBuf>,
     },
     /// Check manifest and every declared artifact's size and SHA-256.
     Validate { manifest: PathBuf },
@@ -54,22 +70,17 @@ async fn main() {
     let cli = Cli::parse();
     match run(&cli).await {
         Ok((value, human)) => {
-            let ready = !matches!(
-                cli.command,
-                Command::Doctor {
-                    require_godot: true
-                }
-            ) || value["godot"]["supported"] == true;
+            let (ok, error) = command_status(&cli.command, &value);
             if cli.json {
-                let mut envelope = json!({ "ok": ready, "data": value });
-                if !ready {
-                    envelope["error"] = json!({"code": "GODOT_NOT_READY", "message": "Install or select a supported Godot version; see data.godot.instructions"});
+                let mut envelope = json!({ "ok": ok, "data": value });
+                if let Some(error) = error {
+                    envelope["error"] = error;
                 }
                 println!("{envelope}");
             } else {
                 println!("{human}");
             }
-            if !ready {
+            if !ok {
                 std::process::exit(1);
             }
         }
@@ -77,6 +88,8 @@ async fn main() {
             let code = if let Some(e) = error.downcast_ref::<couch_manifests::Error>() {
                 e.code()
             } else if let Some(e) = error.downcast_ref::<couch_local_library::Error>() {
+                e.code()
+            } else if let Some(e) = error.downcast_ref::<project::CliError>() {
                 e.code()
             } else {
                 "COMMAND_FAILED"
@@ -106,9 +119,50 @@ fn data_dir(cli: &Cli) -> Result<PathBuf> {
         .context("could not determine application directory; pass --data-dir")
 }
 
+fn command_status(command: &Command, value: &Value) -> (bool, Option<Value>) {
+    let Command::Doctor { require_godot, .. } = command else {
+        return (true, None);
+    };
+    if *require_godot && value["godot"]["supported"] != true {
+        return (
+            false,
+            Some(json!({
+                "code": "GODOT_NOT_READY",
+                "message": "Install or select a supported Godot version; see data.godot.instructions"
+            })),
+        );
+    }
+    if let Some(project) = value.get("project") {
+        let supported = project["supported"] == true;
+        let only_nonfatal = project["issues"].as_array().is_none_or(|issues| {
+            issues
+                .iter()
+                .all(|issue| issue["code"] == "COUCH_GAME_JSON_MISSING")
+        });
+        if !supported || !only_nonfatal {
+            let error = project["issues"]
+                .as_array()
+                .and_then(|issues| {
+                    issues
+                        .iter()
+                        .find(|issue| issue["code"] != "COUCH_GAME_JSON_MISSING")
+                })
+                .cloned()
+                .unwrap_or_else(|| {
+                    json!({
+                        "code": "PROJECT_UNSUPPORTED",
+                        "message": "This folder is not a supported Giga Couch project; see data.project.issues"
+                    })
+                });
+            return (false, Some(error));
+        }
+    }
+    (true, None)
+}
+
 async fn run(cli: &Cli) -> Result<(Value, String)> {
     match &cli.command {
-        Command::Doctor { .. } => {
+        Command::Doctor { project, .. } => {
             let root = data_dir(cli)?;
             let mut discovery = couch_runtime::Discovery::system(cli.godot.clone());
             discovery.probe_timeout = std::time::Duration::from_secs(cli.godot_timeout_secs);
@@ -138,7 +192,7 @@ async fn run(cli: &Cli) -> Result<(Value, String)> {
                 godot_message.push_str("\nSetup instructions:\n");
                 godot_message.push_str(&report.instructions.join("\n"));
             }
-            let value = json!({
+            let mut value = json!({
                 "version": env!("CARGO_PKG_VERSION"),
                 "data_dir": root,
                 "host_target": Target::current(),
@@ -148,13 +202,35 @@ async fn run(cli: &Cli) -> Result<(Value, String)> {
                 "automatic_downloads": false,
                 "godot": report
             });
+            let mut human = format!(
+                "Giga Couch {}\nData directory: {}\n{godot_message}\nPackage and library commands require no Godot.\nRuntime installation and game launch are not implemented. No tools are downloaded.",
+                env!("CARGO_PKG_VERSION"),
+                root.display()
+            );
+            if let Some(project_path) = project {
+                let project = project::inspect(project_path)?;
+                value["project"] = project.to_value();
+                human.push('\n');
+                human.push_str(&project.human());
+            }
+            Ok((value, human))
+        }
+        Command::Init {
+            title,
+            parent,
+            template,
+        } => {
+            let result = project::init(title, parent, template.as_deref(), &data_dir(cli)?)?;
+            let path = result.path.to_string_lossy().into_owned();
+            let value = json!({
+                "path": path,
+                "id": result.id,
+                "title": result.title,
+                "registered": true
+            });
             Ok((
                 value,
-                format!(
-                    "Giga Couch {}\nData directory: {}\n{godot_message}\nPackage and library commands require no Godot.\nRuntime installation and game launch are not implemented. No tools are downloaded.",
-                    env!("CARGO_PKG_VERSION"),
-                    root.display()
-                ),
+                format!("Created {path}.\nReopen Giga Couch to list it."),
             ))
         }
         Command::Validate { manifest } => {

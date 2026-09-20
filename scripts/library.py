@@ -14,12 +14,22 @@ from godot_tools import ROOT, godot_environment, resolve_godot
 from play_wii_native import build_reader
 from play_xpad_native import build_reader as build_xpad_reader, pad_connected as xpad_connected
 
+from creator_projects import launch_spec, merged_catalog
 from game_catalog import CATALOG, GAMES, rendering_arguments
+
+SESSION_VARS = (
+    "COUCH_WII_NATIVE_STATE",
+    "COUCH_WII_FLEET_DIR",
+    "COUCH_XPAD_NATIVE_STATE",
+    "COUCH_LIBRARY_SESSION",
+    "COUCH_PLAYER_STARTUP",
+    "COUCH_LIBRARY_CATALOG",
+)
 
 
 def clean_environment():
     environment = godot_environment()
-    for name in ("COUCH_WII_NATIVE_STATE", "COUCH_WII_FLEET_DIR", "COUCH_XPAD_NATIVE_STATE", "COUCH_LIBRARY_SESSION", "COUCH_PLAYER_STARTUP"):
+    for name in SESSION_VARS:
         environment.pop(name, None)
     return environment
 
@@ -46,7 +56,16 @@ class LibraryHost:
         self.xpad_available = xpad_available or (lambda: False)
         self.game = self.helper = self.xpad_helper = self.wii_session = self.xpad_session = self.log = None
         self.state = {"phase": "idle", "message": "Choose something to play.", "native_wii": sys.platform == "darwin"}
+        self.games = merged_catalog(CATALOG)
+        self.by_id = {game["id"]: game for game in self.games}
+        self.catalog_path = self.session / "catalog.json"
+        self.write_catalog()
         self.publish()
+
+    def write_catalog(self):
+        temporary = self.catalog_path.with_suffix(".tmp")
+        temporary.write_text(json.dumps(self.games))
+        temporary.replace(self.catalog_path)
 
     def publish(self):
         self.state["updated"] = time.time()
@@ -76,20 +95,32 @@ class LibraryHost:
         game_id = request.get("game")
         mode = request.get("input", "standard")
         joycons = request.get("joycons", "separate")
-        if not isinstance(game_id, str) or game_id not in GAMES or mode not in ("standard", "native-wii", "sdl-wii") or joycons not in ("separate", "paired"):
+        game = self.by_id.get(game_id) if isinstance(game_id, str) else None
+        if game is None or mode not in ("standard", "native-wii", "sdl-wii") or joycons not in ("separate", "paired"):
             raise ValueError("That game or controller setup is unavailable.")
         if mode == "native-wii" and sys.platform != "darwin":
             raise ValueError("The native Wii reader requires macOS.")
-        game = GAMES[game_id]
+        path, scene = launch_spec(game)
+        if not isinstance(scene, str) or not scene.startswith("res://"):
+            raise ValueError("That game or controller setup is unavailable.")
+        try:
+            readable = path.is_dir() and (path / "project.godot").is_file()
+        except OSError:
+            readable = False
+        if not readable:
+            if game.get("project"):
+                raise ValueError("This project folder is missing or unreadable. Open it again from Creator Hub.")
+            raise ValueError("That game or controller setup is unavailable.")
         self.state.update(phase="starting", game=game_id, message="Opening " + game["title"] + "…")
         self.publish()
         environment = clean_environment()
         environment.update(godot_environment(mode != "standard", joycons))
-        for name in ("COUCH_LIBRARY_SESSION", "COUCH_WII_NATIVE_STATE", "COUCH_WII_FLEET_DIR", "COUCH_PLAYER_STARTUP", "COUCH_XPAD_NATIVE_STATE"):
+        for name in SESSION_VARS:
             environment.pop(name, None)
         self.log = (self.session / "game.log").open("w")
-        if mode == "native-wii":
-            fleet = GAMES[game_id].get("native_wii") == "fleet"
+        # Samples keep Wii helpers. Creator rows only get one when they declare native_wii.
+        if mode == "native-wii" and (game.get("native_wii") or not game.get("project")):
+            fleet = game.get("native_wii") == "fleet"
             binary = self.reader_builder(fleet)
             self.wii_session = tempfile.TemporaryDirectory(prefix="couch-library-wii-")
             state_path = self.wii_session.name if fleet else str(Path(self.wii_session.name) / "state.json")
@@ -100,8 +131,9 @@ class LibraryHost:
             xpad_path = str(Path(self.xpad_session.name) / "state.json")
             environment["COUCH_XPAD_NATIVE_STATE"] = xpad_path
             self.xpad_helper = self.popen([str(self.xpad_builder()), xpad_path], stdout=self.log, stderr=subprocess.STDOUT, env=clean_environment())
-        self.game = self.popen([self.executable, *rendering_arguments(game_id), "--path", str(ROOT / "sdk"), game["scene"]],
-                               cwd=ROOT, env=environment, stdout=self.log, stderr=subprocess.STDOUT)
+        cwd = path if game.get("project") else ROOT
+        self.game = self.popen([self.executable, *rendering_arguments(game_id), "--path", str(path), scene],
+                               cwd=cwd, env=environment, stdout=self.log, stderr=subprocess.STDOUT)
         self.state.update(phase="running", message=game["title"] + " is playing. Close its window to come back.")
         self.publish()
 
@@ -180,6 +212,7 @@ def main():
     host = LibraryHost(executable, session, xpad_builder=build_xpad_reader, xpad_available=xpad_connected)
     environment = clean_environment()
     environment["COUCH_LIBRARY_SESSION"] = str(session)
+    environment["COUCH_LIBRARY_CATALOG"] = str(host.catalog_path)
     startup = os.environ.get("COUCH_PLAYER_STARTUP")
     if startup:
         environment["COUCH_PLAYER_STARTUP"] = startup

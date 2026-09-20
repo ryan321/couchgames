@@ -22,7 +22,9 @@ var _elapsed := 0.0
 
 
 func _ready() -> void:
-	_input_service = get_node("/root/Platform").input
+	var platform := get_node("/root/Platform")
+	platform.install_shell()
+	_input_service = platform.input
 	_input_service.keyboard_enabled = true
 	_build_world()
 	_build_ui()
@@ -45,12 +47,6 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_refresh_ui()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
 		_toggle_fullscreen()
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_START:
-		_toggle_fullscreen()
-		get_viewport().set_input_as_handled()
 
 
 func _toggle_fullscreen() -> void:
@@ -186,7 +182,7 @@ func _build_ui() -> void:
 	pairing.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	status.add_child(pairing)
 	_fullscreen_button = Button.new()
-	_fullscreen_button.text = "Fullscreen · F11 / Menu / Options"
+	_fullscreen_button.text = "Fullscreen · F11"
 	_fullscreen_button.focus_mode = Control.FOCUS_NONE
 	_fullscreen_button.add_theme_font_size_override("font_size", 19)
 	_fullscreen_button.custom_minimum_size.y = 42
@@ -233,7 +229,7 @@ func _build_ui() -> void:
 		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		grid.add_child(slot)
 		_slots.append(slot)
-	var keyboard := _label("Fullscreen: F11 / Menu / Options   ·   Keyboard: WASD + Space   ·   Backspace to leave   ·   F3 controllers", 18, Color("50777b"))
+	var keyboard := _label("Pause: Start / Esc   ·   Fullscreen: F11   ·   Keyboard: WASD + Space   ·   Backspace to leave   ·   F3 controllers", 18, Color("50777b"))
 	keyboard.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bottom.add_child(keyboard)
 

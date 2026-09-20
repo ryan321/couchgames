@@ -11,6 +11,7 @@ func expect(value: bool, message: String) -> void:
 func run() -> void:
 	var directory := OS.get_cache_dir().path_join("couch-library-test-%d" % Time.get_ticks_usec())
 	DirAccess.make_dir_recursive_absolute(directory)
+	OS.unset_environment("COUCH_LIBRARY_CATALOG")
 	OS.set_environment("COUCH_LIBRARY_SESSION",directory)
 	var library = load("res://launcher/library.tscn").instantiate()
 	root.add_child(library)
