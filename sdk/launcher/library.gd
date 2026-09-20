@@ -1,7 +1,13 @@
 extends Control
 const Cover = preload("res://launcher/cover.gd")
-const INK := Color("f5efdf")
-const MUTED := Color("a5bfbd")
+# Same tokens as GDK Setup (StudioStyle): navy studio, mint focus, TV-sized type.
+const BG := Color("101722")
+const PANEL := Color("192331")
+const BORDER := Color("2d3b4b")
+const INK := Color("f2f5f8")
+const MUTED := Color("a0afbf")
+const MINT := Color("8ce8be")
+const FOOTER := Color("142b28")
 var games: Array = []
 var cards: Array[Button] = []
 var game_scroll: ScrollContainer
@@ -48,6 +54,25 @@ func _report_ready_after_draw() -> void:
 		file.close()
 		DirAccess.rename_absolute(temporary, startup)
 
+func mark_at(at: Vector2, size: Vector2, parent: Node = self) -> void:
+	var texture := load("res://launcher/mark.png") as Texture2D
+	if texture == null:
+		return
+	var crop := Control.new()
+	crop.position = at
+	crop.size = size
+	crop.custom_minimum_size = size
+	crop.clip_contents = true
+	crop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(crop)
+	var view := TextureRect.new()
+	view.texture = texture
+	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	crop.add_child(view)
+
 func label_at(text: String, at: Vector2, font_size: int, color := INK, parent: Node = self) -> Label:
 	var label := Label.new()
 	label.text = text
@@ -58,49 +83,119 @@ func label_at(text: String, at: Vector2, font_size: int, color := INK, parent: N
 	parent.add_child(label)
 	return label
 
-func style(color: Color, border := Color.TRANSPARENT) -> StyleBoxFlat:
+func style(color: Color, border := Color.TRANSPARENT, radius := 16, width := 3) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = color
-	box.set_corner_radius_all(18)
+	box.set_corner_radius_all(radius)
 	box.border_color = border
-	box.set_border_width_all(3)
+	box.set_border_width_all(width)
 	return box
+
+func chrome_button(title: String, primary := false) -> Button:
+	var item := Button.new()
+	item.text = title
+	item.add_theme_font_size_override("font_size", 16)
+	if primary:
+		item.add_theme_stylebox_override("normal", style(MINT, Color.TRANSPARENT, 9, 0))
+		item.add_theme_stylebox_override("hover", style(MINT.lightened(0.08), Color.TRANSPARENT, 9, 0))
+		item.add_theme_stylebox_override("pressed", style(MINT.darkened(0.1), Color.TRANSPARENT, 9, 0))
+		item.add_theme_stylebox_override("disabled", style(BORDER, Color.TRANSPARENT, 9, 0))
+		item.add_theme_stylebox_override("focus", style(MINT, INK, 9, 2))
+		item.add_theme_color_override("font_color", BG)
+		item.add_theme_color_override("font_hover_color", BG)
+		item.add_theme_color_override("font_pressed_color", BG)
+		item.add_theme_color_override("font_focus_color", BG)
+		item.add_theme_color_override("font_disabled_color", MUTED)
+	else:
+		item.add_theme_stylebox_override("normal", style(BORDER, Color.TRANSPARENT, 9, 0))
+		item.add_theme_stylebox_override("hover", style(BORDER.lightened(0.12), MINT, 9, 1))
+		item.add_theme_stylebox_override("pressed", style(PANEL, BORDER, 9, 1))
+		item.add_theme_stylebox_override("disabled", style(PANEL, BORDER, 9, 1))
+		item.add_theme_stylebox_override("focus", style(BORDER, MINT, 9, 2))
+		item.add_theme_color_override("font_color", INK)
+		item.add_theme_color_override("font_hover_color", INK)
+		item.add_theme_color_override("font_focus_color", INK)
+		item.add_theme_color_override("font_disabled_color", MUTED)
+	return item
+
+func paint_option(button: OptionButton) -> void:
+	button.add_theme_stylebox_override("normal", style(PANEL, BORDER, 9, 1))
+	button.add_theme_stylebox_override("hover", style(PANEL.lightened(0.06), MINT, 9, 1))
+	button.add_theme_stylebox_override("pressed", style(PANEL, MINT, 9, 1))
+	button.add_theme_stylebox_override("disabled", style(PANEL, BORDER, 9, 1))
+	button.add_theme_stylebox_override("focus", style(PANEL, MINT, 9, 2))
+	button.add_theme_color_override("font_color", INK)
+	button.add_theme_color_override("font_hover_color", INK)
+	button.add_theme_color_override("font_focus_color", INK)
+	button.add_theme_color_override("font_disabled_color", MUTED)
+	button.add_theme_font_size_override("font_size", 16)
+
+func pill_at(text: String, at: Vector2, accent: Color, parent: Node = self) -> Panel:
+	var panel := Panel.new()
+	panel.position = at
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fill := Color(accent.r, accent.g, accent.b, 0.14)
+	panel.add_theme_stylebox_override("panel", style(fill, Color.TRANSPARENT, 12, 0))
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_color_override("font_color", accent)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	label.offset_left = 11
+	label.offset_right = -11
+	panel.add_child(label)
+	panel.size = Vector2(maxf(88, text.length() * 8.2 + 24), 26)
+	parent.add_child(panel)
+	return panel
 
 func _build() -> void:
 	var background := ColorRect.new()
-	background.color = Color("163c43")
+	background.color = BG
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
-	label_at("G I G A  C O U C H",Vector2(68,44),22,Color("b2d1c3"))
-	label_at("Tonight, we play.",Vector2(65,94),64)
-	label_at("Pick a world. Grab a controller. Make room on the couch.",Vector2(68,175),24,MUTED)
-	label_at("YOUR GAMES",Vector2(68,250),18,MUTED)
-	label_at("%02d  /  READY TO PLAY" % games.size(),Vector2(1280,250),18,MUTED)
-	var compact := games.size()>3
+	var rail := preload("res://launcher/studio_rail.gd").new()
+	rail.position = Vector2.ZERO
+	rail.size = Vector2(300, 900)
+	add_child(rail)
+	mark_at(Vector2(28, 28), Vector2(64, 64), rail)
+	var left := 336.0
+	label_at("YOUR LIBRARY", Vector2(left, 28), 12, MINT)
+	label_at("Tonight, we play.", Vector2(left, 48), 38)
+	label_at("Pick a world. Grab a controller. Make room on the couch.", Vector2(left, 98), 16, MUTED)
+	pill_at("%d OF %d READY" % [games.size(), games.size()], Vector2(left, 130), MINT)
+	label_at("%02d  WORLDS" % games.size(), Vector2(1288, 134), 13, MUTED)
+	var compact := games.size() > 3
 	game_scroll = ScrollContainer.new()
-	game_scroll.position = Vector2(62,289)
-	game_scroll.size = Vector2(1476,440)
+	game_scroll.position = Vector2(left, 170)
+	game_scroll.size = Vector2(1228, 540)
 	game_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	game_scroll.follow_focus = true
+	game_scroll.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	add_child(game_scroll)
+	var card_w := 598
+	var card_h := 164
+	var gap := 14
 	var shelf := Control.new()
-	shelf.custom_minimum_size = Vector2(1454,ceili(games.size()/2.0)*221+10) if compact else Vector2(1454,430)
+	var rows := ceili(games.size() / 2.0) if compact else 1
+	shelf.custom_minimum_size = Vector2(1210, rows * card_h + maxi(rows - 1, 0) * gap + 12)
 	game_scroll.add_child(shelf)
 	for i in games.size():
 		var game: Dictionary = games[i]
 		var card := Button.new()
-		card.position = Vector2(6+(i%2)*729,6+floori(i/2.0)*221) if compact else Vector2(6+i*489,6)
-		card.size = Vector2(710,204) if compact else Vector2(470,420)
-		card.add_theme_stylebox_override("normal",style(Color("21494f")))
-		card.add_theme_stylebox_override("hover",style(Color("2b5960"),Color("8aafa5")))
-		card.add_theme_stylebox_override("pressed",style(Color("34626a")))
-		card.add_theme_stylebox_override("disabled",style(Color("21494f")))
-		card.add_theme_stylebox_override("focus",style(Color.TRANSPARENT,Color("f6d69c")))
+		card.position = Vector2(6 + (i % 2) * (card_w + gap), 6 + floori(i / 2.0) * (card_h + gap)) if compact else Vector2(6 + i * (card_w + gap), 6)
+		card.size = Vector2(card_w, card_h)
+		card.add_theme_stylebox_override("normal", style(PANEL, BORDER, 16, 1))
+		card.add_theme_stylebox_override("hover", style(PANEL.lightened(0.05), MINT.darkened(0.2), 16, 1))
+		card.add_theme_stylebox_override("pressed", style(PANEL.lightened(0.08), MINT, 16, 1))
+		card.add_theme_stylebox_override("disabled", style(PANEL, BORDER, 16, 1))
+		card.add_theme_stylebox_override("focus", style(PANEL, MINT, 16, 2))
 		shelf.add_child(card)
 		var crop := Control.new()
-		crop.position = Vector2(12,12)
-		crop.size = Vector2(252,180) if compact else Vector2(446,240)
+		crop.position = Vector2(16, 16)
+		crop.size = Vector2(176, 132)
 		crop.clip_contents = true
 		crop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(crop)
@@ -109,49 +204,55 @@ func _build() -> void:
 		cover.tint = Color(game.color)
 		cover.size = crop.size
 		crop.add_child(cover)
-		label_at(game.players.to_upper(),Vector2(284,20) if compact else Vector2(24,270),16,Color(game.color),card)
-		label_at(game.title,Vector2(282,53) if compact else Vector2(22,297),30 if compact else 34,INK,card)
-		var description := label_at(game.description,Vector2(284,99) if compact else Vector2(24,347),18,MUTED,card)
-		description.size = Vector2(400 if compact else 422,50)
+		label_at(game.players.to_upper(), Vector2(210, 16), 12, Color(game.color), card)
+		label_at(game.title, Vector2(208, 38), 24, INK, card)
+		var description := label_at(game.description, Vector2(210, 72), 15, MUTED, card)
+		description.size = Vector2(368, 40)
 		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		label_at("PLAY  →",Vector2(284,161) if compact else Vector2(24,380),18,INK,card)
+		label_at("Play  →", Vector2(210, 122), 15, MINT, card)
 		card.pressed.connect(func(): launch_game(i))
 		card.focus_entered.connect(func():
 			selected = i
 			game_scroll.ensure_control_visible.call_deferred(card))
 		cards.append(card)
-	label_at("CONTROLLERS",Vector2(68,749),15,MUTED)
+	var bar := Panel.new()
+	bar.position = Vector2(left, 716)
+	bar.size = Vector2(1228, 152)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_theme_stylebox_override("panel", style(FOOTER, Color.TRANSPARENT, 12, 0))
+	add_child(bar)
+	label_at("CONTROLLERS", Vector2(left + 20, 732), 11, MINT)
 	controller = OptionButton.new()
-	controller.position = Vector2(68,777)
-	controller.size = Vector2(315,43)
+	controller.position = Vector2(left + 20, 758)
+	controller.size = Vector2(300, 40)
 	controller.add_item("Gamepads / keyboard")
 	controller.add_item("Wii Remote + gamepads")
 	controller.add_item("Other Wii · experimental")
-	controller.set_item_disabled(1,OS.get_name() != "macOS")
+	controller.set_item_disabled(1, OS.get_name() != "macOS")
 	controller.select(1 if OS.get_name() == "macOS" else 0)
+	paint_option(controller)
 	add_child(controller)
-	label_at("JOY-CONS",Vector2(410,749),15,MUTED)
+	label_at("JOY-CONS", Vector2(left + 340, 732), 11, MINT)
 	joycons = OptionButton.new()
-	joycons.position = Vector2(410,777)
-	joycons.size = Vector2(235,43)
+	joycons.position = Vector2(left + 340, 758)
+	joycons.size = Vector2(220, 40)
 	joycons.add_item("Separate controllers")
 	joycons.add_item("Paired grip")
+	paint_option(joycons)
 	add_child(joycons)
-	status = label_at("Choose something to play.",Vector2(680,775),20,INK)
-	status.size = Vector2(835,70)
+	status = label_at("Choose something to play.", Vector2(left + 580, 762), 16, INK)
+	status.size = Vector2(360, 44)
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label_at("Click a game  ·  Arrows / D-pad + A / Cross / Enter  ·  F11 fullscreen",Vector2(68,852),16,MUTED)
-	stop_button = Button.new()
-	stop_button.text = "Close game & return"
-	stop_button.position = Vector2(1280,842)
-	stop_button.size = Vector2(247,40)
+	label_at("Arrows / D-pad + A / Cross / Enter   ·   F11 fullscreen", Vector2(left + 20, 814), 13, MUTED)
+	stop_button = chrome_button("Close game & return", true)
+	stop_button.position = Vector2(left + 956, 808)
+	stop_button.size = Vector2(248, 42)
 	stop_button.visible = false
-	stop_button.pressed.connect(func(): _send({"action":"stop"}))
+	stop_button.pressed.connect(func(): _send({"action": "stop"}))
 	add_child(stop_button)
-	var quit_button := Button.new()
-	quit_button.text = "Quit library"
-	quit_button.position = Vector2(1355,47)
-	quit_button.size = Vector2(170,43)
+	var quit_button := chrome_button("Quit library")
+	quit_button.position = Vector2(1394, 36)
+	quit_button.size = Vector2(170, 40)
 	quit_button.pressed.connect(func(): get_tree().quit())
 	add_child(quit_button)
 

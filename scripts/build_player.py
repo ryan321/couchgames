@@ -8,6 +8,8 @@ import shutil
 import subprocess
 import sys
 
+from branding import install_into_app, make_icns, plist_icon
+
 ROOT = Path(__file__).resolve().parent.parent
 APP = ROOT / ".gigacouch/player/Giga Couch.app"
 
@@ -40,13 +42,18 @@ def main():
     shutil.copy2(ROOT / "target/debug/couch", contents / "Resources/couch")
     run("strip", "-x", str(contents / "Resources/couch"))
     run("codesign", "--force", "--sign", "-", str(contents / "Resources/couch"))
-    (contents / "Info.plist").write_bytes(plistlib.dumps({
+    icns = output / "AppIcon.icns"
+    make_icns(icns)
+    install_into_app(contents, icns)
+    info = {
         "CFBundleExecutable": "GigaCouch", "CFBundleIdentifier": "com.gigacouch.player",
         "CFBundleName": "Giga Couch", "CFBundlePackageType": "APPL",
         "CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "1",
         "LSMinimumSystemVersion": "13.0", "NSHighResolutionCapable": True,
         "GigaSourceRoot": str(ROOT), "GigaPython": sys.executable,
-    }))
+    }
+    info.update(plist_icon())
+    (contents / "Info.plist").write_bytes(plistlib.dumps(info))
     run("codesign", "--force", "--sign", "-", str(APP))
     if args.desktop:
         shortcut = Path.home() / "Desktop/Giga Couch.app"

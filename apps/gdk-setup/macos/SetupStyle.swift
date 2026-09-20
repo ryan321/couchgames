@@ -31,6 +31,27 @@ enum StudioStyle {
     }
 }
 
+enum StudioBrand {
+    static func image(_ resource: String) -> NSImage? {
+        Bundle.main.image(forResource: resource)
+    }
+    static func applyAppIcon() {
+        NSApp.applicationIconImage = image("AppIcon") ?? image("mark")
+    }
+    static func markView(size: CGFloat) -> NSImageView {
+        let view = NSImageView()
+        view.image = image("mark")
+        view.imageScaling = .scaleProportionallyUpOrDown
+        view.setAccessibilityLabel("Giga Couch")
+        view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            view.widthAnchor.constraint(equalToConstant: size),
+            view.heightAnchor.constraint(equalToConstant: size)
+        ])
+        return view
+    }
+}
+
 final class StudioButton: NSButton {
     var primary = false { didSet { invalidateIntrinsicContentSize(); needsDisplay = true } }
     private var hovering = false
@@ -86,17 +107,28 @@ final class StatusPill: NSView {
 }
 
 final class StudioRail: NSView {
+    private let markView = NSImageView()
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        markView.image = StudioBrand.image("mark")
+        markView.imageScaling = .scaleProportionallyUpOrDown
+        markView.setAccessibilityLabel("Giga Couch")
+        addSubview(markView)
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    override func layout() {
+        super.layout()
+        markView.frame = NSRect(x: 30, y: bounds.height - 118, width: 64, height: 64)
+    }
     override func draw(_ dirtyRect: NSRect) {
         let bounds = self.bounds
         NSGradient(colors: [StudioStyle.color(0x213d3c), StudioStyle.color(0x16272d), StudioStyle.color(0x111d2a)])!.draw(in: bounds, angle: -90)
         func text(_ string: String, _ point: NSPoint, size: CGFloat, color: NSColor, weight: NSFont.Weight = .regular) {
             (string as NSString).draw(at: point, withAttributes: [.font: NSFont.systemFont(ofSize: size, weight: weight), .foregroundColor: color])
         }
-        let symbol = NSImage(systemSymbolName: "gamecontroller.fill", accessibilityDescription: nil)!
-        symbol.withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 29, weight: .medium).applying(NSImage.SymbolConfiguration(paletteColors: [StudioStyle.mint])))?.draw(in: NSRect(x: 30, y: bounds.height - 86, width: 42, height: 32))
-        text("COUCH", NSPoint(x: 88, y: bounds.height - 66), size: 16, color: StudioStyle.text, weight: .heavy)
-        text("GAMES", NSPoint(x: 88, y: bounds.height - 85), size: 16, color: StudioStyle.text, weight: .heavy)
-        text("GAME DEVELOPMENT KIT", NSPoint(x: 30, y: bounds.height - 128), size: 9, color: StudioStyle.mint, weight: .semibold)
+        text("GIGA", NSPoint(x: 104, y: bounds.height - 78), size: 16, color: StudioStyle.text, weight: .heavy)
+        text("COUCH", NSPoint(x: 104, y: bounds.height - 98), size: 16, color: StudioStyle.text, weight: .heavy)
+        text("GAME DEVELOPMENT KIT", NSPoint(x: 30, y: bounds.height - 148), size: 9, color: StudioStyle.mint, weight: .semibold)
         // Original vector illustration: stacked game worlds, drawn natively at any scale.
         NSGraphicsContext.saveGraphicsState()
         let origin = NSPoint(x: 130, y: bounds.height - 290)

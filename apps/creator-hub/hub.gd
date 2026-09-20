@@ -23,7 +23,17 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation",18)
 	margin.add_child(column)
-	column.add_child(label("GIGA COUCH     /     CREATOR PREVIEW",13,Color("8bd8bb")))
+	var brand := HBoxContainer.new()
+	brand.add_theme_constant_override("separation", 12)
+	var mark := TextureRect.new()
+	mark.texture = load("res://mark.png")
+	mark.custom_minimum_size = Vector2(40, 40)
+	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	brand.add_child(mark)
+	brand.add_child(label("GIGA COUCH     /     CREATOR PREVIEW",13,Color("8bd8bb")))
+	column.add_child(brand)
 	column.add_child(label("Your next game starts here.",36))
 	column.add_child(label("Start with a small world. Make it yours in Godot. Play together.",18,Color("acbac7")))
 	var actions := HBoxContainer.new()

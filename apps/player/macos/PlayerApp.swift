@@ -11,17 +11,18 @@ final class PlayerApp: NSObject, NSApplicationDelegate {
     private var startupTimer: Timer?
     private var libraryReady = false
     func applicationDidFinishLaunching(_ notification: Notification) {
+        StudioBrand.applyAppIcon()
         let menu = NSMenu()
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "Quit Giga Couch", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let item = NSMenuItem(); item.submenu = appMenu; menu.addItem(item); NSApp.mainMenu = menu
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 260), styleMask: [.titled], backing: .buffered, defer: false)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 320), styleMask: [.titled], backing: .buffered, defer: false)
         window.title = "Giga Couch"
         window.backgroundColor = StudioStyle.background
         window.appearance = NSAppearance(named: .darkAqua)
         // Stay visible above the engine's initial blank window until it has drawn the library.
         window.level = .floating
-        let brand = StudioStyle.label("G I G A  C O U C H", size: 12, weight: .bold, color: StudioStyle.mint)
+        let brand = StudioBrand.markView(size: 88)
         let title = StudioStyle.label("Getting your games ready", size: 25, weight: .semibold)
         let spinner = NSProgressIndicator()
         spinner.style = .spinning; spinner.controlSize = .regular; spinner.startAnimation(nil)

@@ -35,6 +35,7 @@ final class SetupApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var isInstalledApp = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        StudioBrand.applyAppIcon()
         isInstalledApp = Bundle.main.object(forInfoDictionaryKey: "GigaGDKInstalled") as? Bool == true
         payload = isInstalledApp ? Bundle.main.bundleURL.deletingLastPathComponent() : Bundle.main.resourceURL!.appendingPathComponent("payload")
         do { kit = try SetupCore.manifest(at: payload) }

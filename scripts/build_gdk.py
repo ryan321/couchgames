@@ -10,6 +10,8 @@ import shutil
 import subprocess
 import sys
 
+from branding import install_into_app, make_icns, plist_icon
+
 ROOT = Path(__file__).resolve().parent.parent
 VERSION = "0.1.0-preview.4"
 APP = "Giga Couch GDK Setup.app"
@@ -30,7 +32,7 @@ def copy_tree(source, target, suffixes=None):
 
 
 def app_info(installed):
-    return {
+    info = {
         "CFBundleExecutable": "GDKSetup",
         "CFBundleIdentifier": "com.gigacouch.creator" if installed else "com.gigacouch.gdk-setup",
         "CFBundleName": "Giga Couch Creator" if installed else "Giga Couch GDK Setup",
@@ -38,12 +40,15 @@ def app_info(installed):
         "CFBundleVersion": "4", "LSMinimumSystemVersion": "13.0",
         "NSHighResolutionCapable": True, "GigaGDKInstalled": installed,
     }
+    info.update(plist_icon())
+    return info
 
 
-def make_app(path, binary, installed):
+def make_app(path, binary, installed, icns):
     contents = path / "Contents"
     (contents / "MacOS").mkdir(parents=True)
     shutil.copy2(binary, contents / "MacOS/GDKSetup")
+    install_into_app(contents, icns)
     (contents / "Info.plist").write_bytes(plistlib.dumps(app_info(installed)))
 
 
@@ -84,7 +89,9 @@ def main():
     app = output / APP
     if app.exists():
         shutil.rmtree(app)
-    make_app(app, binary, False)
+    icns = output / "AppIcon.icns"
+    make_icns(icns)
+    make_app(app, binary, False, icns)
     payload = app / "Contents/Resources/payload"
     payload.mkdir(parents=True)
     (payload / "bin").mkdir()
@@ -92,7 +99,7 @@ def main():
     run("strip", "-x", str(payload / "bin/couch"))
     run("codesign", "--force", "--sign", "-", str(payload / "bin/couch"))
     copy_tree(ROOT / "sdk/addons/couchgames", payload / "sdk/addons/couchgames", {".gd", ".uid", ".cfg", ".json", ".txt"})
-    copy_tree(ROOT / "apps/creator-hub", payload / "creator-hub", {".gd", ".uid", ".tscn", ".godot"})
+    copy_tree(ROOT / "apps/creator-hub", payload / "creator-hub", {".gd", ".uid", ".tscn", ".godot", ".png", ".import"})
     # project.godot is included; generated .godot/ caches are excluded by copy_tree.
     template = payload / "templates/3d-couch"
     copy_tree(ROOT / "sdk/addons/couchgames", template / "addons/couchgames", {".gd", ".uid", ".cfg", ".json", ".txt"})
@@ -100,10 +107,10 @@ def main():
     shutil.copy2(ROOT / "sdk/project.godot", template / "project.godot")
     (template / "README.md").write_text("# Your Giga Couch project\n\nOpen project.godot in supported Godot, wait for import, then press F5.\n\nEdit examples/little_world/world.gd and character.gd. The SDK is pinned in addons/couchgames.\nThis prototype provides input and runtime checks; generic saves, pause/lobby components and distribution remain planned.\n")
     (template / "AGENTS.md").write_text("# Creator instructions\n\nUse the installed Godot version required by addons/couchgames/runtime_policy.json. Do not download tools implicitly.\nUse Platform.input player_joined/player_left, movement and consume_jump for this prototype.\nKeep input per-player; remove characters on player_left. Do not assume planned save/action/publishing APIs exist.\nRun the project in the installed engine and verify controller routing separately from synthetic tests.\n")
-    copy_tree(ROOT / "apps/gdk-setup/docs", payload / "docs", {".html"})
+    copy_tree(ROOT / "apps/gdk-setup/docs", payload / "docs", {".html", ".png"})
     (payload / "START_HERE.txt").write_text("Open Giga Couch Creator.app. For offline setup and first-game instructions, open docs/index.html.\nThis is an internal macOS Apple Silicon preview, not a notarized public release.\n")
     (payload / "NOTICE.txt").write_text("Giga Couch internal development preview. Public SDK/source licensing and dependency notice review remain release work.\nGodot is separately obtained under its own license. No third-party game art or engine binary is included here.\n")
-    make_app(payload / CREATOR, binary, True)
+    make_app(payload / CREATOR, binary, True, icns)
     run("codesign", "--force", "--sign", "-", str(payload / CREATOR))
     metadata = manifest(payload)
     (payload / "kit.json").write_text(json.dumps(metadata, indent=2) + "\n")

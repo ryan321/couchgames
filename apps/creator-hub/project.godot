@@ -1,6 +1,7 @@
 config_version=5
 [application]
 config/name="Giga Couch Creator Hub"
+config/icon="res://mark.png"
 config/use_custom_user_dir=true
 config/custom_user_dir_name="GigaCouch/CreatorHub"
 run/main_scene="res://hub.tscn"

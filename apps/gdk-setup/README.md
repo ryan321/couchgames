@@ -11,7 +11,7 @@ python3 scripts/build_gdk.py
 open '.gigacouch/gdk/Giga Couch GDK Setup.app'
 ```
 
-The first build targets **macOS Apple Silicon**, with a macOS 13 deployment target. Other Mac versions and Windows are not qualified. The script builds the existing CLI with `cargo build --locked`, compiles the small native front end with Swift/AppKit/CryptoKit, and produces:
+The first build targets **macOS Apple Silicon**, with a macOS 13 deployment target. Other Mac versions and Windows are not qualified. The script builds the existing CLI with `cargo build --locked`, compiles the small native front end with Swift/AppKit/CryptoKit, installs the couch mark as the app icon, and produces:
 
 - `.gigacouch/gdk/Giga Couch GDK Setup.app`
 - `.gigacouch/gdk/GigaCouch-GDK-0.1.0-preview.4-macos-arm64.zip`

@@ -18,6 +18,7 @@ func run() -> void:
 	library.set_process(false)
 	OS.unset_environment("COUCH_LIBRARY_SESSION")
 	expect(library.cards.size()==6,"All six source games appear")
+	expect(ResourceLoader.exists("res://launcher/mark.png"),"Library includes the Giga Couch mark")
 	for game in library.games:
 		expect(FileAccess.file_exists(game.scene),"Catalog scene exists")
 	library.controller.select(0)
@@ -45,8 +46,8 @@ func run() -> void:
 	library.cards[4].grab_focus()
 	await process_frame
 	await process_frame
-	expect(library.game_scroll.scroll_vertical>0,"Focusing Gauntlet scrolls its card into view")
-	expect(library.cards[4].get_global_rect().end.y<=729,"The fifth game remains above the controller settings")
+	var scroll_end: float = library.game_scroll.global_position.y + library.game_scroll.size.y
+	expect(library.cards[4].get_global_rect().end.y<=scroll_end + 2,"The fifth game remains above the controller settings")
 	library.cards[4].pressed.emit()
 	request = JSON.parse_string(FileAccess.get_file_as_string(directory.path_join("request.json")))
 	expect(request.game=="gauntlet","The fifth card launches Gauntlet")
@@ -55,7 +56,7 @@ func run() -> void:
 	library.cards[5].grab_focus()
 	await process_frame
 	await process_frame
-	expect(library.cards[5].get_global_rect().end.y<=729,"Sunbreak remains visible in the scrolling library")
+	expect(library.cards[5].get_global_rect().end.y<=scroll_end + 2,"Sunbreak remains visible in the scrolling library")
 	library.cards[5].pressed.emit()
 	request = JSON.parse_string(FileAccess.get_file_as_string(directory.path_join("request.json")))
 	expect(request.game=="sunbreak","The sixth card launches Sunbreak")

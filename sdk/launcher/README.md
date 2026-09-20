@@ -4,7 +4,7 @@
 python3 scripts/library.py
 ```
 
-The library shows Little World, Cloudbound, Pocket Rally, World 1-1, Gauntlet, and Sunbreak. Scroll the game grid to see more games. Click a card, or use keyboard arrows / a standard gamepad's D-pad and Enter / A / Cross. The selected game opens in a separate process using the same installed Godot. Close its window to return to the library; the selected card regains focus. The library also offers **Close game & return**, **Quit library**, and F11 fullscreen.
+The library uses the same navy/mint studio chrome as GDK Setup, with TV-sized type and controller focus. It shows Little World, Cloudbound, Pocket Rally, World 1-1, Gauntlet, and Sunbreak. Scroll the game grid to see more games. Click a card, or use keyboard arrows / a standard gamepad's D-pad and Enter / A / Cross. The selected game opens in a separate process using the same installed Godot. Close its window to return to the library; the selected card regains focus. The library also offers **Close game & return**, **Quit library**, and F11 fullscreen.
 
 On this Mac, **Wii Remote + gamepads** is selected by default. It uses the native reader for the observed `04e8:7021` Remote: the single-device helper for Little World/Cloudbound/World 1-1 and the multi-device helper for Pocket Rally and Gauntlet. For Sunbreak, use **Gamepads / keyboard**; its FPS controls require mouse/keyboard or a standard dual-stick controller. Select **Gamepads / keyboard** to run without a helper, or **Other Wii · experimental** for the existing SDL Wii path. Joy-Cons can be separate or paired. The native Wii helper runs only during a game; browse the library with a mouse, keyboard, or regular gamepad.
 

@@ -27,7 +27,8 @@ func run() -> void:
 	root.add_child(hub)
 	await process_frame
 	expect(hub.get_node_or_null(".")!=null,"Installed Creator Hub builds its UI")
+	expect(FileAccess.file_exists("res://mark.png"),"Creator Hub includes the Giga Couch mark")
 	hub.queue_free()
 	await process_frame
-	if failures==0: print("Creator Hub checks passed: 8 project/UI assertions.")
+	if failures==0: print("Creator Hub checks passed: 9 project/UI assertions.")
 	quit(1 if failures else 0)
