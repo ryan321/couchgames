@@ -7,7 +7,7 @@ You are helping a person make a **couch game** for the Giga Couch Game Player (T
 - `addons/couchgames/` — pinned SDK. Do not replace it from the internet.
 - Autoload **Platform** (`res://addons/couchgames/platform.gd`).
 - `couch.game.json` — game id, title, and entry scene for the Game Player.
-- A playable 3D starter under `examples/little_world/`.
+- A playable 2D starter under `examples/flat_world/`.
 - Lobby: `Platform.install_lobby()` — players join, press A/Cross again to ready, match starts when everyone is ready.
 
 ## Use only these Platform APIs

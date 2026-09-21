@@ -1,0 +1,23 @@
+; Giga Couch 2D starter.
+config_version=5
+
+[application]
+config/name="Flat World · Giga Couch"
+run/main_scene="res://examples/flat_world/world.tscn"
+
+[display]
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/size/mode=2
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+
+[autoload]
+Platform="*res://addons/couchgames/platform.gd"
+
+[editor_plugins]
+enabled=PackedStringArray("res://addons/couchgames/plugin.cfg")
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

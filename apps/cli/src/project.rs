@@ -297,16 +297,26 @@ fn resolve_template(explicit: Option<&Path>) -> Result<PathBuf, CliError> {
         if path.is_dir() {
             return Ok(absolute_path(path));
         }
+        if let Some(name) = path.to_str()
+            && !name.contains('/')
+            && !name.contains('\\')
+        {
+            return find_named_template(name);
+        }
         return Err(CliError::new(
             "TEMPLATE_MISSING",
             format!(
-                "Template not found at {}. Pass --template with an existing project folder.",
+                "Template not found at {}. Pass --template with an existing project folder or 2d-couch / 3d-couch.",
                 path.display()
             ),
         ));
     }
+    find_named_template("3d-couch")
+}
+
+fn find_named_template(name: &str) -> Result<PathBuf, CliError> {
     if let Ok(gdk) = env::var("COUCH_GDK") {
-        let candidate = PathBuf::from(gdk).join("templates/3d-couch");
+        let candidate = PathBuf::from(gdk).join("templates").join(name);
         if candidate.is_dir() {
             return Ok(candidate);
         }
@@ -314,14 +324,14 @@ fn resolve_template(explicit: Option<&Path>) -> Result<PathBuf, CliError> {
     if let Ok(exe) = env::current_exe()
         && let Some(kit) = exe.parent().and_then(|bin| bin.parent())
     {
-        let candidate = kit.join("templates/3d-couch");
+        let candidate = kit.join("templates").join(name);
         if candidate.is_dir() {
             return Ok(candidate);
         }
     }
     Err(CliError::new(
         "TEMPLATE_MISSING",
-        "No project template found. Pass --template with a project folder to copy.",
+        format!("No {name} template found. Pass --template with a project folder to copy."),
     ))
 }
 

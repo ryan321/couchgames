@@ -200,6 +200,7 @@ dependencies = [
  "couch-runtime",
  "directories",
  "serde_json",
+ "sha2",
  "tempfile",
  "tokio",
 ]

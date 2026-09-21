@@ -18,8 +18,15 @@ func _run() -> void:
 	var service = root.get_node("Platform").input
 	for device in 16:
 		button(device, true)
-	await frames(35)
-	expect(world.characters.size() == 16, "Real scene spawns all sixteen characters")
+		await process_frame
+		button(device, false)
+	await frames(4)
+	for device in 16:
+		button(device, true)
+		await process_frame
+		button(device, false)
+	await frames(40)
+	expect(world.characters.size() == 16, "Real scene spawns all sixteen characters after lobby ready")
 	for character in world.characters.values():
 		expect(character.is_on_floor(), "Character settles on the island floor")
 	var first = world.characters[1]

@@ -336,3 +336,88 @@ fn doctor_project_reports_missing_addon() {
     );
     assert!(!data.exists());
 }
+
+#[test]
+fn check_passes_initialized_project_and_publish_needs_pack() {
+    let root = tempfile::tempdir().unwrap();
+    let data = root.path().join("data");
+    let parent = root.path().join("games");
+    fs::create_dir_all(&parent).unwrap();
+    let template = tiny_template(root.path());
+    fs::write(
+        template.join("main.tscn"),
+        "[gd_scene format=3]\n\n[node name=\"Root\" type=\"Node\"]\n",
+    )
+    .unwrap();
+    fs::write(
+        template.join("couch.game.json"),
+        r#"{"format":1,"id":"template","title":"Template","scene":"res://main.tscn"}"#,
+    )
+    .unwrap();
+    fs::write(
+        template.join("play.gd"),
+        "func _ready():\n\tPlatform.install_lobby()\n",
+    )
+    .unwrap();
+    let (status, created) = run_json(
+        &data,
+        &[
+            "init",
+            "Checked Game",
+            "--parent",
+            parent.to_str().unwrap(),
+            "--template",
+            template.to_str().unwrap(),
+        ],
+    );
+    assert!(status.success(), "{created}");
+    let dest = parent.join("checked-game");
+    let (status, result) = run_json(&data, &["check", "--project", dest.to_str().unwrap()]);
+    assert!(status.success(), "{result}");
+    assert_eq!(result["ok"], true);
+    assert_eq!(result["data"]["supported"], true);
+    let (status, publish) = run_json(
+        &data,
+        &[
+            "publish",
+            "--project",
+            dest.to_str().unwrap(),
+            "--visibility",
+            "private",
+        ],
+    );
+    assert_eq!(status.code(), Some(1));
+    assert_eq!(publish["error"]["code"], "NEED_PACK");
+    let (status, public) = run_json(
+        &data,
+        &[
+            "publish",
+            "--project",
+            dest.to_str().unwrap(),
+            "--visibility",
+            "public",
+        ],
+    );
+    assert_eq!(status.code(), Some(1));
+    assert_eq!(public["error"]["code"], "VISIBILITY_UNSUPPORTED");
+}
+
+#[test]
+fn pack_without_godot_does_not_download_templates() {
+    let root = tempfile::tempdir().unwrap();
+    let data = root.path().join("data");
+    let project = tiny_template(root.path());
+    let (status, result) = run_json(
+        &data,
+        &[
+            "--godot",
+            root.path().join("missing-godot").to_str().unwrap(),
+            "pack",
+            "--project",
+            project.to_str().unwrap(),
+        ],
+    );
+    assert_eq!(status.code(), Some(1));
+    assert_eq!(result["ok"], false);
+    assert_eq!(result["error"]["code"], "GODOT_NOT_READY");
+}

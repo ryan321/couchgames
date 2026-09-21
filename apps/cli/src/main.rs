@@ -1,5 +1,6 @@
 mod host;
 mod project;
+mod workflow;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -49,9 +50,33 @@ enum Command {
         /// Existing directory that will contain the new project folder.
         #[arg(long)]
         parent: PathBuf,
-        /// Template project to copy.
+        /// Template project to copy, or 2d-couch / 3d-couch.
         #[arg(long, value_name = "PATH")]
         template: Option<PathBuf>,
+    },
+    /// Static project diagnostics. Does not launch Godot.
+    Check {
+        #[arg(long)]
+        project: PathBuf,
+    },
+    /// Play the project in the installed Godot editor. Does not download templates.
+    Run {
+        #[arg(long)]
+        project: PathBuf,
+    },
+    /// Export a Godot PCK if export templates are already installed. Never downloads them.
+    Pack {
+        #[arg(long)]
+        project: PathBuf,
+        #[arg(long)]
+        target: Option<Target>,
+    },
+    /// Copy a packed release to a local private drop. No account upload.
+    Publish {
+        #[arg(long)]
+        project: PathBuf,
+        #[arg(long, default_value = "private")]
+        visibility: String,
     },
     /// Check manifest and every declared artifact's size and SHA-256.
     Validate { manifest: PathBuf },
@@ -120,6 +145,18 @@ async fn main() {
     }
 }
 
+async fn require_godot(cli: &Cli) -> Result<PathBuf> {
+    let mut discovery = couch_runtime::Discovery::system(cli.godot.clone());
+    discovery.probe_timeout = std::time::Duration::from_secs(cli.godot_timeout_secs);
+    discovery.check().await.executable.ok_or_else(|| {
+        project::CliError::new(
+            "GODOT_NOT_READY",
+            "pass --godot with a supported Godot executable; this command never downloads Godot or export templates",
+        )
+        .into()
+    })
+}
+
 fn data_dir(cli: &Cli) -> Result<PathBuf> {
     if let Some(path) = &cli.data_dir {
         return Ok(path.clone());
@@ -130,6 +167,15 @@ fn data_dir(cli: &Cli) -> Result<PathBuf> {
 }
 
 fn command_status(command: &Command, value: &Value) -> (bool, Option<Value>) {
+    if matches!(command, Command::Check { .. }) && value["supported"] != true {
+        return (
+            false,
+            Some(json!({
+                "code": "PROJECT_UNSUPPORTED",
+                "message": "Project checks failed; see data.issues"
+            })),
+        );
+    }
     let Command::Doctor { require_godot, .. } = command else {
         return (true, None);
     };
@@ -241,6 +287,47 @@ async fn run(cli: &Cli) -> Result<(Value, String)> {
             Ok((
                 value,
                 format!("Created {path}.\nReopen Giga Couch to list it."),
+            ))
+        }
+        Command::Check { project } => {
+            let value = workflow::check(project)?;
+            let supported = value["supported"] == true;
+            Ok((
+                value.clone(),
+                if supported {
+                    format!("Project checks passed: {}", value["path"])
+                } else {
+                    format!("Project checks failed: {}", value["path"])
+                },
+            ))
+        }
+        Command::Run { project } => {
+            let godot = require_godot(cli).await?;
+            let value = workflow::run_project(project, &godot, &data_dir(cli)?)?;
+            Ok((
+                value.clone(),
+                format!("Godot exited {}", value["exit_code"]),
+            ))
+        }
+        Command::Pack { project, target } => {
+            let godot = require_godot(cli).await?;
+            let selected = target
+                .or_else(Target::current)
+                .context("unsupported host target; pass --target")?;
+            let value = workflow::pack(project, &godot, selected)?;
+            Ok((
+                value.clone(),
+                format!("Packed {} ({} bytes).", value["pck"], value["bytes"]),
+            ))
+        }
+        Command::Publish {
+            project,
+            visibility,
+        } => {
+            let value = workflow::publish_local(project, visibility, &data_dir(cli)?)?;
+            Ok((
+                value.clone(),
+                format!("Private drop at {}.\nNo account upload.", value["path"]),
             ))
         }
         Command::Validate { manifest } => {

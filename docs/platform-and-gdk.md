@@ -76,6 +76,7 @@ This is the **SDK**. Copied into every game as `addons/couchgames/`, autoload **
 | `native_xpad.gd`, `native_wii.gd` | Read host JSON → normal Godot gamepad events. No USB. |
 | `plugin.gd` | Editor status panel |
 | `pause_overlay.gd` | Start / Esc pause; Resume; Quit to library (`Platform.install_shell()`) |
+| `lobby.gd` | Join/ready overlay (`Platform.install_lobby()`); `match_started` |
 | `saves.gd` | One JSON save slot API (`save_data` / `load_data`); not SQLite |
 
 Games use:
@@ -99,7 +100,7 @@ Each game **pins its own copy** of the addon. Updating one title’s SDK must no
 
 ### Planned (in the game, not extracted yet)
 
-Lobby / ready, remapping, rumble policy, richer TV-safe menus. Gauntlet still has its own lobby. Do not call `Platform.save(...)` or `Platform.input.action(...)` — those names are not methods. Use `save_data` / `load_data` and `install_shell` instead.
+Remapping, rumble policy, richer TV-safe menus. Gauntlet still has its own class-select lobby; starters use `install_lobby()`. Do not call `Platform.save(...)` or `Platform.input.action(...)`.
 
 ### Never in the game
 
@@ -116,25 +117,26 @@ Tools to *make* the game. Players never run these.
 | Script / app | Path | Job |
 | --- | --- | --- |
 | GDK Setup | `apps/gdk-setup/`, `python3 scripts/build_gdk.py` | Check Godot, install a versioned kit, optional agent CLI picker |
-| Creator Hub | `apps/creator-hub/` | **New 3D game** copies the 3D starter, writes `couch.game.json` + `AGENTS.md`, registers with the Player; **Show folder** for agents |
-| `couch init` | `apps/cli/` | Same scaffold from the CLI (`--parent`, `--template`). Registers the project. Never installs Godot |
+| Creator Hub | `apps/creator-hub/` | **New 3D game** / **New 2D game**; registers with the Player; **Show folder** for agents |
+| `couch init` | `apps/cli/` | `--template` path or `3d-couch` / `2d-couch`. Registers the project. Never installs Godot |
 | `couch doctor` | `apps/cli/` | Supported editor? `--project` inspects addon/autoload/`couch.game.json` without launching Godot |
+| `couch check` | | Static TV/project diagnostics (`--json`). Does not launch Godot |
+| `couch run` | | Play the project in the installed editor. Never downloads Godot |
+| `couch pack` | | Godot `--export-pack` if **already-installed** export templates exist. Never downloads them |
+| `couch publish` | | `--visibility private` copies `dist/` to a local outgoing folder. No account upload |
 | `couch validate` | | Manifest + artifact size and SHA-256 |
 | `couch install` | | Unsigned local import. Does **not** run a game |
 | `couch library` | | List installed releases |
 
 Setup may detect or install the creator’s Codex / Claude Code / Grok / Kiro / Cursor CLI. Hub **Show folder** plus starter `AGENTS.md` is how the agent is fed the project.
 
-### Planned (the agent-shaped workflow)
+### Planned (still)
 
 ```text
-couch run my-game                        # playtest through Player lifecycle
-couch check / test                       # extra structured TV/controller checks
-couch pack                               # PCK + release.json
-couch publish --visibility private
+couch test                 # integration harness / coverage report
+couch login                # accounts
+remote couch publish       # authorized private share (local drop exists)
 ```
-
-`init` and `doctor --project` are implemented. [GDK.md](../GDK.md) §7 is the rest of the contract.
 
 Repo helpers `python3 scripts/play.py` and `scripts/library.py` are development launchers in this checkout, not a released creator CLI.
 

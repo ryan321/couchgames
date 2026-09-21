@@ -7,6 +7,7 @@ const NativeWii = preload("res://addons/couchgames/native_wii.gd")
 const NativeXpad = preload("res://addons/couchgames/native_xpad.gd")
 const ControllerMotion = preload("res://addons/couchgames/controller_motion.gd")
 const PauseOverlay = preload("res://addons/couchgames/pause_overlay.gd")
+const LobbyOverlay = preload("res://addons/couchgames/lobby.gd")
 const Saves = preload("res://addons/couchgames/saves.gd")
 
 var runtime_status: Dictionary = {}
@@ -57,6 +58,15 @@ func install_shell() -> void:
 	var overlay := PauseOverlay.new()
 	overlay.name = "PauseOverlay"
 	add_child(overlay)
+
+
+func install_lobby() -> CanvasLayer:
+	if has_node("LobbyOverlay"):
+		return get_node("LobbyOverlay")
+	var overlay := LobbyOverlay.new()
+	overlay.name = "LobbyOverlay"
+	add_child(overlay)
+	return overlay
 
 
 func save_data(slot: String, data: Variant) -> Dictionary:

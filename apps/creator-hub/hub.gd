@@ -5,6 +5,7 @@ var recent: VBoxContainer
 var message: Label
 var title_input: LineEdit
 var location: LineEdit
+var template_kind := "3d-couch"
 var dialog: ConfirmationDialog
 var picker: FileDialog
 var config := ConfigFile.new()
@@ -40,6 +41,7 @@ func _ready() -> void:
 	actions.add_theme_constant_override("separation",14)
 	column.add_child(actions)
 	actions.add_child(button("+  New 3D game",new_project))
+	actions.add_child(button("+  New 2D game",new_project_2d))
 	actions.add_child(button("Open existing project",open_project))
 	actions.add_child(button("First-game guide",func(): open_kit_doc("index.html")))
 	var guides := HBoxContainer.new()
@@ -106,6 +108,13 @@ func build_dialogs() -> void:
 	add_child(picker)
 
 func new_project() -> void:
+	template_kind = "3d-couch"
+	title_input.text = ""
+	dialog.popup_centered(Vector2i(560,300))
+	title_input.grab_focus()
+
+func new_project_2d() -> void:
+	template_kind = "2d-couch"
 	title_input.text = ""
 	dialog.popup_centered(Vector2i(560,300))
 	title_input.grab_focus()
@@ -119,7 +128,7 @@ func choose_folder() -> void:
 func folder_selected(path: String) -> void: location.text = path
 
 func create_project() -> void:
-	var result := Projects.create(kit_root.path_join("templates/3d-couch"),location.text,title_input.text)
+	var result := Projects.create(kit_root.path_join("templates").path_join(template_kind),location.text,title_input.text)
 	if result.has("error"):
 		message.text = result.error
 		return

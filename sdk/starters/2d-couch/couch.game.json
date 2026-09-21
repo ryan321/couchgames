@@ -1,0 +1,9 @@
+{
+  "format": 1,
+  "id": "my-game",
+  "title": "My game",
+  "scene": "res://examples/flat_world/world.tscn",
+  "players": "1–16 players",
+  "description": "A Giga Couch 2D starter. Join with A / Cross, ready up, then hop.",
+  "color": "8ce8be"
+}

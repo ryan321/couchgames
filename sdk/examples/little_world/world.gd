@@ -24,15 +24,20 @@ var _elapsed := 0.0
 func _ready() -> void:
 	var platform := get_node("/root/Platform")
 	platform.install_shell()
+	var lobby: CanvasLayer = platform.install_lobby()
 	_input_service = platform.input
 	_input_service.keyboard_enabled = true
 	_build_world()
 	_build_ui()
-	_input_service.player_joined.connect(_spawn_player)
+	_input_service.player_joined.connect(func(id: int):
+		if lobby.started:
+			_spawn_player(id))
 	_input_service.player_left.connect(_remove_player)
 	_input_service.roster_changed.connect(_refresh_ui)
-	for id: int in _input_service.players:
-		_spawn_player(id)
+	lobby.match_started.connect(func():
+		for id: int in _input_service.players:
+			_spawn_player(id)
+		_refresh_ui())
 	_refresh_ui()
 
 

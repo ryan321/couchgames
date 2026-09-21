@@ -30,10 +30,10 @@ The first released kit should contain the following versioned deliverables.
 | Deliverable | What the creator receives | Current position |
 | --- | --- | --- |
 | Godot addon | `addons/couchgames/`, the `Platform` autoload, documented types/signals and runtime policy | Runtime checks, player input, pause overlay, JSON save slots, quit-to-library; lobby/remap still planned |
-| Reusable couch UI | Join/ready lobby, selection cards, input prompts, pause/settings, disconnect handling and confirmations | Pause/quit shell exists (`install_shell`); lobby still lives in example games |
-| Two small starters | Independent 2D and 3D projects with a working create/play/save/exit loop | 3D Little World starter with `AGENTS.md` and `couch.game.json`; 2D starter planned |
+| Reusable couch UI | Join/ready lobby, selection cards, input prompts, pause/settings, disconnect handling and confirmations | Pause/quit shell and join/ready lobby in the addon; Gauntlet still has its own class lobby |
+| Two small starters | Independent 2D and 3D projects with a working create/play/save/exit loop | 3D Little World and 2D Flat World starters with `AGENTS.md` and `couch.game.json` |
 | Godot editor tools | Setup/status panel, project settings, action definitions, validation and platform playtest entry | Runtime status panel exists; remaining tools planned |
-| Creator CLI | Project creation, diagnosis, playtest, checks, packing, local install and private publishing | `init`, `doctor` / `doctor --project`, artifact `validate`, unsigned `install` and `library` exist; `pack` / `publish` planned |
+| Creator CLI | Project creation, diagnosis, playtest, checks, packing, local install and private publishing | `init`, `doctor`, `check`, `run`, `pack` (templates must already be installed), local `publish --visibility private`, artifact `validate`/`install`/`library` |
 | Local platform playtest | Run a developer project through the same lifecycle used by installed games | Hub/`init` register source projects; Game Player launches them. Packed-game host planned |
 | Reference examples | Small recipes for motion, split-screen, shared cameras, selection and feedback | Playable examples exist; focused recipes planned |
 | Creator documentation | First-game guide, API reference, recipes, errors, migrations and troubleshooting | Setup preview includes an offline first-game guide; complete API/recipe documentation remains planned |
