@@ -18,7 +18,7 @@ func run() -> void:
 	current_scene = library
 	library.set_process(false)
 	OS.unset_environment("COUCH_LIBRARY_SESSION")
-	expect(library.cards.size()==6,"All six source games appear")
+	expect(library.cards.size()==7,"All seven source games appear")
 	expect(ResourceLoader.exists("res://launcher/mark.png"),"Library includes the Giga Couch mark")
 	for game in library.games:
 		expect(FileAccess.file_exists(game.scene),"Catalog scene exists")
@@ -61,6 +61,15 @@ func run() -> void:
 	library.cards[5].pressed.emit()
 	request = JSON.parse_string(FileAccess.get_file_as_string(directory.path_join("request.json")))
 	expect(request.game=="sunbreak","The sixth card launches Sunbreak")
+	library.apply_status({"phase":"idle","updated":Time.get_unix_time_from_system(),"request_id":request.request_id,"message":"Ready"})
+	library._process(1)
+	library.cards[6].grab_focus()
+	await process_frame
+	await process_frame
+	expect(library.cards[6].get_global_rect().end.y<=scroll_end + 2,"Haymaker remains visible in the scrolling library")
+	library.cards[6].pressed.emit()
+	request = JSON.parse_string(FileAccess.get_file_as_string(directory.path_join("request.json")))
+	expect(request.game=="haymaker","The seventh card launches Haymaker")
 	library.apply_status({"phase":"idle","updated":Time.get_unix_time_from_system(),"request_id":request.request_id,"message":"Ready"})
 	library._process(1)
 	library.status.text = "Choose something to play."

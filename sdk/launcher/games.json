@@ -56,5 +56,14 @@
     "scene": "res://examples/sunbreak/island.tscn",
     "color": "78bdba",
     "renderer": "forward_plus"
+  },
+  {
+    "id": "haymaker",
+    "title": "Haymaker",
+    "players": "2–8 players · LAN",
+    "description": "Host a brawl. Every player brings a screen.",
+    "controls": "Punch, dodge, and survive the shrinking lot.",
+    "scene": "res://examples/haymaker/arena.tscn",
+    "color": "e07a5f"
   }
 ]

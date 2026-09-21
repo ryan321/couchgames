@@ -77,6 +77,20 @@ func _draw() -> void:
 			draw_rect(Rect2(at-Vector2(9,26),Vector2(18,16)),Color("ecc19a"))
 			draw_line(at+Vector2(15,7),at+Vector2(26,-20),Color("eacb85"),5)
 		draw_circle(Vector2(329,65),18,Color("c79ae9"))
+	elif game_id == "haymaker":
+		draw_rect(Rect2(0,0,440,270),Color("e39b5a"))
+		draw_circle(Vector2(340,48),70,Color("f3c57a"))
+		oval(Vector2(220,210),Vector2(170,48),Color("c45c4a"))
+		oval(Vector2(220,196),Vector2(156,40),Color("f4e2b8"))
+		for i in 18:
+			var a := i*TAU/18
+			draw_line(Vector2(220,196)+Vector2(cos(a)*120,sin(a)*32),Vector2(220,196)+Vector2(cos(a+0.12)*120,sin(a+0.12)*32),Color("7dffc3"),3,true)
+		for entry in [[Vector2(168,168),Color("ed7559")],[Vector2(268,176),Color("5ba7db")]]:
+			var at: Vector2 = entry[0]
+			draw_style_box(pill(Color("2b4751")),Rect2(at-Vector2(16,4),Vector2(32,16)))
+			draw_style_box(pill(entry[1]),Rect2(at-Vector2(14,28),Vector2(28,34)))
+			draw_circle(at-Vector2(0,36),11,Color("f6d2a3"))
+			draw_line(at+Vector2(16,-8),at+Vector2(34,-22),entry[1].lightened(0.1),5)
 	elif game_id == "world-1-1":
 		var map := preload("res://examples/world_1_1/assets/World1-1.png")
 		draw_texture_rect_region(map,Rect2(0,0,440,270),Rect2(192,48,256,192))

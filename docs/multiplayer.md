@@ -201,11 +201,9 @@ Provide usage alerts, configurable budgets, and explicit overage settings. Defin
 
 ## 10. Implementation sequence and acceptance
 
-All items below are pending.
-
 ### A. Session model and LAN proof
 
-- [ ] Define versioned messages, ownership mapping, capacity limits, and host authority.
+- [x] Haymaker prototype: versioned host/client snapshots, peer-owned input, eight-computer cap, host authority, address join. Loopback ENet handshake is covered by SDK checks; two-household LAN play is still a physical acceptance.
 - [ ] Run Little World on two computers with two local players each and independent camera views.
 - [ ] Verify spawn, movement, jump, respawn, leave, neutral input on timeout, and host exit.
 - [ ] Reject build mismatches and attempts to control someone else's player.

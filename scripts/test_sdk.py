@@ -33,6 +33,7 @@ def main():
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_rally.gd"], "Rally checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_library.gd"], "Library checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_sunbreak.gd"], "Sunbreak checks passed:"),
+        (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_haymaker.gd"], "Haymaker checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_world_1_1.gd"], "World 1-1 checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_gauntlet_visibility.gd"], "Gauntlet visibility checks passed:"),
         (["--headless", "--path", str(root / "sdk"), "--script", "res://tests/test_gauntlet_cast.gd"], "Gauntlet cast checks passed:"),

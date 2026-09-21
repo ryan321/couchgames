@@ -19,6 +19,10 @@ def main():
     parser.add_argument("--joycons", choices=["separate", "paired"], default="separate",
                         help="One sideways Joy-Con per player (default), or a combined pair in a grip")
     parser.add_argument("--compatibility", action="store_true", help="Use the simpler renderer on older graphics hardware")
+    parser.add_argument("--host", action="store_true", help="Haymaker: host a LAN match")
+    parser.add_argument("--join", metavar="ADDRESS", help="Haymaker: join host ADDRESS[:port]")
+    parser.add_argument("--practice", action="store_true", help="Haymaker: start a local practice match")
+    parser.add_argument("--port", type=int, help="Haymaker LAN port (default 24567)")
     args = parser.parse_args()
     executable = resolve_godot(args.godot)
     environment = godot_environment(args.wii, args.joycons)
@@ -44,7 +48,19 @@ def main():
         helper = subprocess.Popen([str(build_xpad_reader()), state_path])
         print("Wired USB reader started. Keep its window open and press A / Cross to join.", flush=True)
     try:
-        return subprocess.call([executable, *rendering_arguments(args.game, compatibility=args.compatibility), "--path", str(ROOT / "sdk"), scene], cwd=ROOT, env=environment)
+        command = [executable, *rendering_arguments(args.game, compatibility=args.compatibility), "--path", str(ROOT / "sdk"), scene]
+        user_args = []
+        if args.practice:
+            user_args.append("--practice")
+        if args.host:
+            user_args.append("--host")
+        if args.join:
+            user_args.append("--join=%s" % args.join)
+        if args.port:
+            user_args.append("--port=%d" % args.port)
+        if user_args:
+            command += ["--", *user_args]
+        return subprocess.call(command, cwd=ROOT, env=environment)
     finally:
         if helper is not None and helper.poll() is None:
             helper.terminate()

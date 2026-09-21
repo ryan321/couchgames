@@ -48,11 +48,21 @@ On this Mac, double-click **Giga Couch.app** on the Desktop. This separate playe
 python3 scripts/library.py
 ```
 
-Click **Little World**, **Cloudbound**, **Pocket Rally**, **Super Mario Bros. — World 1-1**, or **Gauntlet** to play. Each game runs in its own process; closing it returns you to the library with the same card selected. Keyboard arrows + Enter and standard gamepad D-pad + A / Cross also navigate the cards. F11 toggles fullscreen.
+Click **Little World**, **Cloudbound**, **Pocket Rally**, **Super Mario Bros. — World 1-1**, **Gauntlet**, **Sunbreak**, or **Haymaker** to play. Each game runs in its own process; closing it returns you to the library with the same card selected. Keyboard arrows + Enter and standard gamepad D-pad + A / Cross also navigate the cards. F11 toggles fullscreen.
 
 On this Mac, **Wii Remote + gamepads** uses our existing native Wii reader automatically for the selected game. Choose **Gamepads / keyboard** to play without it. Close any standalone game/reader first. See [library controls and implementation](sdk/launcher/README.md).
 
-This first library lists the six included source games in a scrolling grid. The production Rust supervisor and launching installed releases from SQLite remain planned.
+This first library lists the seven included source games in a scrolling grid. The production Rust supervisor and launching installed releases from SQLite remain planned.
+
+## Play Haymaker — LAN last-one-standing brawler
+
+```sh
+python3 scripts/play.py --game haymaker
+python3 scripts/play.py --game haymaker --host
+python3 scripts/play.py --game haymaker --join 192.168.1.12
+```
+
+Or select **Haymaker** in the library. One computer hosts; every other player runs the same game on their own computer and screen. Practice mode fights three bots on a single machine. Third-person melee, loot, jump pads, and a shrinking ring. Host-authoritative Godot ENet on the local network; no account or Internet connection. Address entry is the join path in this slice (LAN discovery and online relay remain later). See [match rules and two-computer setup](sdk/examples/haymaker/README.md) and the [multiplayer design](docs/multiplayer.md).
 
 ## Play Sunbreak — single-player first-person shooter
 

@@ -30,11 +30,15 @@ if not Platform.is_runtime_supported():
     print(Platform.runtime_status["instructions"])
 ```
 
-The SDK project in this directory already enables the plugin and autoload. Its main scene is the playable [Little World](examples/little_world/README.md) 3D example.
+The SDK project in this directory already enables the plugin and autoload. Its main scene is the playable [Little World](examples/little_world/README.md) 3D example. [Haymaker](examples/haymaker/README.md) is the LAN host/client sample: `Platform.install_lan_session()` starts a direct ENet session (`host_game` / `join_game` / address parsing). Games still own simulation, cameras, and rules.
 
 ## Player input API (prototype)
 
 ```gdscript
+var session: Node = Platform.install_lan_session()
+session.host_game(24567)
+# or session.join_game("192.168.1.12", 24567)
+
 Platform.input.player_joined.connect(spawn_character)
 Platform.input.player_left.connect(remove_character)
 Platform.input.roster_changed.connect(update_join_ui)

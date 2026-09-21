@@ -8,6 +8,7 @@ const NativeXpad = preload("res://addons/couchgames/native_xpad.gd")
 const ControllerMotion = preload("res://addons/couchgames/controller_motion.gd")
 const PauseOverlay = preload("res://addons/couchgames/pause_overlay.gd")
 const LobbyOverlay = preload("res://addons/couchgames/lobby.gd")
+const LanSession = preload("res://addons/couchgames/lan_session.gd")
 const Saves = preload("res://addons/couchgames/saves.gd")
 
 var runtime_status: Dictionary = {}
@@ -67,6 +68,15 @@ func install_lobby() -> CanvasLayer:
 	overlay.name = "LobbyOverlay"
 	add_child(overlay)
 	return overlay
+
+
+func install_lan_session() -> Node:
+	if has_node("LanSession"):
+		return get_node("LanSession")
+	var session := LanSession.new()
+	session.name = "LanSession"
+	add_child(session)
+	return session
 
 
 func save_data(slot: String, data: Variant) -> Dictionary:
