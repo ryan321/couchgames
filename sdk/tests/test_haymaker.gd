@@ -25,6 +25,15 @@ func run() -> void:
 	var parsed: Dictionary = session.parse_address("192.168.1.12:24568")
 	expect(str(parsed["host"]) == "192.168.1.12" and int(parsed["port"]) == 24568, "Address parser keeps host and port")
 	expect(int(session.parse_address("10.0.0.4")["port"]) == 24567, "Address without port uses the default")
+	var ranked: PackedStringArray = LanSession.collect_lan_addresses([
+		{"name": "lo0", "addresses": PackedStringArray(["127.0.0.1", "::1"])},
+		{"name": "awdl0", "addresses": PackedStringArray(["169.254.12.4"])},
+		{"name": "en0", "addresses": PackedStringArray(["fe80::1", "192.168.1.44"])},
+		{"name": "en1", "addresses": PackedStringArray(["10.0.0.9"])},
+	])
+	expect(ranked.size() >= 1 and ranked[0] == "192.168.1.44", "Wi-Fi 192.168 wins over loopback")
+	expect("127.0.0.1" not in ranked and "fe80::1" not in ranked, "Loopback and IPv6 stay off the join card")
+	expect("10.0.0.9" in ranked, "A secondary private address is still listed")
 
 	var game = load("res://examples/haymaker/arena.tscn").instantiate()
 	root.add_child(game)
@@ -34,6 +43,18 @@ func run() -> void:
 	await physics_frame
 	expect(game.phase == "menu" and game.hud.menu.visible, "Game starts on the host/join menu")
 	expect(game.camera.current, "This computer has its own camera")
+	expect(game.join_address == "", "Join field does not default to loopback")
+	expect(game.hud.choices.size() >= 1 and game.hud.choice_index == 0, "Practice is the highlighted menu action")
+	game.bots_enabled = false
+	game.drive_local_input = false
+	var confirm := InputEventJoypadButton.new()
+	confirm.pressed = true
+	confirm.button_index = JOY_BUTTON_A
+	confirm.device = 4
+	game.hud._unhandled_input(confirm)
+	expect(game.phase == "playing", "A / Cross starts the highlighted Practice action")
+	game.return_to_menu()
+	expect(game.phase == "menu", "Returning from a pad-started practice restores the menu")
 
 	game.bots_enabled = false
 	game.drive_local_input = false
@@ -131,6 +152,23 @@ func run() -> void:
 	game.match_time = 1.0
 	game._check_winner()
 	expect(game.phase == "results" and game.winner_id == 1, "Last living fighter wins")
+	expect(game.hud.menu.visible and game.hud.choices.size() >= 1, "Win/lose screen shows controller actions")
+	expect(game.hud.choices[0].text.begins_with("PLAY AGAIN"), "Play again is the highlighted result action")
+	var rematch := InputEventJoypadButton.new()
+	rematch.pressed = true
+	rematch.button_index = JOY_BUTTON_A
+	rematch.device = 4
+	game.hud._unhandled_input(rematch)
+	expect(game.phase == "playing" and game.local_fighter() != null and game.local_fighter().alive, "A / Cross starts another practice match")
+
+	game.phase = "playing"
+	game.match_time = 1.0
+	player = game.local_fighter()
+	player.invuln_left = 0.0
+	player.take_hit(1000.0, Vector3.ZERO)
+	game._check_winner()
+	expect(game.phase == "results" and game.result_title() == "YOU LOSE", "Dying in practice opens the lose screen")
+	expect(game.hud.choices[0].text.begins_with("PLAY AGAIN"), "Play again stays highlighted after a loss")
 
 	game.return_to_menu()
 	expect(game.phase == "menu" and game.fighters.is_empty(), "Results return to the session menu")

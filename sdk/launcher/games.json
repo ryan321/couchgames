@@ -64,6 +64,7 @@
     "description": "Host a brawl. Every player brings a screen.",
     "controls": "Punch, dodge, and survive the shrinking lot.",
     "scene": "res://examples/haymaker/arena.tscn",
-    "color": "e07a5f"
+    "color": "e07a5f",
+    "renderer": "forward_plus"
   }
 ]

@@ -16,7 +16,7 @@ var camera: Camera3D
 var ring_mesh: MeshInstance3D
 var phase := "menu"
 var mode := "practice"
-var join_address := "127.0.0.1"
+var join_address := ""
 var banner := ""
 var fighters: Dictionary = {}
 var loot: Array[Dictionary] = []
@@ -64,6 +64,7 @@ func _ready() -> void:
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	canvas.add_child(hud)
 	hud.show_menu()
+	apply_render_quality()
 	_parse_user_args()
 
 
@@ -133,10 +134,13 @@ func waiting_summary() -> String:
 
 
 func result_title() -> String:
+	if winner_id == local_id() and winner_id != 0:
+		return "YOU WIN"
+	var me := local_fighter()
+	if me and not me.alive:
+		return "YOU LOSE"
 	if winner_id == 0:
 		return "DRAW"
-	if winner_id == local_id():
-		return "YOU WIN"
 	var fighter: HaymakerFighter = fighters.get(winner_id) as HaymakerFighter
 	if fighter and fighter.is_bot:
 		return "BOT WINS"
@@ -144,7 +148,9 @@ func result_title() -> String:
 
 
 func result_detail() -> String:
-	return "The lot closed. Return to the menu to host or join again."
+	if mode == "client":
+		return "A / Cross asks the host for another match."
+	return "A / Cross plays again. D-pad or left stick moves."
 
 
 func start_practice() -> void:
@@ -178,6 +184,19 @@ func request_start() -> void:
 	var seed := rng.randi()
 	_begin_match(seed)
 	rpc_start.rpc(seed)
+
+
+func play_again() -> void:
+	if mode == "client":
+		rpc_request_rematch.rpc_id(1)
+		banner = "Asking the host to start another match…"
+		if hud:
+			hud.show_results()
+		return
+	if mode == "host":
+		request_start()
+		return
+	start_practice()
 
 
 func leave_session() -> void:
@@ -214,6 +233,26 @@ func spawn_test_fighter(id: int, at: Vector3 = Vector3.ZERO, bot := false) -> Ha
 	return _spawn_fighter(id, id, bot, at)
 
 
+func claim_local_device(device: int) -> void:
+	if device < 0:
+		return
+	if input_service.player_for_device(device) != 0:
+		return
+	var event := InputEventJoypadButton.new()
+	event.device = device
+	event.button_index = JOY_BUTTON_A
+	event.pressed = true
+	input_service.handle_event(event)
+
+
+func apply_render_quality() -> void:
+	var view := get_viewport()
+	view.msaa_3d = Viewport.MSAA_2X
+	if RenderingServer.get_current_rendering_method() != "gl_compatibility":
+		view.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+		view.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR
+
+
 @rpc("authority", "call_remote", "reliable")
 func rpc_start(seed: int) -> void:
 	_begin_match(seed)
@@ -237,6 +276,13 @@ func rpc_snapshot(payload: Dictionary) -> void:
 @rpc("authority", "call_remote", "reliable")
 func rpc_end(winner: int) -> void:
 	_finish(winner)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func rpc_request_rematch() -> void:
+	if mode != "host" or phase != "results":
+		return
+	request_start()
 
 
 func accept_input(peer: int, payload: Dictionary) -> bool:
@@ -294,8 +340,8 @@ func apply_snapshot(payload: Dictionary) -> void:
 
 
 func hit_targets(attacker: HaymakerFighter, heavy: bool) -> Array[HaymakerFighter]:
-	var radius := 2.15 if heavy else 1.7
-	var origin: Vector3 = attacker.global_position + Vector3(0, 0.9, 0) + attacker.facing() * 1.15
+	var radius := 2.9 if heavy else 2.35
+	var origin: Vector3 = attacker.global_position + Vector3(0, 0.9, 0) + attacker.facing() * 1.35
 	var hits: Array[HaymakerFighter] = []
 	for fighter: HaymakerFighter in fighters.values():
 		if fighter == attacker or not fighter.alive:
@@ -306,6 +352,7 @@ func hit_targets(attacker: HaymakerFighter, heavy: bool) -> Array[HaymakerFighte
 	var amount: float = attacker.heavy_damage() if heavy else attacker.punch_damage()
 	for fighter in hits:
 		fighter.take_hit(amount, fighter.global_position - attacker.global_position)
+		_strike_flash(fighter.global_position + Vector3(0, 1.1, 0))
 	return hits
 
 
@@ -394,13 +441,13 @@ func _read_local_payload(fighter: HaymakerFighter) -> Dictionary:
 	var move := Vector2.ZERO
 	if player_id != 0:
 		move = input_service.movement(player_id)
-	var jump := false
-	if player_id != 0:
-		jump = input_service.consume_jump(player_id)
-	jump = jump or Input.is_physical_key_pressed(KEY_SPACE)
-	var punch := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _held(player_id, JOY_BUTTON_X)
-	var heavy := Input.is_physical_key_pressed(KEY_F) or _held(player_id, JOY_BUTTON_Y)
-	var dodge := Input.is_physical_key_pressed(KEY_SHIFT) or _held(player_id, JOY_BUTTON_LEFT_SHOULDER)
+	var jump := Input.is_physical_key_pressed(KEY_SPACE) or _held(player_id, JOY_BUTTON_RIGHT_SHOULDER)
+	var punch := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _held(player_id, JOY_BUTTON_A) \
+		or _held(player_id, JOY_BUTTON_X) or _trigger(player_id, JOY_AXIS_TRIGGER_RIGHT)
+	var heavy := Input.is_physical_key_pressed(KEY_F) or _held(player_id, JOY_BUTTON_Y) \
+		or _trigger(player_id, JOY_AXIS_TRIGGER_LEFT)
+	var dodge := Input.is_physical_key_pressed(KEY_SHIFT) or _held(player_id, JOY_BUTTON_LEFT_SHOULDER) \
+		or _held(player_id, JOY_BUTTON_B)
 	_apply_look(fighter, player_id)
 	return {
 		"dir": [move.x, move.y],
@@ -447,15 +494,33 @@ func _held(player_id: int, button: int) -> bool:
 	return bool(buttons.get(button, false))
 
 
+func _trigger(player_id: int, axis: int) -> bool:
+	if player_id == 0 or not input_service.players.has(player_id):
+		return false
+	var device: int = int(input_service.players[player_id]["device"])
+	if device < 0:
+		return false
+	return Input.get_joy_axis(device, axis) > 0.45
+
+
 func _local_input_id() -> int:
-	if input_service.players.is_empty():
-		return 0
-	return int(input_service.players.keys()[0])
+	var keyboard_id := 0
+	for id in input_service.players:
+		var device: int = int(input_service.players[id]["device"])
+		if device != input_service.KEYBOARD_DEVICE:
+			return int(id)
+		keyboard_id = int(id)
+	return keyboard_id
 
 
 func _ensure_local_join() -> void:
 	if not input_service.players.is_empty():
 		return
+	var pads: Array = Input.get_connected_joypads()
+	if pads.size() > 0:
+		claim_local_device(int(pads[0]))
+		if not input_service.players.is_empty():
+			return
 	var event := InputEventKey.new()
 	event.pressed = true
 	event.keycode = KEY_ENTER
@@ -574,6 +639,11 @@ func _check_winner() -> void:
 	for fighter: HaymakerFighter in fighters.values():
 		if fighter.alive:
 			living.append(fighter.fighter_id)
+	var me := local_fighter()
+	if mode == "practice" and me and not me.alive:
+		var practice_winner := living[0] if living.size() == 1 else 0
+		_finish(practice_winner)
+		return
 	if living.size() > 1:
 		return
 	var winner := living[0] if living.size() == 1 else 0
@@ -590,9 +660,9 @@ func _spawn_for(id: int) -> Vector3:
 
 func _make_camera() -> void:
 	camera = Camera3D.new()
-	camera.fov = 70
+	camera.fov = 62
 	camera.near = 0.08
-	camera.position = Vector3(18, 16, 28)
+	camera.position = Vector3(14, 10, 18)
 	add_child(camera)
 	camera.look_at(Vector3.ZERO)
 	camera.current = true
@@ -603,9 +673,9 @@ func _update_camera(delta: float) -> void:
 	var target := Vector3.ZERO
 	var yaw := match_time * 0.12
 	if fighter:
-		target = fighter.global_position + Vector3(0, 1.25, 0)
+		target = fighter.global_position + Vector3(0, 1.15, 0)
 		yaw = fighter.look_yaw
-	var offset := Vector3(0, 2.3, 6.4)
+	var offset := Vector3(0, 1.85, 4.8)
 	offset = offset.rotated(Vector3.UP, yaw)
 	var desired := target + offset
 	if fighter == null:
@@ -626,10 +696,8 @@ func _make_ring() -> void:
 	shape.cap_bottom = false
 	ring_mesh = MeshInstance3D.new()
 	ring_mesh.mesh = shape
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color("7dffc3aa")
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://examples/haymaker/shaders/ring.gdshader")
 	ring_mesh.material_override = mat
 	ring_mesh.position.y = 4
 	add_child(ring_mesh)
@@ -709,6 +777,25 @@ func _toggle_fullscreen() -> void:
 	else:
 		_previous_window_mode = window_mode
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+
+
+func _strike_flash(at: Vector3) -> void:
+	var spark := MeshInstance3D.new()
+	var ball := SphereMesh.new()
+	ball.radius = 0.22
+	ball.height = 0.44
+	spark.mesh = ball
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color("fff4c2")
+	mat.emission_enabled = true
+	mat.emission = Color("ffe28a")
+	mat.emission_energy_multiplier = 4.0
+	spark.material_override = mat
+	spark.position = at
+	add_child(spark)
+	get_tree().create_timer(0.12).timeout.connect(func():
+		if is_instance_valid(spark):
+			spark.queue_free())
 
 
 func _parse_user_args() -> void:

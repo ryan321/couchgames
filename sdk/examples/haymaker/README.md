@@ -12,19 +12,20 @@ Choose **Haymaker** in the Giga Couch library, or run from the repository root:
 python3 scripts/play.py --game haymaker
 ```
 
-Uses the already-installed supported Godot. No engine, templates, or extra art packs are downloaded.
+Uses the already-installed supported Godot, with Forward+ and native Metal on macOS. No engine, templates, or extra art packs are downloaded. For older graphics hardware, use `--compatibility`.
 
 | Action | Keyboard / mouse | Standard gamepad |
 | --- | --- | --- |
+| Menu | Enter / click | A / Cross confirms, D-pad or left stick moves |
 | Move / look | WASD / hold right mouse and drag | Left / right stick |
-| Jump | Space | A / Cross |
-| Punch | Left click | X / Square |
-| Heavy | F | Y / Triangle |
-| Dodge | Shift | LB |
+| Punch | Left click | A / Cross, X / Square, or RT |
+| Heavy | F | Y / Triangle or LT |
+| Dodge | Shift | LB or B / Circle |
+| Jump | Space | RB |
 | Pause this screen | Esc | Menu / Options |
 | Fullscreen | F11 | — |
 
-Press **A / Cross** or **Enter** to claim this computer's fighter. One local player per computer in this slice.
+**A / Cross punches.** Jump is RB or Space. The menu highlights Practice first; press A / Cross to start. After a win or loss, **Play again** is highlighted — press A / Cross to restart. One local player per computer in this slice.
 
 ### Practice
 
@@ -38,7 +39,7 @@ On the host computer:
 python3 scripts/play.py --game haymaker --host
 ```
 
-Or choose **Host LAN match** in the menu. The waiting room shows this computer's LAN address and port (default **24567**). Other players join that address. Press **Start match** when everyone is in.
+Or choose **Host LAN match** in the menu. The menu and waiting room list this computer's Wi-Fi/LAN IPv4 address (never loopback `127.0.0.1`) and port **24567**. Other players type that address. Press **Start match** when everyone is in.
 
 macOS may ask for local-network permission the first time the host binds a port.
 

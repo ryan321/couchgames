@@ -31,7 +31,10 @@ var input_heavy := false
 var input_dodge := false
 var model: Node3D
 var number: Label3D
+var arm_r: Node3D
+var fist_r: MeshInstance3D
 var _time := 0.0
+var _heavy_swing := false
 var _coyote := 0.0
 var _jump_buffer := 0.0
 var _prev_punch := false
@@ -62,14 +65,26 @@ func _ready() -> void:
 	model = Node3D.new()
 	add_child(model)
 	var body := CapsuleMesh.new()
-	body.radius = 0.46
-	body.height = 1.25
-	World.mesh(model, body, Vector3(0, 0.95, 0), color)
-	World.mesh(model, SphereMesh.new(), Vector3(0, 1.62, 0.08), Color("f6d2a3")).scale = Vector3(0.72, 0.72, 0.72)
+	body.radius = 0.48
+	body.height = 1.18
+	World.mesh(model, body, Vector3(0, 1.02, 0), color, 0.55)
+	World.mesh(model, SphereMesh.new(), Vector3(0, 1.68, 0.06), Color("f3c7a0")).scale = Vector3(0.78, 0.78, 0.78)
+	World.mesh(model, SphereMesh.new(), Vector3(0, 1.92, 0.0), color.darkened(0.15)).scale = Vector3(0.62, 0.28, 0.62)
+	World.mesh(model, BoxMesh.new(), Vector3(0, 0.62, 0.02), Color("2b2b32"), 0.7).scale = Vector3(0.95, 0.42, 0.7)
 	for side in [-1.0, 1.0]:
-		World.mesh(model, SphereMesh.new(), Vector3(side * 0.16, 1.68, 0.28), Color("243c46")).scale = Vector3(0.12, 0.14, 0.08)
-		World.mesh(model, SphereMesh.new(), Vector3(side * 0.52, 0.85, 0.02), color.lightened(0.08)).scale = Vector3(0.28, 0.42, 0.28)
-		World.mesh(model, SphereMesh.new(), Vector3(side * 0.22, 0.18, 0.08), Color("314957")).scale = Vector3(0.32, 0.28, 0.4)
+		World.mesh(model, SphereMesh.new(), Vector3(side * 0.17, 1.72, 0.30), Color("1c2a32")).scale = Vector3(0.11, 0.13, 0.07)
+		World.mesh(model, SphereMesh.new(), Vector3(side * 0.22, 0.18, 0.06), Color("2a2420")).scale = Vector3(0.34, 0.26, 0.42)
+	arm_r = Node3D.new()
+	arm_r.position = Vector3(0.52, 1.12, 0.04)
+	model.add_child(arm_r)
+	World.mesh(arm_r, CapsuleMesh.new(), Vector3(0, -0.18, 0), color.lightened(0.08), 0.5).scale = Vector3(0.28, 0.55, 0.28)
+	fist_r = World.mesh(arm_r, SphereMesh.new(), Vector3(0, -0.46, 0.02), Color("f3c7a0"), 0.45)
+	fist_r.scale = Vector3(0.32, 0.32, 0.38)
+	var arm_l := Node3D.new()
+	arm_l.position = Vector3(-0.52, 1.12, 0.04)
+	model.add_child(arm_l)
+	World.mesh(arm_l, CapsuleMesh.new(), Vector3(0, -0.18, 0), color.lightened(0.08), 0.5).scale = Vector3(0.28, 0.55, 0.28)
+	World.mesh(arm_l, SphereMesh.new(), Vector3(0, -0.46, 0.02), Color("f3c7a0"), 0.45).scale = Vector3(0.3, 0.3, 0.34)
 	number = Label3D.new()
 	number.position.y = 2.25
 	number.font_size = 48
@@ -149,16 +164,21 @@ func simulate(delta: float, authoritative: bool) -> void:
 		model.rotation.y = lerp_angle(model.rotation.y, atan2(look.x, look.z), 16.0 * delta)
 	var stride := sin(_time * 14.0) * minf(Vector2(velocity.x, velocity.z).length() / SPEED, 1.0)
 	model.position.y = absf(stride) * 0.04 if is_on_floor() else 0.08
+	_pose_arms()
 	_refresh_label()
 
 
 func begin_punch(heavy: bool) -> void:
+	_heavy_swing = heavy
 	if heavy:
 		heavy_left = 0.72
-		attacking = 0.4
+		attacking = 0.42
+		velocity += facing() * 7.5
+		velocity.y = maxf(velocity.y, 1.2)
 	else:
-		punch_left = 0.32
-		attacking = 0.22
+		punch_left = 0.28
+		attacking = 0.26
+		velocity += facing() * 5.2
 
 
 func begin_dodge() -> void:
@@ -176,6 +196,7 @@ func take_hit(amount: float, from_dir: Vector3) -> void:
 	armor -= absorbed
 	health = maxf(0.0, health - (amount - absorbed))
 	invuln_left = 0.14
+	_flash(Color("ff6b5a"))
 	var push := from_dir
 	push.y = 0.0
 	if push.length() > 0.01:
@@ -238,6 +259,40 @@ func apply_snapshot(data: Dictionary) -> void:
 	alive = bool(data.get("alive", alive))
 	attacking = float(data.get("attacking", attacking))
 	_refresh_label()
+
+
+func _pose_arms() -> void:
+	if arm_r == null:
+		return
+	if attacking > 0.0:
+		var span := 0.42 if _heavy_swing else 0.26
+		var t := 1.0 - clampf(attacking / span, 0.0, 1.0)
+		var swing := sin(t * PI)
+		arm_r.rotation_degrees = Vector3(-18.0 - swing * (70.0 if _heavy_swing else 48.0), 18.0, 8.0)
+		arm_r.position = Vector3(0.52, 1.12, -swing * (0.55 if _heavy_swing else 0.38))
+		if fist_r:
+			fist_r.scale = Vector3(0.38, 0.38, 0.5) * (1.0 + swing * 0.35)
+	else:
+		arm_r.rotation_degrees = Vector3(-8.0, 8.0, 6.0)
+		arm_r.position = Vector3(0.52, 1.12, 0.04)
+		if fist_r:
+			fist_r.scale = Vector3(0.32, 0.32, 0.38)
+
+
+func _flash(tint: Color) -> void:
+	if model == null:
+		return
+	for child in model.get_children():
+		if child is MeshInstance3D and child.material_override is StandardMaterial3D:
+			(child.material_override as StandardMaterial3D).emission_enabled = true
+			(child.material_override as StandardMaterial3D).emission = tint
+			(child.material_override as StandardMaterial3D).emission_energy_multiplier = 1.6
+	get_tree().create_timer(0.12).timeout.connect(func():
+		if not is_instance_valid(model):
+			return
+		for child in model.get_children():
+			if child is MeshInstance3D and child.material_override is StandardMaterial3D:
+				(child.material_override as StandardMaterial3D).emission_energy_multiplier = 0.0)
 
 
 func _refresh_label() -> void:

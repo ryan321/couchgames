@@ -107,14 +107,64 @@ func parse_address(value: String) -> Dictionary:
 
 
 func local_addresses() -> PackedStringArray:
-	var result: PackedStringArray = PackedStringArray()
-	for address in IP.get_local_addresses():
-		var text := str(address)
-		if text.begins_with("127.") or text.begins_with("0.") or ":" in text:
+	return collect_lan_addresses(IP.get_local_interfaces())
+
+
+static func collect_lan_addresses(interfaces: Array) -> PackedStringArray:
+	var ranked: Array[Dictionary] = []
+	for iface in interfaces:
+		if not (iface is Dictionary):
 			continue
-		if text not in result:
-			result.append(text)
+		var name := str(iface.get("name", "")).to_lower()
+		var friendly := str(iface.get("friendly", "")).to_lower()
+		if _skip_interface(name):
+			continue
+		var addrs: Variant = iface.get("addresses", PackedStringArray())
+		for address in addrs:
+			var text := str(address)
+			if _skip_ip(text):
+				continue
+			var score := _ip_score(text)
+			if name.begins_with("en") or "wifi" in name or "wlan" in name or "wi-fi" in friendly:
+				score += 8
+			ranked.append({"ip": text, "score": score})
+	ranked.sort_custom(func(a, b): return int(a["score"]) > int(b["score"]))
+	var result: PackedStringArray = PackedStringArray()
+	for row in ranked:
+		var ip := str(row["ip"])
+		if ip not in result:
+			result.append(ip)
 	return result
+
+
+static func _skip_interface(name: String) -> bool:
+	for prefix in ["lo", "awdl", "llw", "utun", "bridge", "gif", "stf", "anpi", "ap", "vbox", "docker"]:
+		if name == prefix or name.begins_with(prefix):
+			return true
+	return false
+
+
+static func _skip_ip(text: String) -> bool:
+	if text.is_empty() or ":" in text:
+		return true
+	if text.begins_with("127.") or text.begins_with("0.") or text.begins_with("255."):
+		return true
+	return false
+
+
+static func _ip_score(text: String) -> int:
+	if text.begins_with("192.168."):
+		return 30
+	if text.begins_with("10."):
+		return 20
+	var parts := text.split(".")
+	if parts.size() == 4 and parts[0] == "172":
+		var second := int(parts[1])
+		if second >= 16 and second <= 31:
+			return 18
+	if text.begins_with("169.254."):
+		return 2
+	return 10
 
 
 func _bind_signals() -> void:
