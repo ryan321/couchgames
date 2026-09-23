@@ -1,0 +1,10 @@
+# First macOS compile, for this 8GB M1. A component build links pieces small
+# enough to finish here. The binary we ship is args.shipping.gn, built on a
+# machine with at least 16GB of RAM.
+is_component_build=true
+is_debug=false
+is_official_build=false
+symbol_level=0
+blink_symbol_level=0
+use_thin_lto=false
+chrome_pgo_phase=0

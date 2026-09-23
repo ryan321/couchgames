@@ -1,0 +1,186 @@
+:root {
+  --ink: #101722;
+  --panel: #1a2736;
+  --line: #2d3b4b;
+  --paper: #f2f5f8;
+  --muted: #a0afbf;
+  --mint: #8ce8be;
+  --footer: #142b28;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+}
+
+body {
+  min-height: 100%;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 4vh 5vw 3vh;
+}
+
+h1 {
+  margin: 0;
+  font-family: Palatino, "Iowan Old Style", "Palatino Linotype", serif;
+  font-weight: 600;
+  font-size: clamp(40px, 5vw, 72px);
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+
+.lede {
+  max-width: 36rem;
+  margin: 1.2rem 0 0;
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.people, .keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 3rem;
+}
+
+.choice, .key {
+  border: 3px solid transparent;
+  background: var(--panel);
+  color: var(--paper);
+  border-radius: 18px;
+  min-width: 11rem;
+  min-height: 6.5rem;
+  padding: 1.1rem 1.4rem;
+  text-align: left;
+  font: inherit;
+  font-size: 1.5rem;
+}
+
+.choice small, .stage small {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.choice.focus, .key.focus, .cover.focus {
+  border-color: var(--mint);
+  box-shadow: 0 0 0 6px rgba(140, 232, 190, 0.18);
+}
+
+.hint {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.shelf {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: minmax(12rem, 28vw) 1fr;
+  gap: 2rem;
+  align-items: end;
+  padding-bottom: 1rem;
+}
+
+.stage-mark {
+  width: 16rem;
+  height: 9rem;
+  border-radius: 22px;
+  background: var(--stage, var(--mint));
+}
+
+.stage h1 { font-size: clamp(36px, 4vw, 56px); }
+
+.bands {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.bands h2 {
+  margin: 0 0 0.35rem;
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.empty {
+  margin: 0;
+  color: var(--muted);
+}
+
+.stage p {
+  max-width: 38rem;
+  margin: 0.8rem 0 0;
+  color: var(--muted);
+  font-size: 1.3rem;
+  line-height: 1.35;
+}
+
+.play-line {
+  margin-top: 1.2rem;
+  color: var(--mint);
+  font-size: 1.15rem;
+}
+
+.row {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.4rem 0.2rem 0.6rem;
+  scroll-behavior: smooth;
+}
+
+.cover {
+  flex: 0 0 10rem;
+  height: 5.4rem;
+  border-radius: 16px;
+  border: 3px solid transparent;
+  background: var(--cover);
+  color: #10221c;
+  padding: 0.8rem;
+  display: flex;
+  align-items: flex-end;
+  font-weight: 600;
+  font-size: 1.15rem;
+}
+
+.code {
+  margin: 1.4rem 0 0;
+  font-family: Palatino, "Iowan Old Style", serif;
+  font-size: clamp(40px, 6vw, 72px);
+  letter-spacing: 0.12em;
+}
+
+.spelling {
+  margin: 1.5rem 0 0;
+  min-height: 3.2rem;
+  font-family: Palatino, "Iowan Old Style", serif;
+  font-size: 2.4rem;
+}
+
+.key {
+  min-width: 3.4rem;
+  min-height: 3.4rem;
+  padding: 0.4rem;
+  text-align: center;
+  font-size: 1.2rem;
+}

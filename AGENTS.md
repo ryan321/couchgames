@@ -10,7 +10,9 @@
 
 ## Architecture
 
-- Read `PRODUCT.md`, `TECH_STACK.md`, and `IMPLEMENTATION_PLAN.md` for scope and current milestones.
+- Read `PRODUCT.md`, `TECH_STACK.md`, `IMPLEMENTATION_PLAN.md`, and `docs/GIGACOUCH_ARCHITECTURE_v2.md` for scope and current milestones.
+- The current game browser is the web-1 shell in `runtimes/web/`: a Rust loopback origin plus the Electron kiosk. `python3 runtimes/web/fetch_shell.py` is the only supported way to download that shell, and it writes to `/Volumes/External`. Do not resume the partial CEF/Chromium compile under `/Volumes/External/projects/gigacouch-chromium` unless asked. Do not add a new native Godot runtime; the existing Godot prototype stays.
+- On this Mac a Chromium source tree, if one is used, stays at `/Volumes/External/projects/gigacouch-chromium`. Do not check Chromium out onto the internal disk.
 - Games execute on player-owned computers. SQLite is local; Neon PostgreSQL is accessible through the platform backend only.
 - Reuse one installed runtime for compatible games. Keep game processes separate from the launcher and privileged host operations.
 - Keep package identity and validation in `crates/manifests`, and local persistence/install behavior in `crates/local-library`.

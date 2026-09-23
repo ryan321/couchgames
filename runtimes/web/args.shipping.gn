@@ -1,0 +1,9 @@
+# Redistributable web-1 build. Use this on Windows and on any Mac with at
+# least 16GB of RAM. Do not use it on the 8GB development Mac; the link will
+# run out of memory.
+is_component_build=false
+is_debug=false
+is_official_build=true
+symbol_level=1
+use_thin_lto=false
+chrome_pgo_phase=0

@@ -1,0 +1,74 @@
+[
+  {
+    "id": "blob-island",
+    "title": "Blob Island",
+    "players": "1–16 on this couch",
+    "description": "A small island and a crowd of blobs. This one plays in the browser.",
+    "runtime": "web-1",
+    "playable": true,
+    "color": "#8ce8be"
+  },
+  {
+    "id": "little-world",
+    "title": "Little World",
+    "players": "1–16 on this couch",
+    "description": "A tiny island. A whole couch of friends.",
+    "runtime": "godot",
+    "playable": false,
+    "color": "#a5cfa1"
+  },
+  {
+    "id": "cloudbound",
+    "title": "Cloudbound",
+    "players": "1 player",
+    "description": "A scenic flight through the clouds.",
+    "runtime": "godot",
+    "playable": false,
+    "color": "#9acbd8"
+  },
+  {
+    "id": "world-1-1",
+    "title": "Super Mario Bros.",
+    "players": "1 player, World 1-1",
+    "description": "The original first level, recreated.",
+    "runtime": "godot",
+    "playable": false,
+    "color": "#e8ba87"
+  },
+  {
+    "id": "pocket-rally",
+    "title": "Pocket Rally",
+    "players": "1–16, split screen",
+    "description": "Your car. Your corner of the screen.",
+    "runtime": "godot",
+    "playable": false,
+    "color": "#efba87"
+  },
+  {
+    "id": "gauntlet",
+    "title": "Gauntlet",
+    "players": "1–16 together",
+    "description": "Four heroes. Three vaults. A whole couch.",
+    "runtime": "godot",
+    "playable": false,
+    "color": "#c5a0d9"
+  },
+  {
+    "id": "sunbreak",
+    "title": "Sunbreak",
+    "players": "1 player",
+    "description": "A sunlit island. A closing storm. Your last stand.",
+    "runtime": "godot",
+    "playable": false,
+    "color": "#78bdba"
+  },
+  {
+    "id": "haymaker",
+    "title": "Haymaker",
+    "players": "2–8 over the network",
+    "description": "Host a brawl. Every player brings a screen.",
+    "runtime": "godot",
+    "playable": false,
+    "color": "#e07a5f"
+  }
+]

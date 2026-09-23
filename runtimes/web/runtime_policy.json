@@ -1,0 +1,11 @@
+{
+  "runtime_id": "web-1",
+  "shell": "electron-prototype",
+  "electron_version": "44.4.4",
+  "graphics_target": ["webgl", "webgl2", "webgpu"],
+  "os": ["macos", "windows"],
+  "controllers": 16,
+  "shell_dir_macos": "/Volumes/External/projects/gigacouch-electron",
+  "paused_source_dir_macos": "/Volumes/External/projects/gigacouch-chromium",
+  "notes": "The playable prototype is the Electron kiosk plus the Rust local origin. fetch_shell.py is the only downloader and it writes to the external drive. The partial CEF tree is not the running browser."
+}

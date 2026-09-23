@@ -1,6 +1,20 @@
 # V1 Implementation Plan
 
-This is the execution checklist for [TECH_STACK.md](TECH_STACK.md). V1 is complete when a creator can build a Godot game, integrate our SDK, play it from the couch, and privately share it with another player.
+The current architecture is [docs/GIGACOUCH_ARCHITECTURE_v2.md](docs/GIGACOUCH_ARCHITECTURE_v2.md). The browser slice in progress is the web-1 shell in [runtimes/web](runtimes/web/README.md): a Rust loopback origin, a 16-slot bridge, and an Electron kiosk. The partial CEF source tree on the external drive is not that browser. The Godot player and SDK remain the existing prototype; v2 still treats a managed Godot runtime as a later first-class target, and this plan does not add one.
+
+The checklist below is the existing Godot prototype. That prototype stays in the repo. It is not the V1 shipping runtime.
+
+## Web-1 browser prototype
+
+- [x] `gigacouch.json` package for `runtime: web-1`, with the entry kept inside `web/`.
+- [x] Loopback origin that injects the platform scripts, serves the package, and refuses paths outside `web/`.
+- [x] Host-owned slots 1–16. South joins and jumps; east held for 1.25s leaves; keyboard Enter/Space joins, Space jumps, Backspace leaves. The page stub replaces `navigator.getGamepads`.
+- [x] Save read/write on the host (256 KiB, atomic replace) and `GigaCouch.lifecycle.quit()`.
+- [x] Blob Island sample and `couch web-serve` / `couch web-run`. The shell download is `python3 runtimes/web/fetch_shell.py` and is not invoked by tests or the CLI.
+- [x] `couch platform` serves accounts, the master library, and package downloads. `couch web-home` signs in with a device code, then can download Blob Island. The server database is local to that process; it is not Neon yet. Godot titles are listed and still launch from the local projects.
+- [ ] Windows shell, graphics-API launch gate, OS sandbox proof, and the pinned CEF/Chromium build. A package test does not prove those.
+
+Verified on this Mac: `cargo fmt --all -- --check`, `cargo test --workspace --locked`, and `cargo clippy --workspace --all-targets --locked -- -D warnings`. `couch web-run --windowed` opened Blob Island in the Electron shell; Enter joined player 1 and the on-screen hint came from the bridge. That does not verify a physical controller, WebGPU, Windows, or the sandbox.
 
 ## Current constraints
 

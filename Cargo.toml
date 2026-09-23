@@ -1,5 +1,5 @@
 [workspace]
-members = ["apps/cli", "crates/manifests", "crates/local-library", "crates/runtime"]
+members = ["apps/cli", "crates/manifests", "crates/local-library", "crates/platform", "crates/runtime", "crates/web-host"]
 resolver = "2"
 
 [workspace.package]
@@ -22,6 +22,8 @@ tokio = { version = "1", features = ["macros", "rt", "time", "process", "io-util
 couch-manifests = { path = "crates/manifests" }
 couch-local-library = { path = "crates/local-library" }
 couch-runtime = { path = "crates/runtime" }
+couch-web-host = { path = "crates/web-host" }
+couch-platform = { path = "crates/platform" }
 
 # Keep local builds small on machines with limited disk space.
 [profile.dev]

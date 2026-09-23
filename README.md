@@ -6,6 +6,7 @@ A controller-first platform for playing and privately sharing Godot games on you
 - [Game Development Kit: contents, workflow, and delivery plan](GDK.md)
 - [What the platform and GDK provide: code, scripts, and instructions](docs/platform-and-gdk.md)
 - [Giga Couch player app: TV library, controllers, accounts and social](docs/giga-couch-app.md)
+- [Runtime architecture](docs/GIGACOUCH_ARCHITECTURE_v2.md)
 - [Technical architecture and stack](TECH_STACK.md)
 - [V1 implementation plan](IMPLEMENTATION_PLAN.md)
 - [Multiplayer design: LAN and managed online relaying](docs/multiplayer.md)
@@ -39,6 +40,8 @@ The first V1 slice is **local package validation and installation**:
 **Godot is not required for package/library commands and is not installed or downloaded by them.** `doctor` probes discovered executables with `--headless --version`. Package validation executes no game code: success means that metadata and bytes match, not that a package is playable, signed, or safe.
 
 A source-game library screen is implemented. The production desktop host, full input/save SDK, runtime installation, packaged game launch, OS sandbox, Neon API, sign-in, downloads, and sharing remain planned work. Little World is a playable source prototype, not a complete V1 platform release.
+
+`couch web-serve` and `couch web-run` host a local web-1 package. Blob Island is the sample. The Electron shell is fetched separately onto the external drive; package tests do not download it or prove the game runs. See [runtimes/web/README.md](runtimes/web/README.md).
 
 ## Open the game library
 

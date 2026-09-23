@@ -344,28 +344,7 @@ impl Host {
                 command.env("COUCH_WII_NATIVE_STATE", &state);
             }
         }
-        if let Some(pck) = game["pck"].as_str().filter(|value| !value.is_empty()) {
-            command.arg("--main-pack").arg(pck);
-            if let Some(parent) = Path::new(pck).parent() {
-                command.current_dir(parent);
-            }
-        } else {
-            let project = game["project"].as_str().filter(|value| !value.is_empty());
-            let path = project
-                .map(PathBuf::from)
-                .unwrap_or_else(|| self.sdk.clone());
-            let scene = game["scene"]
-                .as_str()
-                .filter(|value| value.starts_with("res://"))
-                .context("That game or controller setup is unavailable.")?;
-            if !path.join("project.godot").is_file() {
-                anyhow::bail!(
-                    "This project folder is missing or unreadable. Open it again from Creator Hub."
-                );
-            }
-            command.arg("--path").arg(&path).arg(scene);
-            command.current_dir(if project.is_some() { &path } else { &self.root });
-        }
+        attach_game_target(&mut command, &game, &self.sdk, &self.root)?;
         self.log = Some(log);
         self.game = Some(command.spawn().context("Cannot start engine")?);
         self.state["phase"] = json!("running");
@@ -375,6 +354,86 @@ impl Host {
         ));
         Ok(())
     }
+}
+
+pub struct RunningGame {
+    pub child: Child,
+    pub title: String,
+}
+
+/// Start one Godot game in its own window. The caller keeps the shelf process alive.
+pub fn spawn_listed_game(
+    godot: &Path,
+    root: &Path,
+    sdk: &Path,
+    data_dir: &Path,
+    session: &Path,
+    game: &Value,
+    profile: &str,
+) -> Result<RunningGame> {
+    if game["missing"].as_bool() == Some(true) {
+        anyhow::bail!(
+            "This project folder is missing or unreadable. Open it again from Creator Hub."
+        );
+    }
+    if game["playable"].as_bool() == Some(false) {
+        anyhow::bail!(
+            "{}",
+            game["reason"]
+                .as_str()
+                .unwrap_or("This package isn't playable yet.")
+        );
+    }
+    let game_id = game
+        .get("id")
+        .and_then(Value::as_str)
+        .context("That game or controller setup is unavailable.")?;
+    let title = game["title"].as_str().unwrap_or("The game").to_string();
+    fs::create_dir_all(session)?;
+    let log = fs::File::create(session.join("game.log"))?;
+    let saves = save_dir(data_dir, profile, game_id)?;
+    let mut command = Command::new(godot);
+    command.stdin(Stdio::null());
+    command.stdout(log.try_clone()?);
+    command.stderr(Stdio::from(log));
+    strip_session_vars(&mut command);
+    command.env("COUCH_SAVE_DIR", &saves);
+    command.env("COUCH_PROFILE", profile);
+    command.env("SDL_JOYSTICK_HIDAPI_COMBINE_JOY_CONS", "0");
+    command.env("SDL_JOYSTICK_HIDAPI_VERTICAL_JOY_CONS", "0");
+    attach_game_target(&mut command, game, sdk, root)?;
+    let child = command.spawn().context("Cannot start engine")?;
+    Ok(RunningGame { child, title })
+}
+
+fn attach_game_target(command: &mut Command, game: &Value, sdk: &Path, root: &Path) -> Result<()> {
+    if let Some(pck) = game["pck"].as_str().filter(|value| !value.is_empty()) {
+        command.arg("--main-pack").arg(pck);
+        if let Some(parent) = Path::new(pck).parent() {
+            command.current_dir(parent);
+        }
+        return Ok(());
+    }
+    let project = game["project"].as_str().filter(|value| !value.is_empty());
+    let path = project
+        .map(PathBuf::from)
+        .unwrap_or_else(|| sdk.to_path_buf());
+    let scene = game["scene"]
+        .as_str()
+        .filter(|value| value.starts_with("res://"))
+        .context("That game or controller setup is unavailable.")?;
+    if !path.join("project.godot").is_file() {
+        anyhow::bail!(
+            "This project folder is missing or unreadable. Open it again from Creator Hub."
+        );
+    }
+    command.arg("--path").arg(&path).arg(scene);
+    command.current_dir(if project.is_some() {
+        path
+    } else {
+        root.to_path_buf()
+    });
+    Ok(())
 }
 
 fn strip_session_vars(command: &mut Command) {
@@ -474,7 +533,7 @@ fn pck_is_playable(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-async fn shelf_catalog(sdk: &Path, data_dir: &Path) -> Result<Vec<Value>> {
+pub async fn shelf_catalog(sdk: &Path, data_dir: &Path) -> Result<Vec<Value>> {
     let builtin: Vec<Value> =
         serde_json::from_str(&fs::read_to_string(sdk.join("launcher/games.json"))?)?;
     let mut games = Vec::new();
@@ -572,4 +631,58 @@ async fn shelf_catalog(sdk: &Path, data_dir: &Path) -> Result<Vec<Value>> {
         library.close().await;
     }
     Ok(games)
+}
+
+#[cfg(test)]
+mod launch_tests {
+    use super::{RunningGame, spawn_listed_game};
+    use serde_json::Value;
+    use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
+
+    #[test]
+    fn spawn_listed_game_opens_the_scene_in_a_separate_process() {
+        let dir = tempfile::tempdir().unwrap();
+        let godot = dir.path().join("godot");
+        fs::write(
+            &godot,
+            "#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$(dirname \"$0\")/args.txt\"\nprintf '%s' \"$COUCH_PROFILE\" > \"$(dirname \"$0\")/profile.txt\"\nprintf '%s' \"$COUCH_SAVE_DIR\" > \"$(dirname \"$0\")/save.txt\"\n",
+        )
+        .unwrap();
+        let mut permissions = fs::metadata(&godot).unwrap().permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&godot, permissions).unwrap();
+        let sdk = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../sdk");
+        let root = sdk.parent().unwrap().to_path_buf();
+        let games: Vec<Value> =
+            serde_json::from_str(&fs::read_to_string(sdk.join("launcher/games.json")).unwrap())
+                .unwrap();
+        let game = games
+            .iter()
+            .find(|row| row["id"] == "little-world")
+            .unwrap();
+        let RunningGame { mut child, title } = spawn_listed_game(
+            &godot,
+            &root,
+            &sdk,
+            &dir.path().join("data"),
+            &dir.path().join("session"),
+            game,
+            "family",
+        )
+        .unwrap();
+        assert_eq!(title, "Little World");
+        assert!(child.wait().unwrap().success());
+        let args = fs::read_to_string(dir.path().join("args.txt")).unwrap();
+        assert!(args.contains("--path"), "{args}");
+        assert!(
+            args.contains("res://examples/little_world/world.tscn"),
+            "{args}"
+        );
+        assert_eq!(
+            fs::read_to_string(dir.path().join("profile.txt")).unwrap(),
+            "family"
+        );
+        let save = fs::read_to_string(dir.path().join("save.txt")).unwrap();
+        assert!(save.contains("family/little-world"), "{save}");
+    }
 }

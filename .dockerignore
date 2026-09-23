@@ -1,0 +1,17 @@
+target
+.git
+.gigacouch
+.couchgames
+.local-demo
+sdk
+art
+brand
+tools
+docs
+**/*.blend
+**/*.glb
+**/*.png
+!brand/mark.png
+!brand/logo.png
+**/*.wav
+**/*.mp3

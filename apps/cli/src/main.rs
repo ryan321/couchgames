@@ -1,5 +1,6 @@
 mod host;
 mod project;
+mod web;
 mod workflow;
 
 use anyhow::{Context, Result};
@@ -89,6 +90,40 @@ enum Command {
     },
     /// List all installed releases, including inactive previous versions.
     Library,
+    /// Open the couch Home: sign in, browse the library, and play.
+    WebHome {
+        /// Open a window instead of fullscreen kiosk.
+        #[arg(long)]
+        windowed: bool,
+        /// Platform API. Home still opens if this server is not running.
+        #[arg(long, default_value = "http://127.0.0.1:8787")]
+        platform: String,
+    },
+    /// Run the platform server: accounts, the master library, and downloads.
+    Platform {
+        /// Address for this computer. The player app does not open the database.
+        #[arg(long, default_value = "127.0.0.1:8787")]
+        bind: String,
+    },
+    /// Serve a web-1 package from a loopback origin. Does not download a browser.
+    WebServe {
+        #[arg(long)]
+        package: PathBuf,
+        /// Save directory. Defaults to the guest slot for this game.
+        #[arg(long)]
+        save_dir: Option<PathBuf>,
+    },
+    /// Open a web-1 package in the Giga Couch browser shell.
+    WebRun {
+        #[arg(long)]
+        package: PathBuf,
+        /// Save directory. Defaults to the guest slot for this game.
+        #[arg(long)]
+        save_dir: Option<PathBuf>,
+        /// Open a window instead of fullscreen kiosk.
+        #[arg(long)]
+        windowed: bool,
+    },
     /// Run the local Game Player host (library UI + game launch). Uses an installed Godot.
     Host {
         /// Giga Couch checkout or kit root containing sdk/ and tools/.
@@ -125,6 +160,8 @@ async fn main() {
             } else if let Some(e) = error.downcast_ref::<couch_local_library::Error>() {
                 e.code()
             } else if let Some(e) = error.downcast_ref::<project::CliError>() {
+                e.code()
+            } else if let Some(e) = error.downcast_ref::<couch_web_host::Error>() {
                 e.code()
             } else {
                 "COMMAND_FAILED"
@@ -259,7 +296,7 @@ async fn run(cli: &Cli) -> Result<(Value, String)> {
                 "godot": report
             });
             let mut human = format!(
-                "Giga Couch {}\nData directory: {}\n{godot_message}\nPackage and library commands require no Godot.\nRuntime installation and game launch are not implemented. No tools are downloaded.",
+                "Giga Couch {}\nData directory: {}\n{godot_message}\nPackage and library commands require no Godot.\n`couch web-serve` hosts a local web-1 package and does not download a browser.",
                 env!("CARGO_PKG_VERSION"),
                 root.display()
             );
@@ -373,6 +410,48 @@ async fn run(cli: &Cli) -> Result<(Value, String)> {
                 result.target
             );
             Ok((serde_json::to_value(result)?, human))
+        }
+        Command::WebHome { windowed, platform } => {
+            web::home(
+                *windowed,
+                cli.json,
+                &data_dir(cli)?,
+                cli.godot.clone(),
+                std::time::Duration::from_secs(cli.godot_timeout_secs),
+                platform,
+            )
+            .await?;
+            std::process::exit(0);
+        }
+        Command::Platform { bind } => {
+            let data = data_dir(cli)?.join("platform");
+            let packages = data.join("packages");
+            let root = web::checkout_root()
+                .context("could not find the game packages from this checkout")?;
+            couch_platform::publish_blob_island(
+                &packages,
+                &root.join("runtimes/web/examples/blob-island"),
+            )?;
+            couch_platform::serve_until_stopped(&data, &packages, bind, None)?;
+            std::process::exit(0);
+        }
+        Command::WebServe { package, save_dir } => {
+            web::serve(package, save_dir.as_deref(), cli.json, &data_dir(cli)?)?;
+            std::process::exit(0);
+        }
+        Command::WebRun {
+            package,
+            save_dir,
+            windowed,
+        } => {
+            web::run(
+                package,
+                save_dir.as_deref(),
+                *windowed,
+                cli.json,
+                &data_dir(cli)?,
+            )?;
+            std::process::exit(0);
         }
         Command::Host { root, sdk } => {
             let godot = if let Some(path) = &cli.godot {

@@ -1,0 +1,10 @@
+{
+  "manifest_version": 1,
+  "game_id": "gigacouch.blob-island",
+  "title": "Blob Island",
+  "version": "0.1.0",
+  "runtime": "web-1",
+  "entrypoint": "web/index.html",
+  "gigacouch_api": "1",
+  "players": { "min": 1, "max": 16 }
+}

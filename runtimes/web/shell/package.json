@@ -1,0 +1,7 @@
+{
+  "name": "gigacouch-web-shell",
+  "private": true,
+  "version": "0.1.0",
+  "main": "main.js",
+  "description": "Kiosk shell for the Giga Couch web-1 prototype. Electron is supplied separately."
+}
