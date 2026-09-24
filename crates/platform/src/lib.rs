@@ -255,7 +255,11 @@ fn route(
         (Method::Get, "/health") => Ok(json_response(200, &json!({"ok": true}))),
         (Method::Get, "/") => Ok(html_response(pages::LANDING_PAGE)),
         (Method::Get, "/site.css") => Ok(css_response(pages::SITE_CSS)),
+        (Method::Get, "/landing.css") => Ok(css_response(pages::LANDING_CSS)),
+        (Method::Get, "/landing.js") => Ok(javascript_response(pages::LANDING_JS)),
         (Method::Get, "/brand/mark.png") => Ok(png_response(pages::MARK_PNG)),
+        (Method::Get, "/fonts/SpaceGrotesk.woff2") => Ok(font_response(pages::SPACE_GROTESK_WOFF2)),
+        (Method::Get, "/fonts/Inter.woff2") => Ok(font_response(pages::INTER_WOFF2)),
         (Method::Get, "/account") | (Method::Get, "/link") => {
             Ok(html_response(pages::ACCOUNT_PAGE))
         }
@@ -663,6 +667,22 @@ fn html_response(body: &str) -> Response<std::io::Cursor<Vec<u8>>> {
 fn png_response(body: &[u8]) -> Response<std::io::Cursor<Vec<u8>>> {
     let mut response = Response::from_data(body.to_vec()).with_status_code(StatusCode(200));
     if let Ok(header) = Header::from_bytes(b"Content-Type", b"image/png") {
+        response = response.with_header(header);
+    }
+    response
+}
+
+fn font_response(body: &[u8]) -> Response<std::io::Cursor<Vec<u8>>> {
+    let mut response = Response::from_data(body.to_vec()).with_status_code(StatusCode(200));
+    if let Ok(header) = Header::from_bytes(b"Content-Type", b"font/woff2") {
+        response = response.with_header(header);
+    }
+    response
+}
+
+fn javascript_response(body: &str) -> Response<std::io::Cursor<Vec<u8>>> {
+    let mut response = Response::from_data(body.as_bytes().to_vec());
+    if let Ok(header) = Header::from_bytes(b"Content-Type", b"text/javascript; charset=utf-8") {
         response = response.with_header(header);
     }
     response

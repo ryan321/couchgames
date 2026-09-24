@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070b0d">
+  <meta name="description" content="Turn your wildest ideas into real games. Giga Couch brings AI-created games to your TV, your controllers, and your favorite people.">
+  <title>Giga Couch — Game night, from another dimension.</title>
+  <link rel="icon" href="/brand/mark.png">
+  <link rel="preload" href="/fonts/SpaceGrotesk.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/landing.css">
+  <script src="/landing.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="page-progress" aria-hidden="true"></div>
+  <header class="header">
+    <a class="logo" href="/" aria-label="Giga Couch home"><img src="/brand/mark.png" alt="">giga<span>couch</span></a>
+    <nav aria-label="Main navigation"><a href="#possibilities">The possibilities</a><a href="#how">How it works</a><a class="nav-join" href="/account">Enter the couch <span aria-hidden="true">↗</span></a></nav>
+  </header>
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-grain" aria-hidden="true"></div>
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="hero-heading"><p class="eyebrow"><i></i> REAL PEOPLE. UNREAL GAME NIGHTS.</p><h1 id="hero-title">GAME NIGHT.<br><span>REIMAGINED.</span></h1></div>
+      <div class="portal-halo" aria-hidden="true"></div>
+      <canvas id="universe" aria-label="A couch is created in stages: a scanned wireframe, blocky geometry, progressively smoother surfaces, and detailed upholstery. The sequence loops. Move your pointer to look around."></canvas>
+      <div class="fallback-couch" aria-hidden="true"><img src="/brand/mark.png" alt=""></div>
+      <div class="scene-label" aria-hidden="true"><span class="crosshair">+</span><span><span id="build-phase">01 / THE IDEA</span><br>IMAGINATION → REALITY</span></div>
+      <div class="scene-index" aria-hidden="true"><span id="dimension-number">01</span> / ∞<small>DIMENSIONS TO EXPLORE</small></div>
+      <div class="hero-bottom">
+        <div class="hero-intro"><p>That wild idea in your head?<br>It’s your next <em>“one more round.”</em></p><span>Make it with AI. Play it on your TV. Bring everyone.</span></div>
+        <a class="primary magnetic" href="/account"><span>Find your next dimension</span><b aria-hidden="true">↗</b></a>
+      </div>
+      <div class="experience-bar"><a class="scroll-cue" href="#possibilities"><span aria-hidden="true">↓</span> SCROLL TO GO BEYOND</a><div class="dimension-picker" role="group" aria-label="Choose the atmosphere"><button type="button" data-dimension="0" aria-pressed="true"><i></i> DAYDREAM</button><button type="button" data-dimension="1" aria-pressed="false"><i></i> AFTER HOURS</button><button type="button" data-dimension="2" aria-pressed="false"><i></i> SUPER NOVA</button></div><button class="motion" type="button" id="motion" aria-pressed="false" aria-label="Pause animations">Ⅱ</button></div>
+      <button type="button" class="warp" id="warp"><span aria-hidden="true">✳</span> OPEN A PORTAL</button>
+      <span class="sr-only" id="dimension-status" aria-live="polite"></span>
+    </section>
+    <div class="marquee" aria-hidden="true"><div><span>YOUR IDEAS <b>✳</b> YOUR GAMES <b>✳</b> YOUR PEOPLE <b>✳</b> YOUR RULES <b>✳</b> </span><span>YOUR IDEAS <b>✳</b> YOUR GAMES <b>✳</b> YOUR PEOPLE <b>✳</b> YOUR RULES <b>✳</b> </span></div></div>
+    <section class="possibilities section" id="possibilities" aria-labelledby="possibilities-title">
+      <div class="section-meta"><span>01 / NO SMALL IDEAS</span><span>ONLY BIG POSSIBILITIES ↘</span></div>
+      <h2 id="possibilities-title" class="manifesto"><span class="reveal-line">An inside joke.</span><span class="reveal-line">A made-up universe.</span><span class="reveal-line accent">A game only you</span><span class="reveal-line accent">could dream up.</span></h2>
+      <div class="possibility-bottom"><span class="asterisk" aria-hidden="true">✳</span><p>The next great game doesn’t need a studio.<br>It needs an idea. Your AI helps you build it.<br>Giga Couch brings it to the living room.</p></div>
+    </section>
+    <section class="worlds-section" aria-labelledby="worlds-title">
+      <div class="worlds-header section-meta"><h2 id="worlds-title">WHAT IF GAME NIGHT LOOKED LIKE THIS?</h2><span>IMAGINATION LAB / CONCEPT WORLDS</span></div>
+      <div class="worlds">
+        <article class="world-card island" tabindex="0"><div class="world-art" aria-hidden="true"><div class="world-orbit"></div><div class="island-land"><span></span><span></span><span></span></div><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><div class="world-star">✧</div></div><span class="world-tag">01 / FRIENDLY CHAOS</span><div class="world-info"><p>“Make us blobs.<br>Give us zero chill.”</p><span>A tiny island. Some very big rivalries.</span></div><span class="card-arrow" aria-hidden="true">↗</span></article>
+        <article class="world-card lunar" tabindex="0"><div class="world-art" aria-hidden="true"><div class="moon"></div><div class="race-ring r1"></div><div class="race-ring r2"></div><div class="race-ring r3"></div><i class="racer"></i><i class="racer second"></i><div class="world-star">+</div></div><span class="world-tag">02 / QUESTIONABLE PHYSICS</span><div class="world-info"><p>“Race you to<br>the other moon.”</p><span>No gravity. Absolutely no brakes.</span></div><span class="card-arrow" aria-hidden="true">↗</span></article>
+        <article class="world-card cosmic" tabindex="0"><div class="world-art" aria-hidden="true"><div class="cosmic-ring c1"></div><div class="cosmic-ring c2"></div><div class="cosmic-ring c3"></div><div class="cosmic-orb"></div><div class="world-star">✳</div></div><span class="world-tag">03 / MAIN CHARACTER ENERGY</span><div class="world-info"><p>“Our family.<br>Saving the galaxy.”</p><span>Finally, a universe that gets you.</span></div><span class="card-arrow" aria-hidden="true">↗</span></article>
+      </div>
+      <p class="worlds-note">A few things you could imagine. What would you make?</p>
+    </section>
+    <section class="how section" id="how" aria-labelledby="how-title">
+      <div class="section-meta"><span>02 / FROM YOUR HEAD TO YOUR TV</span><span>THE COUCH CONNECTION ↘</span></div>
+      <div class="how-layout"><div class="how-heading"><h2 id="how-title">AI makes<br>the game.<br><span>We make it<br>a couch game.</span></h2><div class="signal" aria-hidden="true"><span>&lt;idea&gt;</span><i></i><img src="/brand/mark.png" alt=""><i></i><span>▶ play</span></div></div>
+        <div class="steps"><article><span>01</span><div><h3>Go on. Get weird.</h3><p>Bring the AI tools you love. Make a real game about anything, for anyone. Your ideas stay yours. So do your projects.</p></div><b aria-hidden="true">✳</b></article><article><span>02</span><div><h3>Give it couch powers.</h3><p>Giga Couch connects your game to controllers, local players, and the big screen. Your computer does the work. Your TV gets the glory.</p></div><b aria-hidden="true">⌘</b></article><article><span>03</span><div><h3>Make some noise.</h3><p>Get your people in the same room. Pick up controllers. Turn “what if” into the kind of night you’ll still be talking about.</p></div><b aria-hidden="true">↗</b></article></div>
+      </div>
+    </section>
+    <section class="people section" aria-labelledby="people-title"><div class="people-glow" aria-hidden="true"></div><div class="section-meta"><span>03 / BUILT FOR TOGETHER</span><span>LESS FEED. MORE FRIENDS.</span></div><div class="people-layout"><div class="player-constellation" aria-hidden="true"><div class="constellation-ring"></div><div class="constellation-ring inner"></div><div class="player-count">1—16<span>ROOM FOR YOUR PEOPLE</span></div><div class="player-node p1">P1</div><div class="player-node p2">P2</div><div class="player-node p3">P3</div><div class="player-node p4">P4</div><div class="player-node p5">+12</div></div><div class="people-copy"><h2 id="people-title">Multiplayer.<br><span>Actually together.</span></h2><p>The best part of the game isn’t on the screen.<br>It’s sitting right next to you.</p><div class="pill-row"><span>Your PC or Mac</span><span>Your TV</span><span>Your controllers</span></div><small>Designed for 1–16 local players. Actual player counts depend on the game and your controller setup. Hardware qualification is ongoing.</small></div></div></section>
+    <section class="finale section" aria-labelledby="finale-title"><div class="finale-orbit" aria-hidden="true"></div><p class="eyebrow"><i></i> THE NEXT DIMENSION IS YOURS</p><h2 id="finale-title">Your couch.<br><span>No limits to<br>your imagination.</span></h2><a class="primary magnetic" href="/account"><span>Let’s make a game night</span><b aria-hidden="true">↗</b></a><p class="finale-note">We’re just getting started. Create an account. Be part of what comes next.</p></section>
+  </main>
+  <footer class="footer"><a class="logo" href="/" aria-label="Giga Couch home"><img src="/brand/mark.png" alt="">giga<span>couch</span></a><p>YOUR IDEAS. YOUR GAMES. YOUR PEOPLE.</p><a href="#main">BACK TO EARTH ↑</a></footer>
+</body>
+</html>

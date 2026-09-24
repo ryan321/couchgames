@@ -16,6 +16,13 @@ The checklist below is the existing Godot prototype. That prototype stays in the
 
 Verified on this Mac: `cargo fmt --all -- --check`, `cargo test --workspace --locked`, and `cargo clippy --workspace --all-targets --locked -- -D warnings`. `couch web-run --windowed` opened Blob Island in the Electron shell; Enter joined player 1 and the on-screen hint came from the bridge. That does not verify a physical controller, WebGPU, Windows, or the sandbox.
 
+## Public landing page
+
+- [x] Replace the public landing page with an immersive WebGL couch/portal, a 28-second creation loop (wireframe scan → blockout → faceted geometry → smooth surfaces → detailed green upholstery → reset), pointer parallax, three selectable atmospheres, portal pulse, animated concept illustrations, scroll reveals, and account calls to action.
+- [x] Keep all landing assets local, isolate styles from account pages, honor reduced motion, pause hidden/offscreen rendering, and provide a WebGL fallback. Illustrations do not imply playable games or runtime qualification.
+
+Local verification for the landing page: the Rust workspace tests, formatting check, and Clippy passed; JavaScript syntax and the bounded, repeating creation timeline were checked. The desktop scene, atmosphere switching, portal action, and pause control were reviewed in Chrome. These checks do not qualify game execution or controller hardware.
+
 ## Current constraints
 
 - The user authorized the standard Godot 4.7.2 editor for development and dogfooding. Do not install export templates or additional runtime versions implicitly; disk space remains limited.

@@ -1,38 +1,6 @@
-pub const LANDING_PAGE: &str = r#"<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Giga Couch</title>
-  <link rel="stylesheet" href="/site.css">
-</head>
-<body>
-  <aside class="rail">
-    <img class="mark" src="/brand/mark.png" alt="Giga Couch">
-    <p class="wordmark"><span>GIGA</span><span>COUCH</span></p>
-    <p class="eyebrow">Game platform</p>
-    <div class="worlds" aria-hidden="true"></div>
-    <ol class="steps">
-      <li><span>01</span>Sit down together</li>
-      <li><span>02</span>Pick up a controller</li>
-      <li><span>03</span>Choose a game</li>
-      <li><span>04</span>Play on the TV</li>
-    </ol>
-    <p class="rail-foot"><span>Your ideas. Your games.</span>Built for playing together.</p>
-  </aside>
-  <main>
-    <p class="eyebrow">The living room</p>
-    <h1>AI can make the game. We make it a couch game.</h1>
-    <p class="lede">Giga Couch is the app on the computer by the TV. Friends sit down, pick up controllers, and play. The game files stay in a private library. Your account decides what you can download.</p>
-    <p class="actions"><a class="button" href="/account">Create an account</a><a class="quiet" href="/account">Sign in</a></p>
-    <section class="cards">
-      <article><h2>On this Mac</h2><p>Downloaded games stay on the computer and still play when the library is offline.</p></article>
-      <article><h2>The library</h2><p>New games wait in a private bucket. The account is what unlocks a download.</p></article>
-    </section>
-  </main>
-</body>
-</html>
-"#;
+pub const LANDING_PAGE: &str = include_str!("../site/landing.html");
+pub const LANDING_CSS: &str = include_str!("../site/landing.css");
+pub const LANDING_JS: &str = include_str!("../site/landing.js");
 
 pub const ACCOUNT_PAGE: &str = r#"<!DOCTYPE html>
 <html lang="en">
@@ -184,3 +152,5 @@ li span { color: #a0afbf; }
 "#;
 
 pub const MARK_PNG: &[u8] = include_bytes!("../../../brand/mark.png");
+pub const SPACE_GROTESK_WOFF2: &[u8] = include_bytes!("../../../brand/fonts/SpaceGrotesk.woff2");
+pub const INTER_WOFF2: &[u8] = include_bytes!("../../../brand/fonts/Inter.woff2");

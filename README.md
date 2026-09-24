@@ -13,6 +13,14 @@ A controller-first platform for playing and privately sharing Godot games on you
 - [Pricing strategy options: paid platform, subscriptions, and creator marketplace](docs/pricing-strategy.md)
 - [Package manifest schema](schemas/manifest.schema.json)
 
+## Public landing page
+
+`couch platform` serves the landing page at `/` and the existing account flow at `/account`. The page source lives in `crates/platform/site/`: a responsive, full-screen WebGL couch and portal, a 28-second creation loop (wireframe scan → blockout → faceted geometry → smooth surfaces → detailed upholstery → reset), pointer parallax, three selectable atmospheres, a portal pulse, animated concept worlds, and scroll reveals. Assets and fonts are served locally; there are no CDN or JavaScript framework dependencies. These are illustrative concepts, not playable game previews.
+
+The final creation pass adds sage green linen shading, a geometry-locked woven texture, inflated cushions, and rounded seam piping; earlier stages retain their simpler materials.
+
+The motion control pauses the scene and CSS animations. Reduced-motion preferences are respected, rendering stops when the hero is offscreen or the tab is hidden, and a branded fallback appears when WebGL is unavailable. The landing page has its own stylesheet; account styling remains separate.
+
 ## GDK setup preview
 
 Build and open the native macOS Apple Silicon installer:
