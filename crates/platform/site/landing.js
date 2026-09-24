@@ -99,7 +99,7 @@
     if(flight)return;
     if(drag)endDrag({pointerId:drag.id});
     flight={elapsed:0,restorePaused:paused,gentle:reduced.matches,
-      spinAxis:normalize([Math.random()-.5,Math.random()-.5,Math.random()-.5]),spinSpeed:.32+Math.random()*.12};
+      spinAxis:normalize([Math.random()-.5,Math.random()-.5,Math.random()-.5]),spinTurns:2+Math.random()*.2};
     paused=false;
     hyperButton.disabled=true;hyperButton.setAttribute('aria-busy','true');
     orbit.setAttribute('aria-disabled','true');$('#reset-view').disabled=true;
@@ -293,11 +293,14 @@
   }
   function flightMatrix() {
     if(!flight||flight.gentle)return identity();
-    // A different axis per jump, cruising at just 18–25 degrees per second.
-    // Ease into the tumble and blend it away during the half-second return.
-    const age=flight.elapsed,travel=age-(1-Math.exp(-age*4))*.25;
-    const halfAngle=travel*flight.spinSpeed*flightPower()*.5;
-    return quaternionMatrix([...flight.spinAxis.map(n=>n*Math.sin(halfAngle)),Math.cos(halfAngle)]);
+    // Accelerate through about two turns, then settle along the shortest arc.
+    // Blending the raw angle to zero would rewind both turns during the exit.
+    const age=Math.min(flight.elapsed,3),travel=age-(1-Math.exp(-age*4))*.25;
+    const totalTravel=3-(1-Math.exp(-12))*.25;
+    const halfAngle=travel/totalTravel*flight.spinTurns*Math.PI;
+    const spin=[...flight.spinAxis.map(n=>n*Math.sin(halfAngle)),Math.cos(halfAngle)];
+    const settle=smoothstep((flight.elapsed-3)/.5),sign=spin[3]<0?-1:1;
+    return quaternionMatrix(normalize(spin.map((n,i)=>n*sign*(1-settle)+(i===3?settle:0))));
   }
   function trackball(e) {
     const r=orbit.getBoundingClientRect(),radius=Math.min(r.width,r.height)*.65;
