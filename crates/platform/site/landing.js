@@ -84,6 +84,8 @@
   // Small, dependency-free WebGL scene. No models, libraries, or runtimes to download.
   let gl, program, starsProgram, linesProgram, wireProgram, locations, starLocations, lineLocations, wireLocations;
   let couchParts = [], ringMeshes = [], controllerParts = [], starBuffer, dustBuffer, orbitBuffer;
+  let gameCameos = [], cameoProgram, cameoLocations, cameoBuffer;
+  const cameoImages = new Map();
   let currentColor = [...palettes[0].rgb], currentCouch = [...palettes[0].couch];
   let width = 0, height = 0, ready = false;
   let backdrop = null;
@@ -264,6 +266,59 @@
     const geometry=mesh(data);geometry.levels=[geometry,geometry,geometry,geometry];return geometry;
   }
   function part(geometry,position,rotation=[0,0,0],material=0) {return {geometry,local:compose(translation(...position),rotationZ(rotation[2]),rotationY(rotation[1]),rotationX(rotation[0])),material};}
+  // Blender/Cycles passes preserve the detailed materials without shipping a 3D
+  // asset loader or shading dozens of extra meshes on every animation frame.
+  function makeGameCameos() {
+    cameoProgram=makeProgram(`
+      attribute vec2 aPosition;uniform mat4 uModel;uniform mat4 uVP;varying vec2 vUV;
+      void main(){vUV=aPosition+.5;gl_Position=uVP*uModel*vec4(aPosition,0.0,1.0);}
+    `,`
+      precision highp float;varying vec2 vUV;
+      uniform sampler2D uAtlas;uniform vec3 uAccent;
+      uniform float uWire;uniform float uClay;uniform float uFinish;uniform float uOpacity;
+      vec4 pass(float index){return texture2D(uAtlas,vec2((vUV.x+index)/3.0,vUV.y));}
+      void main(){
+        vec4 wire=pass(0.0),clay=pass(1.0),finished=pass(2.0);
+        wire.rgb=mix(wire.rgb,uAccent,.4);
+        wire.a*=smoothstep(vUV.y-.02,vUV.y+.02,uWire);
+        float form=smoothstep(vUV.y-.025,vUV.y+.025,uClay);
+        float material=smoothstep(vUV.y-.025,vUV.y+.025,uFinish);
+        // Blend in premultiplied space so transparent wire pixels leave no fringe.
+        vec4 w=vec4(wire.rgb*wire.a,wire.a),c=vec4(clay.rgb*clay.a,clay.a),f=vec4(finished.rgb*finished.a,finished.a);
+        vec4 color=mix(w,mix(c,f,material),form);
+        float scan=exp(-abs(vUV.y-uClay)*95.0)*step(.001,uClay)*(1.0-step(.999,uClay));
+        scan+=exp(-abs(vUV.y-uFinish)*95.0)*step(.001,uFinish)*(1.0-step(.999,uFinish));
+        color.rgb+=uAccent*scan*color.a*.4;
+        gl_FragColor=color*uOpacity;
+      }
+    `);
+    cameoLocations={p:gl.getAttribLocation(cameoProgram,'aPosition')};
+    ['Model','VP','Atlas','Accent','Wire','Clay','Finish','Opacity'].forEach(n=>cameoLocations[n]=gl.getUniformLocation(cameoProgram,'u'+n));
+    cameoBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,cameoBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-.5,-.5,.5,-.5,-.5,.5,-.5,.5,.5,-.5,.5,.5]),gl.STATIC_DRAW);
+    const definitions=[['jet',[.48,.85,1],11.3,.3],['car',[1,.67,.4],13.1,4.1],['wizard',[.77,.58,1],15.7,8.5]];
+    return definitions.map(([name,accent,period,offset])=>{
+      const model={name,accent,period,offset,texture:gl.createTexture(),loaded:false,aspect:1};
+      let source=cameoImages.get(name);
+      if(!source){source=new Image();source.decoding='async';cameoImages.set(name,source);}
+      function upload(){
+        if(gl.isContextLost())return;
+        gl.bindTexture(gl.TEXTURE_2D,model.texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
+        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+        model.aspect=source.naturalWidth/(source.naturalHeight*3);model.loaded=true;draw();
+      }
+      if(source.complete && source.naturalWidth)upload();
+      else {
+        source.addEventListener('load',()=>{if(gameCameos.includes(model))upload();},{once:true});
+        source.addEventListener('error',()=>console.warn('Giga Couch world render unavailable:',name),{once:true});
+        if(!source.src)source.src='/landing-worlds/'+name+'.png';
+      }
+      return model;
+    });
+  }
   function makeScene() {
     program=makeProgram(`
       attribute vec3 aPosition;attribute vec3 aNormal;
@@ -374,6 +429,7 @@
     orbitBuffer={buffer:gl.createBuffer(),count:orbit.length/3};gl.bindBuffer(gl.ARRAY_BUFFER,orbitBuffer.buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(orbit),gl.STATIC_DRAW);
     const dust=[];for(let i=0;i<64;i++){const a=i/64*TAU;dust.push(Math.cos(a)*3.47,Math.sin(a)*3.47,0,Math.cos(a+.006)*3.47,Math.sin(a+.006)*3.47,0);}
     dustBuffer={buffer:gl.createBuffer(),count:dust.length/3};gl.bindBuffer(gl.ARRAY_BUFFER,dustBuffer.buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(dust),gl.STATIC_DRAW);
+    gameCameos=makeGameCameos();
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);ready=true;document.body.classList.add('scene-ready');
   }
   function renderMesh(geometry,model,color,emission=0,metal=0,opacity=1,building=0,quality=2,scanModel=model) {
@@ -384,13 +440,51 @@
   function renderLines(geometry,model,vp,alpha) {
     gl.useProgram(linesProgram);gl.bindBuffer(gl.ARRAY_BUFFER,geometry.buffer);gl.enableVertexAttribArray(lineLocations.p);gl.vertexAttribPointer(lineLocations.p,3,gl.FLOAT,false,12,0);gl.uniformMatrix4fv(lineLocations.VP,false,vp);gl.uniformMatrix4fv(lineLocations.Model,false,model);gl.uniform4f(lineLocations.Color,...currentColor,alpha);gl.drawArrays(gl.LINES,0,geometry.count);gl.disableVertexAttribArray(lineLocations.p);
   }
-  function renderWire(geometry,model,vp,plane,mode=1,fade=1,scanModel=model) {
+  function renderWire(geometry,model,vp,plane,mode=1,fade=1,scanModel=model,accent=currentColor) {
     if(!geometry.wireBuffer)return;
     gl.useProgram(wireProgram);gl.bindBuffer(gl.ARRAY_BUFFER,geometry.wireBuffer);
     gl.enableVertexAttribArray(wireLocations.p);gl.vertexAttribPointer(wireLocations.p,3,gl.FLOAT,false,12,0);
     gl.uniformMatrix4fv(wireLocations.VP,false,vp);gl.uniformMatrix4fv(wireLocations.Model,false,model);gl.uniformMatrix4fv(wireLocations.ScanModel,false,scanModel);
-    gl.uniform3fv(wireLocations.Accent,currentColor);gl.uniform1f(wireLocations.RevealPlane,plane);gl.uniform1f(wireLocations.Time,time);gl.uniform1f(wireLocations.WireMode,mode);gl.uniform1f(wireLocations.WireFade,fade);
+    gl.uniform3fv(wireLocations.Accent,accent);gl.uniform1f(wireLocations.RevealPlane,plane);gl.uniform1f(wireLocations.Time,time);gl.uniform1f(wireLocations.WireMode,mode);gl.uniform1f(wireLocations.WireFade,fade);
     gl.drawArrays(gl.LINES,0,geometry.wireCount);gl.disableVertexAttribArray(wireLocations.p);
+  }
+  const ease=n=>{n=Math.max(0,Math.min(1,n));return n*n*(3-2*n);};
+  function cameoState(index,t,mobile,still=false) {
+    const model=gameCameos[index];
+    // Portrait layouts give each object its own eight-second visit.
+    if(mobile && (still?index!==0:Math.floor(t/8)%3!==index))return null;
+    const age=still?3.6:mobile?t%8:(t+model.offset)%model.period;
+    if(age>=7.4)return null;
+    const entry=ease(age/.65),exit=ease((age-5.5)/1.9);
+    return {age,entry,exit,opacity:entry*(1-exit),build:ease((age-.85)/1.0),wire:ease(age/.8)};
+  }
+  function renderCameos() {
+    const mobile=width<760,compact=width<1100,span=32*Math.tan(.325);
+    const vp=compose(perspective(.65,width/height,.1,60),translation(0,0,-16));
+    const anchors=mobile?[[.5,.405],[.5,.415],[.5,.415]]:compact?[[.12,.505],[.86,.735],[.90,.475]]:[[.115,.375],[.865,.735],[.89,.415]];
+    gl.useProgram(cameoProgram);gl.bindBuffer(gl.ARRAY_BUFFER,cameoBuffer);
+    gl.enableVertexAttribArray(cameoLocations.p);gl.vertexAttribPointer(cameoLocations.p,2,gl.FLOAT,false,0,0);
+    gl.uniformMatrix4fv(cameoLocations.VP,false,vp);gl.uniform1i(cameoLocations.Atlas,0);
+    gl.disable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+    for(let index=0;index<gameCameos.length;index++) {
+      const model=gameCameos[index],state=cameoState(index,time,mobile,reduced.matches);
+      if(!model.loaded || !state || state.opacity<.005)continue;
+      const {age,entry,exit,opacity}=state;
+      let [x,y]=anchors[index],rz=0;
+      if(index===0){x-=(1-entry)*.17+exit*.19;x+=(age/7.4-.5)*.035;y-=exit*.18;rz=Math.sin(age*.9)*.05+exit*1.5;}
+      if(index===1){x+=(entry-1)*.05+exit*.2+(age/7.4-.5)*.05;y+=Math.sin(age*2)*.0015;rz=-.025+exit*.07;}
+      if(index===2){y+=(1-entry)*.025-exit*.07+Math.sin(age*1.7)*.006;rz=Math.sin(age)*.015;}
+      const pixels=index===2?(mobile?128:compact?166:240):(mobile?136:compact?160:index===0?260:245);
+      const w=index===2?pixels*model.aspect:pixels,h=index===2?pixels:pixels/model.aspect;
+      const root=compose(translation((x-.5)*span*width/height,(.5-y)*span,0),rotationZ(rz),scale(w*span/height,h*span/height,1));
+      gl.uniformMatrix4fv(cameoLocations.Model,false,root);gl.uniform3fv(cameoLocations.Accent,model.accent);
+      gl.uniform1f(cameoLocations.Wire,ease(age/.65));gl.uniform1f(cameoLocations.Clay,ease((age-.7)/.55));
+      gl.uniform1f(cameoLocations.Finish,ease((age-1.25)/.65));gl.uniform1f(cameoLocations.Opacity,opacity);
+      gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,model.texture);gl.drawArrays(gl.TRIANGLES,0,6);
+    }
+    gl.disableVertexAttribArray(cameoLocations.p);gl.disable(gl.BLEND);gl.enable(gl.DEPTH_TEST);
+    // The interactive couch remains in front of the decorative worlds.
+    gl.clear(gl.DEPTH_BUFFER_BIT);
   }
   // A 28-second creation story. Every new pass replaces only the scanned region,
   // so viewers can see blocky and refined geometry side by side at the frontier.
@@ -594,7 +688,9 @@
     renderLines(orbitBuffer,multiply(ring,rotationZ(time*.015)),vp,.35);
     renderLines(dustBuffer,multiply(ring,rotationZ(-time*.12)),vp,.8);
     gl.depthMask(true);gl.disable(gl.BLEND);
+    renderCameos();
     gl.useProgram(program);
+    gl.uniformMatrix4fv(locations.VP,false,vp);gl.uniform3fv(locations.Accent,currentColor);gl.uniform3fv(locations.Eye,eye);gl.uniform1f(locations.RevealPlane,plane);
     function renderCouchQuality(quality,clip) {
       if(quality<0)return;
       couchParts.forEach((p,index)=>{

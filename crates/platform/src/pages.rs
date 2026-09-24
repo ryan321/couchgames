@@ -1,6 +1,9 @@
 pub const LANDING_PAGE: &str = include_str!("../site/landing.html");
 pub const LANDING_CSS: &str = include_str!("../site/landing.css");
 pub const LANDING_JS: &str = include_str!("../site/landing.js");
+pub const WORLD_JET_PNG: &[u8] = include_bytes!("../site/worlds/jet.png");
+pub const WORLD_CAR_PNG: &[u8] = include_bytes!("../site/worlds/car.png");
+pub const WORLD_WIZARD_PNG: &[u8] = include_bytes!("../site/worlds/wizard.png");
 
 pub const ACCOUNT_PAGE: &str = r#"<!DOCTYPE html>
 <html lang="en">
