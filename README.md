@@ -17,7 +17,11 @@ A controller-first platform for playing and privately sharing Godot games on you
 
 `couch platform` serves the landing page at `/` and the existing account flow at `/account`. The page source lives in `crates/platform/site/`: a responsive, full-screen WebGL couch and portal, a 28-second creation loop (wireframe scan → blockout → faceted geometry → smooth surfaces → detailed upholstery → reset), pointer parallax, three selectable atmospheres, a portal pulse, animated concept worlds, and scroll reveals. Assets and fonts are served locally; there are no CDN or JavaScript framework dependencies. These are illustrative concepts, not playable game previews.
 
+The hero background is a procedural WebGL environment: flowing aurora filaments, drifting nebula clouds and distant stars over a receding grid. Energy waves follow the couch’s scan stages, pointer motion bends the currents, and arrival or Open a Portal sends a gravity wave and radial flight trails through the scene. The background renders behind the headline, caps its resolution and update rate, and falls back to static gradients if its graphics context is unavailable.
+
 The final creation pass adds sage green linen shading, a geometry-locked woven texture, inflated cushions, and rounded seam piping; earlier stages retain their simpler materials.
+
+Every couch stage is a full 3D model. Drag over the couch to rotate in any direction; arrow keys turn it, Q/E roll it, and Home or Reset View restores the original view. A browser-standard controller uses the left stick to turn, the right stick horizontally to roll, and A/Cross to reset. Press a controller button to make it available to the browser. Rotation works while paused or with reduced motion enabled; touch scrolling remains available outside the couch.
 
 The motion control pauses the scene and CSS animations. Reduced-motion preferences are respected, rendering stops when the hero is offscreen or the tab is hidden, and a branded fallback appears when WebGL is unavailable. The landing page has its own stylesheet; account styling remains separate.
 
