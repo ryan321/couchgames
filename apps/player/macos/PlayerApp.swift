@@ -23,7 +23,7 @@ final class PlayerApp: NSObject, NSApplicationDelegate {
         // Stay visible above the engine's initial blank window until it has drawn the library.
         window.level = .floating
         let brand = StudioBrand.markView(size: 88)
-        let title = StudioStyle.label("Getting your games ready", size: 25, weight: .semibold)
+        let title = StudioStyle.label("Getting your games ready", size: 25, weight: .semibold, display: true)
         let spinner = NSProgressIndicator()
         spinner.style = .spinning; spinner.controlSize = .regular; spinner.startAnimation(nil)
         let stack = NSStackView(views: [brand, title, spinner, stageLabel])

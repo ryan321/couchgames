@@ -13,6 +13,8 @@ A controller-first platform for playing and privately sharing Godot games on you
 - [Pricing strategy options: paid platform, subscriptions, and creator marketplace](docs/pricing-strategy.md)
 - [Package manifest schema](schemas/manifest.schema.json)
 
+The account pages, web library, native setup/player, Creator Hub, and Godot library share the navy-and-mint palette, Inter UI text, and Space Grotesk headings described in [the brand guide](brand/README.md). Fonts are bundled locally; the native build scripts include them in each app.
+
 ## Public landing page
 
 `couch platform` serves the landing page at `/` and the existing account flow at `/account`. The page source lives in `crates/platform/site/`: a responsive, full-screen WebGL couch and portal, a 28-second creation loop (wireframe scan → blockout → faceted geometry → smooth surfaces → detailed upholstery → reset), pointer parallax, three selectable atmospheres, a Hyperdrive jump, animated concept worlds, and scroll reveals. Assets and fonts are served locally; there are no CDN or JavaScript framework dependencies. These are illustrative concepts, not playable game previews.
@@ -28,6 +30,18 @@ The final creation pass adds sage green linen shading, a geometry-locked woven t
 Every couch stage is a full 3D model. Drag over the couch to rotate in any direction; arrow keys turn it, Q/E roll it, and Home or Reset View restores the original view. A browser-standard controller uses the left stick to turn, the right stick horizontally to roll, and A/Cross to reset. Press a controller button to make it available to the browser. Rotation works while paused or with reduced motion enabled; touch scrolling remains available outside the couch.
 
 The motion control pauses the scene and CSS animations. Reduced-motion preferences are respected, normal scene rendering stops when the hero is offscreen or the tab is hidden, and a branded fallback appears when WebGL is unavailable. The landing page has its own stylesheet; account styling remains separate.
+
+
+### Deploy the platform to Fly
+
+The existing app is `gigacouch-platform`; `fly.toml` and `Dockerfile` are in the repository root. With the installed Fly CLI authenticated, deploy from this directory:
+
+```sh
+flyctl deploy --remote-only --app gigacouch-platform
+flyctl status --app gigacouch-platform
+```
+
+The remote builder compiles the Rust server and embeds the landing HTML, CSS, JavaScript, mark, and WOFF2 fonts. `.dockerignore` explicitly includes those fonts. The command sends the current local build context, including uncommitted files that are not ignored; review or isolate local changes when deploying only a particular commit. Pushing to GitHub does not deploy this app: the configured GitHub workflow runs manual Rust checks only. The app is available at `https://gigacouch-platform.fly.dev`.
 
 ## GDK setup preview
 
@@ -81,7 +95,7 @@ python3 scripts/play.py --game haymaker --host
 python3 scripts/play.py --game haymaker --join 192.168.1.12
 ```
 
-Or select **Haymaker** in the library. One computer hosts; every other player runs the same game on their own computer and screen. Practice mode fights three bots on a single machine. Third-person melee, loot, jump pads, and a shrinking ring. Host-authoritative Godot ENet on the local network; no account or Internet connection. Address entry is the join path in this slice (LAN discovery and online relay remain later). See [match rules and two-computer setup](sdk/examples/haymaker/README.md) and the [multiplayer design](docs/multiplayer.md).
+Or select **Haymaker** in the library. One computer hosts; every other player runs the same game on their own computer and screen. Practice mode fights three bots on a single machine. The carnival city includes a wrestling ring, textured buildings, and four animated wrestler builds. Combat adds three-hit combos, grab/slam, dash, block, dropkick, and elbow drop alongside loot, jump pads, and the shrinking ring. Host-authoritative Godot ENet on the local network; no account or Internet connection. Address entry is the join path in this slice (LAN discovery and online relay remain later). See [match rules and two-computer setup](sdk/examples/haymaker/README.md) and the [multiplayer design](docs/multiplayer.md).
 
 ## Play Sunbreak — single-player first-person shooter
 

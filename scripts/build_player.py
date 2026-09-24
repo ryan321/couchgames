@@ -45,12 +45,17 @@ def main():
     icns = output / "AppIcon.icns"
     make_icns(icns)
     install_into_app(contents, icns)
+    fonts = contents / "Resources/fonts"
+    fonts.mkdir(exist_ok=True)
+    for font in ("Inter.ttf", "SpaceGrotesk.ttf"):
+        shutil.copy2(ROOT / "brand/fonts" / font, fonts / font)
     info = {
         "CFBundleExecutable": "GigaCouch", "CFBundleIdentifier": "com.gigacouch.player",
         "CFBundleName": "Giga Couch", "CFBundlePackageType": "APPL",
         "CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "1",
         "LSMinimumSystemVersion": "13.0", "NSHighResolutionCapable": True,
         "GigaSourceRoot": str(ROOT), "GigaPython": sys.executable,
+        "ATSApplicationFontsPath": "fonts",
     }
     info.update(plist_icon())
     (contents / "Info.plist").write_bytes(plistlib.dumps(info))

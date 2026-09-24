@@ -29,7 +29,7 @@ final class AgentSetup: NSObject {
         picker.target = self; picker.action = #selector(selectionChanged)
         picker.setAccessibilityLabel("AI coding assistant")
         if let saved = preferences.string(forKey: "preferredAgent"), let index = AgentCore.providers.firstIndex(where: { $0.id == saved }) { picker.selectItem(at: index) }
-        let title = StudioStyle.label("Meet your coding partner.", size: 26, weight: .bold)
+        let title = StudioStyle.label("Meet your coding partner.", size: 26, weight: .bold, display: true)
         let intro = StudioStyle.label("Choose a CLI to help build your games. You can also use an agent in an editor, desktop app, or elsewhere.", size: 14, color: StudioStyle.muted)
         installButton = button("Install agent…", #selector(installAgent), primary: true)
         let actions = NSStackView(views: [installButton, button("Use this agent", #selector(useAgent)), button("Check again", #selector(recheck))])

@@ -1,9 +1,11 @@
 class_name HaymakerFighter
 extends CharacterBody3D
-## Host-simulated brawler. Clients display interpolated copies of the same node.
+## Host-simulated brawler. Quaternius humanoid presentation; physics stay on this body.
 
 const World = preload("res://examples/haymaker/world.gd")
+const Rig = preload("res://examples/haymaker/wrestler_rig.gd")
 const SPEED := 7.4
+const DASH_SPEED := 12.2
 const GRAVITY := 26.0
 const JUMP_SPEED := 9.6
 const COLORS: Array[Color] = [Color("ed7559"), Color("5ba7db"), Color("d6ab43"), Color("ad84c6"),
@@ -24,13 +26,23 @@ var heavy_left := 0.0
 var dodge_left := 0.0
 var invuln_left := 0.0
 var attacking := 0.0
+var blocking := false
+var dashing := false
+var combo := 0
+var combo_left := 0.0
+var move := "idle"
+var grab_target: HaymakerFighter
+var grab_left := 0.0
 var input_dir := Vector2.ZERO
 var input_jump := false
 var input_punch := false
 var input_heavy := false
 var input_dodge := false
+var input_dash := false
+var input_block := false
 var model: Node3D
 var number: Label3D
+var rig: Node3D
 var arm_r: Node3D
 var fist_r: MeshInstance3D
 var _time := 0.0
@@ -64,29 +76,11 @@ func _ready() -> void:
 	add_child(collision)
 	model = Node3D.new()
 	add_child(model)
-	var body := CapsuleMesh.new()
-	body.radius = 0.48
-	body.height = 1.18
-	World.mesh(model, body, Vector3(0, 1.02, 0), color, 0.55)
-	World.mesh(model, SphereMesh.new(), Vector3(0, 1.68, 0.06), Color("f3c7a0")).scale = Vector3(0.78, 0.78, 0.78)
-	World.mesh(model, SphereMesh.new(), Vector3(0, 1.92, 0.0), color.darkened(0.15)).scale = Vector3(0.62, 0.28, 0.62)
-	World.mesh(model, BoxMesh.new(), Vector3(0, 0.62, 0.02), Color("2b2b32"), 0.7).scale = Vector3(0.95, 0.42, 0.7)
-	for side in [-1.0, 1.0]:
-		World.mesh(model, SphereMesh.new(), Vector3(side * 0.17, 1.72, 0.30), Color("1c2a32")).scale = Vector3(0.11, 0.13, 0.07)
-		World.mesh(model, SphereMesh.new(), Vector3(side * 0.22, 0.18, 0.06), Color("2a2420")).scale = Vector3(0.34, 0.26, 0.42)
-	arm_r = Node3D.new()
-	arm_r.position = Vector3(0.52, 1.12, 0.04)
-	model.add_child(arm_r)
-	World.mesh(arm_r, CapsuleMesh.new(), Vector3(0, -0.18, 0), color.lightened(0.08), 0.5).scale = Vector3(0.28, 0.55, 0.28)
-	fist_r = World.mesh(arm_r, SphereMesh.new(), Vector3(0, -0.46, 0.02), Color("f3c7a0"), 0.45)
-	fist_r.scale = Vector3(0.32, 0.32, 0.38)
-	var arm_l := Node3D.new()
-	arm_l.position = Vector3(-0.52, 1.12, 0.04)
-	model.add_child(arm_l)
-	World.mesh(arm_l, CapsuleMesh.new(), Vector3(0, -0.18, 0), color.lightened(0.08), 0.5).scale = Vector3(0.28, 0.55, 0.28)
-	World.mesh(arm_l, SphereMesh.new(), Vector3(0, -0.46, 0.02), Color("f3c7a0"), 0.45).scale = Vector3(0.3, 0.3, 0.34)
+	rig = Rig.new()
+	model.add_child(rig)
+	rig.setup((fighter_id - 1) % 4, color)
 	number = Label3D.new()
-	number.position.y = 2.25
+	number.position.y = 2.35
 	number.font_size = 48
 	number.pixel_size = 0.01
 	number.outline_size = 10
@@ -102,11 +96,12 @@ func facing() -> Vector3:
 
 
 func punch_damage() -> float:
-	return 28.0 if weapon == "bat" else 16.0
+	var step := 12.0 + float(combo) * 8.0
+	return (step + 10.0) if weapon == "bat" else step
 
 
 func heavy_damage() -> float:
-	return 42.0 if weapon == "bat" else 28.0
+	return 48.0 if weapon == "bat" else 34.0
 
 
 func consume_edges() -> Dictionary:
@@ -128,9 +123,16 @@ func simulate(delta: float, authoritative: bool) -> void:
 	dodge_left = maxf(0.0, dodge_left - delta)
 	invuln_left = maxf(0.0, invuln_left - delta)
 	attacking = maxf(0.0, attacking - delta)
+	combo_left = maxf(0.0, combo_left - delta)
+	if combo_left <= 0.0:
+		combo = 0
 	weapon_left = maxf(0.0, weapon_left - delta)
 	if weapon_left <= 0.0:
 		weapon = ""
+	blocking = input_block and alive and dodge_left <= 0.0 and grab_left <= 0.0
+	dashing = input_dash and alive and is_on_floor() and not blocking
+	if grab_left > 0.0:
+		_tick_grab(delta, authoritative)
 	if not alive:
 		velocity.x = move_toward(velocity.x, 0.0, 18.0 * delta)
 		velocity.z = move_toward(velocity.z, 0.0, 18.0 * delta)
@@ -140,9 +142,11 @@ func simulate(delta: float, authoritative: bool) -> void:
 		_refresh_label()
 		return
 	var direction := Basis(Vector3.UP, look_yaw) * Vector3(input_dir.x, 0.0, input_dir.y)
-	var speed := SPEED * (1.55 if dodge_left > 0.18 else 1.0)
-	if attacking > 0.12:
-		speed *= 0.45
+	var speed := DASH_SPEED if dashing else SPEED
+	if blocking:
+		speed *= 0.35
+	if attacking > 0.12 and move != "dropkick":
+		speed *= 0.4
 	if authoritative:
 		velocity.x = move_toward(velocity.x, direction.x * speed, 38.0 * delta)
 		velocity.z = move_toward(velocity.z, direction.z * speed, 38.0 * delta)
@@ -154,6 +158,7 @@ func simulate(delta: float, authoritative: bool) -> void:
 			velocity.y = JUMP_SPEED
 			_coyote = 0.0
 			_jump_buffer = 0.0
+			move = "jump"
 		else:
 			velocity.y -= GRAVITY * delta
 		move_and_slide()
@@ -162,51 +167,126 @@ func simulate(delta: float, authoritative: bool) -> void:
 	elif attacking > 0.0:
 		var look := facing()
 		model.rotation.y = lerp_angle(model.rotation.y, atan2(look.x, look.z), 16.0 * delta)
-	var stride := sin(_time * 14.0) * minf(Vector2(velocity.x, velocity.z).length() / SPEED, 1.0)
-	model.position.y = absf(stride) * 0.04 if is_on_floor() else 0.08
-	_pose_arms()
+	if rig:
+		rig.advance(delta, Vector3(velocity.x, 0.0, velocity.z))
 	_refresh_label()
 
 
-func begin_punch(heavy: bool) -> void:
-	_heavy_swing = heavy
-	if heavy:
-		heavy_left = 0.72
-		attacking = 0.42
-		velocity += facing() * 7.5
-		velocity.y = maxf(velocity.y, 1.2)
+func begin_strike() -> void:
+	if combo_left > 0.0 and combo < 3:
+		combo += 1
 	else:
-		punch_left = 0.28
-		attacking = 0.26
-		velocity += facing() * 5.2
+		combo = 1
+	combo_left = 0.45
+	_heavy_swing = combo >= 3
+	punch_left = 0.16 if combo < 3 else 0.32
+	attacking = 0.22 if combo < 3 else 0.38
+	move = "strike%d" % combo
+	velocity += facing() * (4.2 + combo * 1.4)
+	if rig:
+		rig.play_strike(combo)
+
+
+func begin_vicious(target: HaymakerFighter) -> void:
+	_heavy_swing = true
+	heavy_left = 0.7
+	attacking = 0.55
+	move = "vicious"
+	if rig:
+		rig.play_vicious()
+	if target and target.alive:
+		grab_target = target
+		grab_left = 0.5
+		target.invuln_left = 0.0
+	else:
+		velocity += facing() * 9.0
+
+
+func begin_dropkick() -> void:
+	_heavy_swing = true
+	punch_left = 0.4
+	attacking = 0.4
+	move = "dropkick"
+	var dash := facing() * 16.0
+	velocity.x = dash.x
+	velocity.z = dash.z
+	velocity.y = maxf(velocity.y, 3.5)
+	if rig:
+		rig.play_strike(2)
+
+
+func begin_elbow() -> void:
+	_heavy_swing = true
+	punch_left = 0.35
+	attacking = 0.35
+	move = "elbow"
+	velocity.y = minf(velocity.y, -6.0)
+	if rig:
+		rig.play_strike(2)
 
 
 func begin_dodge() -> void:
-	dodge_left = 0.34
-	invuln_left = 0.28
-	var dash := facing() * 11.0
-	velocity.x = dash.x
-	velocity.z = dash.z
+	dodge_left = 0.38
+	invuln_left = 0.32
+	move = "dodge"
+	var away := facing()
+	if input_dir.length() > 0.2:
+		away = (Basis(Vector3.UP, look_yaw) * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
+	velocity.x = away.x * 12.5
+	velocity.z = away.z * 12.5
 
 
-func take_hit(amount: float, from_dir: Vector3) -> void:
+func begin_punch(heavy: bool) -> void:
+	if heavy:
+		begin_vicious(null)
+	else:
+		begin_strike()
+
+
+func _tick_grab(delta: float, authoritative: bool) -> void:
+	grab_left = maxf(0.0, grab_left - delta)
+	if grab_target == null or not is_instance_valid(grab_target) or not grab_target.alive:
+		grab_left = 0.0
+		grab_target = null
+		return
+	var hold := global_position + Vector3(0, 1.35, 0) + facing() * 0.85
+	if authoritative:
+		grab_target.global_position = grab_target.global_position.lerp(hold, 1.0 - exp(-delta * 18.0))
+		grab_target.velocity = Vector3.ZERO
+	if grab_left <= 0.18 and grab_target.health > 0.0:
+		var launch := facing() * 14.0 + Vector3(0, 8.0, 0)
+		grab_target.take_hit(heavy_damage(), facing(), true)
+		grab_target.velocity = launch
+		grab_target = null
+		grab_left = 0.0
+
+
+func take_hit(amount: float, from_dir: Vector3, knockdown := true) -> void:
 	if not alive or invuln_left > 0.0:
 		return
+	if blocking and not knockdown:
+		amount *= 0.28
+	elif blocking:
+		amount *= 0.45
 	var absorbed := minf(armor, amount)
 	armor -= absorbed
 	health = maxf(0.0, health - (amount - absorbed))
-	invuln_left = 0.14
-	_flash(Color("ff6b5a"))
+	invuln_left = 0.12
+	if rig:
+		rig.play_hit()
+		rig.flash_left = 0.12
 	var push := from_dir
 	push.y = 0.0
 	if push.length() > 0.01:
 		push = push.normalized()
 		velocity += push * (7.5 + amount * 0.08)
-		velocity.y = maxf(velocity.y, 3.2)
+		if knockdown:
+			velocity.y = maxf(velocity.y, 3.2)
 	if health <= 0.0:
 		alive = false
 		health = 0.0
 		armor = 0.0
+		move = "down"
 
 
 func heal(amount: float) -> void:
@@ -241,6 +321,8 @@ func snapshot() -> Dictionary:
 		"weapon": weapon,
 		"alive": alive,
 		"attacking": attacking,
+		"move": move,
+		"combo": combo,
 	}
 
 
@@ -258,41 +340,9 @@ func apply_snapshot(data: Dictionary) -> void:
 	weapon = str(data.get("weapon", weapon))
 	alive = bool(data.get("alive", alive))
 	attacking = float(data.get("attacking", attacking))
+	move = str(data.get("move", move))
+	combo = int(data.get("combo", combo))
 	_refresh_label()
-
-
-func _pose_arms() -> void:
-	if arm_r == null:
-		return
-	if attacking > 0.0:
-		var span := 0.42 if _heavy_swing else 0.26
-		var t := 1.0 - clampf(attacking / span, 0.0, 1.0)
-		var swing := sin(t * PI)
-		arm_r.rotation_degrees = Vector3(-18.0 - swing * (70.0 if _heavy_swing else 48.0), 18.0, 8.0)
-		arm_r.position = Vector3(0.52, 1.12, -swing * (0.55 if _heavy_swing else 0.38))
-		if fist_r:
-			fist_r.scale = Vector3(0.38, 0.38, 0.5) * (1.0 + swing * 0.35)
-	else:
-		arm_r.rotation_degrees = Vector3(-8.0, 8.0, 6.0)
-		arm_r.position = Vector3(0.52, 1.12, 0.04)
-		if fist_r:
-			fist_r.scale = Vector3(0.32, 0.32, 0.38)
-
-
-func _flash(tint: Color) -> void:
-	if model == null:
-		return
-	for child in model.get_children():
-		if child is MeshInstance3D and child.material_override is StandardMaterial3D:
-			(child.material_override as StandardMaterial3D).emission_enabled = true
-			(child.material_override as StandardMaterial3D).emission = tint
-			(child.material_override as StandardMaterial3D).emission_energy_multiplier = 1.6
-	get_tree().create_timer(0.12).timeout.connect(func():
-		if not is_instance_valid(model):
-			return
-		for child in model.get_children():
-			if child is MeshInstance3D and child.material_override is StandardMaterial3D:
-				(child.material_override as StandardMaterial3D).emission_energy_multiplier = 0.0)
 
 
 func _refresh_label() -> void:
@@ -302,6 +352,9 @@ func _refresh_label() -> void:
 	if not alive:
 		number.text = "%s · OUT" % tag
 		number.modulate = Color("ffcf8b")
+	elif blocking:
+		number.text = "%s · BLOCK" % tag
+		number.modulate = Color("9ad8ff")
 	elif weapon == "bat":
 		number.text = "%s · BAT" % tag
 		number.modulate = Color("ffe28a")

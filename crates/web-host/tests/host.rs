@@ -274,6 +274,27 @@ fn home_signs_in_a_local_player_and_serves_blob_island() {
 }
 
 #[test]
+fn home_serves_the_brand_fonts() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let home = root.join("../../runtimes/web/home");
+    let dir = tempfile::tempdir().unwrap();
+    let profiles = dir.path().join("home-profiles.json");
+    let host = Host::start_home(&home, &[], &profiles).unwrap();
+    let (status, css) = exchange(host.origin(), "GET", "/home.css", None);
+    assert_eq!(status, 200, "{css}");
+    assert!(css.contains("fonts/SpaceGrotesk.woff2"), "{css}");
+    assert!(css.contains("fonts/Inter.woff2"), "{css}");
+    let raw =
+        raw_exchange(host.origin(), "GET", "/fonts/SpaceGrotesk.woff2", None).to_ascii_lowercase();
+    assert!(raw.contains("content-type: font/woff2"), "{raw}");
+    let (status, font) = exchange(host.origin(), "GET", "/fonts/Inter.woff2", None);
+    assert_eq!(status, 200, "{font}");
+    assert!(font.starts_with("wOF2"), "woff2 magic missing");
+    let (status, _) = exchange(host.origin(), "GET", "/fonts/../catalog.json", None);
+    assert_eq!(status, 404);
+}
+
+#[test]
 fn home_asks_for_a_godot_window_and_keeps_the_reply() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let home = root.join("../../runtimes/web/home");

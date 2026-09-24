@@ -2,6 +2,23 @@ extends Control
 ## Original vector cover art, rendered at the card's current size.
 var game_id := "little-world"
 var tint := Color("a5cfa1")
+static var _top_light: GradientTexture2D
+static var _vignette: GradientTexture2D
+static var _scrim: GradientTexture2D
+
+static func _fade(colors: PackedColorArray, from: Vector2, to: Vector2, radial := false) -> GradientTexture2D:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 1.0])
+	gradient.colors = colors
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill_from = from
+	texture.fill_to = to
+	if radial:
+		texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.width = 440
+	texture.height = 270
+	return texture
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -109,7 +126,18 @@ func _draw() -> void:
 			draw_style_box(pill(entry[1]),Rect2(at-Vector2(23,21),Vector2(46,30)))
 			draw_style_box(pill(entry[1].lightened(0.2)),Rect2(at-Vector2(15,32),Vector2(30,21)))
 			draw_rect(Rect2(at-Vector2(11,27),Vector2(22,10)),Color("d6e8e5"))
+	finish()
 	draw_set_transform(Vector2.ZERO)
+
+## Finishing pass over every cover: top light, edge vignette, bottom scrim.
+func finish() -> void:
+	if _top_light == null:
+		_top_light = _fade(PackedColorArray([Color(1,1,1,0.06),Color(1,1,1,0)]), Vector2(0.5,0.0), Vector2(0.5,0.33))
+		_vignette = _fade(PackedColorArray([Color(0,0,0,0),Color(0,0,0,0.25)]), Vector2(0.5,0.5), Vector2(1.0,1.0), true)
+		_scrim = _fade(PackedColorArray([Color(0,0,0,0),Color(0,0,0,0.35)]), Vector2(0.5,0.75), Vector2(0.5,1.0))
+	draw_texture_rect(_top_light, Rect2(0,0,440,270), false)
+	draw_texture_rect(_vignette, Rect2(0,0,440,270), false)
+	draw_texture_rect(_scrim, Rect2(0,0,440,270), false)
 
 func pill(color: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()

@@ -75,6 +75,9 @@ pub(crate) fn route(state: &State, method: &str, path: &str, body: &[u8]) -> Opt
         ("GET", "/") | ("GET", "/index.html") => Some(serve_rooted(&shelf.root, "index.html")),
         ("GET", "/home.js") => Some(serve_rooted(&shelf.root, "home.js")),
         ("GET", "/home.css") => Some(serve_rooted(&shelf.root, "home.css")),
+        ("GET", fonts) if fonts.starts_with("/fonts/") => {
+            Some(serve_rooted(&shelf.root, fonts.trim_start_matches('/')))
+        }
         ("GET", "/__gigacouch/v1/home") => Some(text_response(
             200,
             "application/json",

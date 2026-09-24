@@ -5,8 +5,30 @@
   --paper: #f2f5f8;
   --muted: #a0afbf;
   --mint: #8ce8be;
+  --blue: #9abef7;
+  --amber: #f3c77d;
   --footer: #142b28;
+  --mint-glow: rgba(140, 232, 190, 0.22);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --press: 120ms ease-out;
+  --focus-in: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --font-ui: "Inter", "Avenir Next", "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", "Inter", "Avenir Next", "Segoe UI", sans-serif;
   color-scheme: dark;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("fonts/SpaceGrotesk.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/Inter.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
 }
 
 * { box-sizing: border-box; }
@@ -16,7 +38,7 @@ html, body {
   height: 100%;
   background: var(--ink);
   color: var(--paper);
-  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  font-family: var(--font-ui);
 }
 
 body {
@@ -28,11 +50,12 @@ body {
   display: flex;
   flex-direction: column;
   padding: 4vh 5vw 3vh;
+  animation: home-in 300ms ease-out both;
 }
 
 h1 {
   margin: 0;
-  font-family: Palatino, "Iowan Old Style", "Palatino Linotype", serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: clamp(40px, 5vw, 72px);
   letter-spacing: -0.03em;
@@ -56,7 +79,7 @@ h1 {
 
 .choice, .key {
   border: 3px solid transparent;
-  background: var(--panel);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 45%), var(--panel);
   color: var(--paper);
   border-radius: 18px;
   min-width: 11rem;
@@ -65,6 +88,8 @@ h1 {
   text-align: left;
   font: inherit;
   font-size: 1.5rem;
+  box-shadow: var(--shadow);
+  transition: transform var(--focus-in), box-shadow var(--focus-in);
 }
 
 .choice small, .stage small {
@@ -75,8 +100,8 @@ h1 {
 }
 
 .choice.focus, .key.focus, .cover.focus {
-  border-color: var(--mint);
-  box-shadow: 0 0 0 6px rgba(140, 232, 190, 0.18);
+  transform: scale(1.04);
+  box-shadow: 0 0 0 3px var(--mint), 0 0 24px var(--mint-glow), var(--shadow);
 }
 
 .hint {
@@ -105,7 +130,11 @@ h1 {
   width: 16rem;
   height: 9rem;
   border-radius: 22px;
-  background: var(--stage, var(--mint));
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 45%),
+    linear-gradient(180deg, rgba(16, 23, 34, 0) 55%, rgba(16, 23, 34, 0.35) 100%),
+    var(--stage, var(--mint));
+  box-shadow: var(--shadow);
 }
 
 .stage h1 { font-size: clamp(36px, 4vw, 56px); }
@@ -154,18 +183,25 @@ h1 {
   height: 5.4rem;
   border-radius: 16px;
   border: 3px solid transparent;
-  background: var(--cover);
-  color: #10221c;
+  background:
+    linear-gradient(180deg, rgba(16, 23, 34, 0) 40%, rgba(16, 23, 34, 0.55) 100%),
+    radial-gradient(130% 130% at 50% 0%, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 55%),
+    var(--cover);
+  color: var(--paper);
+  text-shadow: 0 1px 6px rgba(16, 23, 34, 0.55);
   padding: 0.8rem;
   display: flex;
   align-items: flex-end;
   font-weight: 600;
   font-size: 1.15rem;
+  box-shadow: var(--shadow);
+  transition: transform var(--focus-in), box-shadow var(--focus-in);
 }
 
 .code {
   margin: 1.4rem 0 0;
-  font-family: Palatino, "Iowan Old Style", serif;
+  font-family: var(--font-display);
+  font-weight: 600;
   font-size: clamp(40px, 6vw, 72px);
   letter-spacing: 0.12em;
 }
@@ -173,7 +209,8 @@ h1 {
 .spelling {
   margin: 1.5rem 0 0;
   min-height: 3.2rem;
-  font-family: Palatino, "Iowan Old Style", serif;
+  font-family: var(--font-display);
+  font-weight: 600;
   font-size: 2.4rem;
 }
 
@@ -183,4 +220,15 @@ h1 {
   padding: 0.4rem;
   text-align: center;
   font-size: 1.2rem;
+}
+
+@keyframes home-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #app { animation: none; }
+  .choice, .key, .cover { transition: none; }
+  .row { scroll-behavior: auto; }
 }

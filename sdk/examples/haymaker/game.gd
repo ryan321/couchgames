@@ -443,11 +443,11 @@ func _read_local_payload(fighter: HaymakerFighter) -> Dictionary:
 		move = input_service.movement(player_id)
 	var jump := Input.is_physical_key_pressed(KEY_SPACE) or _held(player_id, JOY_BUTTON_RIGHT_SHOULDER)
 	var punch := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _held(player_id, JOY_BUTTON_A) \
-		or _held(player_id, JOY_BUTTON_X) or _trigger(player_id, JOY_AXIS_TRIGGER_RIGHT)
-	var heavy := Input.is_physical_key_pressed(KEY_F) or _held(player_id, JOY_BUTTON_Y) \
-		or _trigger(player_id, JOY_AXIS_TRIGGER_LEFT)
-	var dodge := Input.is_physical_key_pressed(KEY_SHIFT) or _held(player_id, JOY_BUTTON_LEFT_SHOULDER) \
-		or _held(player_id, JOY_BUTTON_B)
+		or _held(player_id, JOY_BUTTON_X)
+	var heavy := Input.is_physical_key_pressed(KEY_F) or _held(player_id, JOY_BUTTON_Y)
+	var dodge := Input.is_physical_key_pressed(KEY_CTRL) or _held(player_id, JOY_BUTTON_B)
+	var dash := Input.is_physical_key_pressed(KEY_SHIFT) or _trigger(player_id, JOY_AXIS_TRIGGER_LEFT)
+	var block := _trigger(player_id, JOY_AXIS_TRIGGER_RIGHT) or _held(player_id, JOY_BUTTON_LEFT_SHOULDER)
 	_apply_look(fighter, player_id)
 	return {
 		"dir": [move.x, move.y],
@@ -456,6 +456,8 @@ func _read_local_payload(fighter: HaymakerFighter) -> Dictionary:
 		"punch": punch,
 		"heavy": heavy,
 		"dodge": dodge,
+		"dash": dash,
+		"block": block,
 	}
 
 
@@ -536,6 +538,8 @@ func _apply_input(fighter: HaymakerFighter, payload: Dictionary) -> void:
 	fighter.input_punch = bool(payload.get("punch", false))
 	fighter.input_heavy = bool(payload.get("heavy", false))
 	fighter.input_dodge = bool(payload.get("dodge", false))
+	fighter.input_dash = bool(payload.get("dash", false))
+	fighter.input_block = bool(payload.get("block", false))
 
 
 func _simulate_bots(delta: float) -> void:
@@ -554,9 +558,24 @@ func _simulate_bots(delta: float) -> void:
 		var distance := to.length()
 		fighter.input_dir = Vector2(0, -1) if distance > 1.6 else Vector2.ZERO
 		fighter.input_punch = distance < 2.1
-		fighter.input_heavy = distance < 1.7 and fighter.health < 55.0
+		fighter.input_heavy = distance < 1.8 and fighter.health < 55.0
 		fighter.input_dodge = fighter.health < 30.0 and distance < 2.4
+		fighter.input_dash = distance > 3.5
 		fighter.input_jump = distance > 8.0 and rng.randf() < delta * 0.4
+
+
+func _grab_target(attacker: HaymakerFighter) -> HaymakerFighter:
+	var best: HaymakerFighter = null
+	var best_distance := 2.4
+	var origin: Vector3 = attacker.global_position + attacker.facing() * 0.8
+	for fighter: HaymakerFighter in fighters.values():
+		if fighter == attacker or not fighter.alive:
+			continue
+		var distance: float = origin.distance_to(fighter.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = fighter
+	return best
 
 
 func _nearest_alive(from: HaymakerFighter) -> HaymakerFighter:
@@ -584,12 +603,21 @@ func _resolve_combat() -> void:
 		var edges: Dictionary = fighter.consume_edges()
 		if edges["dodge"] and fighter.dodge_left <= 0.0:
 			fighter.begin_dodge()
-		if edges["heavy"] and fighter.heavy_left <= 0.0:
-			fighter.begin_punch(true)
-			hit_targets(fighter, true)
+		elif edges["heavy"] and fighter.heavy_left <= 0.0:
+			var grabbed := _grab_target(fighter)
+			fighter.begin_vicious(grabbed)
+			if grabbed == null:
+				hit_targets(fighter, true)
 		elif edges["punch"] and fighter.punch_left <= 0.0:
-			fighter.begin_punch(false)
-			hit_targets(fighter, false)
+			if not fighter.is_on_floor():
+				fighter.begin_elbow()
+				hit_targets(fighter, true)
+			elif fighter.dashing:
+				fighter.begin_dropkick()
+				hit_targets(fighter, true)
+			else:
+				fighter.begin_strike()
+				hit_targets(fighter, fighter.combo >= 3)
 
 
 func _resolve_world(delta: float) -> void:

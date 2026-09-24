@@ -7,6 +7,26 @@ const MUTED := Color("a0afbf")
 const BLUE := Color("9abef7")
 var _fill: GradientTexture2D
 
+class Accents:
+	extends Control
+	const MINT := Color("8ce8be")
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		resized.connect(queue_redraw)
+
+	func _draw() -> void:
+		var origin := Vector2(150, 250)
+		draw_line(Vector2(origin.x, origin.y + 14), Vector2(origin.x, origin.y - 64), MINT, 2.0, true)
+		var flag := PackedVector2Array([
+			Vector2(origin.x, origin.y - 62),
+			Vector2(origin.x + 29, origin.y - 54),
+			Vector2(origin.x, origin.y - 43),
+		])
+		draw_colored_polygon(flag, MINT)
+		for point in [Vector2(65, origin.y - 73), Vector2(199, origin.y - 25), Vector2(191, origin.y + 80)]:
+			draw_circle(point, 2.2, Color(MINT, 0.7))
+
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var gradient := Gradient.new()
@@ -19,6 +39,12 @@ func _ready() -> void:
 	_fill.width = 16
 	_fill.height = 128
 	resized.connect(queue_redraw)
+	var accents := Accents.new()
+	accents.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(accents)
+	var pulse := create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	pulse.tween_property(accents, "modulate:a", 0.7, 1.5)
+	pulse.tween_property(accents, "modulate:a", 1.0, 1.5)
 
 func _draw() -> void:
 	if _fill:
@@ -41,15 +67,6 @@ func _draw() -> void:
 		var outline := diamond.duplicate()
 		outline.append(diamond[0])
 		draw_polyline(outline, MINT if index == 0 else Color(BLUE, 0.35), 1.0, true)
-	draw_line(Vector2(origin.x, origin.y + 14), Vector2(origin.x, origin.y - 64), MINT, 2.0, true)
-	var flag := PackedVector2Array([
-		Vector2(origin.x, origin.y - 62),
-		Vector2(origin.x + 29, origin.y - 54),
-		Vector2(origin.x, origin.y - 43),
-	])
-	draw_colored_polygon(flag, MINT)
-	for point in [Vector2(65, origin.y - 73), Vector2(199, origin.y - 25), Vector2(191, origin.y + 80)]:
-		draw_circle(point, 2.2, Color(MINT, 0.7))
 	var steps := [
 		["01", "Grab a controller"],
 		["02", "Pick tonight's game"],

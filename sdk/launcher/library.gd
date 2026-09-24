@@ -24,6 +24,7 @@ var ready_pill: Panel
 var worlds_label: Label
 var details_layer: Control
 var settings_layer: Control
+var details_box: Control
 var details_title: Label
 var details_body: Label
 var details_meta: Label
@@ -40,6 +41,9 @@ var _poll := 0.0
 var _requested_at := 0.0
 var _request_id := ""
 var _cooldown := 0.0
+var _focus_tween: Tween
+var _overlay_tween: Tween
+var display_font: Font
 
 func load_games() -> Array:
 	var catalog := OS.get_environment("COUCH_LIBRARY_CATALOG")
@@ -57,6 +61,10 @@ func _ready() -> void:
 	get_node("/root/Platform").input.set_process_input(false)
 	theme = Theme.new()
 	theme.default_font_size = 20
+	var inter := load("res://launcher/fonts/Inter.ttf")
+	if inter:
+		theme.default_font = inter
+	display_font = load("res://launcher/fonts/SpaceGrotesk.ttf")
 	_build()
 	cards[0].grab_focus()
 	if session.is_empty():
@@ -98,12 +106,14 @@ func mark_at(at: Vector2, size: Vector2, parent: Node = self) -> void:
 	view.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	crop.add_child(view)
 
-func label_at(text: String, at: Vector2, font_size: int, color := INK, parent: Node = self) -> Label:
+func label_at(text: String, at: Vector2, font_size: int, color := INK, parent: Node = self, display := false) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.position = at
 	label.add_theme_font_size_override("font_size",font_size)
 	label.add_theme_color_override("font_color",color)
+	if display and display_font:
+		label.add_theme_font_override("font", display_font)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(label)
 	return label
@@ -141,7 +151,18 @@ func chrome_button(title: String, primary := false) -> Button:
 		item.add_theme_color_override("font_hover_color", INK)
 		item.add_theme_color_override("font_focus_color", INK)
 		item.add_theme_color_override("font_disabled_color", MUTED)
+	item.mouse_entered.connect(func(): glow(item, true))
+	item.mouse_exited.connect(func(): glow(item, false))
 	return item
+
+func glow(item: Control, on: bool) -> void:
+	if item.has_meta("glow_tween"):
+		var old: Tween = item.get_meta("glow_tween")
+		if old.is_running():
+			old.kill()
+	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(item, "modulate", Color(1.08, 1.08, 1.08) if on else Color.WHITE, 0.12)
+	item.set_meta("glow_tween", tween)
 
 func paint_option(button: OptionButton) -> void:
 	button.add_theme_stylebox_override("normal", style(PANEL, BORDER, 9, 1))
@@ -188,7 +209,7 @@ func _build() -> void:
 	mark_at(Vector2(28, 28), Vector2(64, 64), rail)
 	var left := 336.0
 	label_at("YOUR LIBRARY", Vector2(left, 28), 12, MINT)
-	label_at("Tonight, we play.", Vector2(left, 48), 38)
+	label_at("Tonight, we play.", Vector2(left, 48), 38, INK, self, true)
 	label_at("Pick a world. Grab a controller. Make room on the couch.", Vector2(left, 98), 16, MUTED)
 	ready_pill = pill_at("%d OF %d READY" % [games.size(), games.size()], Vector2(left, 130), MINT)
 	worlds_label = label_at("%02d  WORLDS" % games.size(), Vector2(1288, 134), 13, MUTED)
@@ -319,6 +340,8 @@ func fill_shelf() -> void:
 		card.add_theme_stylebox_override("pressed", style(PANEL.lightened(0.08), MINT, 16, 1))
 		card.add_theme_stylebox_override("disabled", style(PANEL, BORDER, 16, 1))
 		card.add_theme_stylebox_override("focus", style(PANEL, MINT, 16, 2))
+		card.pivot_offset = card.size / 2
+		card.modulate = Color(0.85, 0.85, 0.85)
 		shelf.add_child(card)
 		var crop := Control.new()
 		crop.position = Vector2(16, 16)
@@ -333,7 +356,7 @@ func fill_shelf() -> void:
 		crop.add_child(cover)
 		var accent := Color(str(game.get("color", "8ce8be")))
 		label_at("%s  ·  %s" % [source_label(game), str(game.get("players", "1–16 players")).to_upper()], Vector2(210, 16), 12, accent, card)
-		label_at(str(game.get("title", "Game")), Vector2(208, 38), 24, INK, card)
+		label_at(str(game.get("title", "Game")), Vector2(208, 38), 24, INK, card, true)
 		var description := label_at(str(game.get("description", "")), Vector2(210, 72), 15, MUTED, card)
 		description.size = Vector2(368, 40)
 		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -343,7 +366,8 @@ func fill_shelf() -> void:
 		card.pressed.connect(func(): launch_game(index))
 		card.focus_entered.connect(func():
 			selected = index
-			game_scroll.ensure_control_visible.call_deferred(card))
+			game_scroll.ensure_control_visible.call_deferred(card)
+			focus_card(index))
 		cards.append(card)
 	if ready_pill and ready_pill.get_child_count():
 		var label := ready_pill.get_child(0) as Label
@@ -355,6 +379,19 @@ func fill_shelf() -> void:
 			label.text = "%d OF %d READY" % [ready, games.size()]
 	if worlds_label:
 		worlds_label.text = "%02d  WORLDS" % games.size()
+
+func focus_card(index: int) -> void:
+	if _focus_tween and _focus_tween.is_running():
+		_focus_tween.kill()
+	_focus_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	for i in cards.size():
+		var card := cards[i]
+		if i == index:
+			_focus_tween.tween_property(card, "scale", Vector2(1.04, 1.04), 0.18)
+			_focus_tween.tween_property(card, "modulate", Color.WHITE, 0.18)
+		else:
+			_focus_tween.tween_property(card, "scale", Vector2.ONE, 0.18)
+			_focus_tween.tween_property(card, "modulate", Color(0.85, 0.85, 0.85), 0.18)
 
 func launch_game(index: int) -> void:
 	if busy or _cooldown > 0 or index < 0 or index >= games.size():
@@ -456,7 +493,8 @@ func apply_status(state: Dictionary) -> void:
 func _build_overlays() -> void:
 	details_layer = _overlay()
 	var detail_box := _overlay_box(details_layer)
-	details_title = label_at("Game", Vector2(0, 0), 32, INK, detail_box)
+	details_box = detail_box.get_parent()
+	details_title = label_at("Game", Vector2(0, 0), 32, INK, detail_box, true)
 	details_meta = label_at("", Vector2(0, 44), 16, MINT, detail_box)
 	details_body = label_at("", Vector2(0, 80), 18, MUTED, detail_box)
 	details_body.size = Vector2(640, 80)
@@ -478,7 +516,7 @@ func _build_overlays() -> void:
 	detail_box.add_child(close_details)
 	settings_layer = _overlay()
 	var settings_box := _overlay_box(settings_layer)
-	label_at("Settings", Vector2(0, 0), 32, INK, settings_box)
+	label_at("Settings", Vector2(0, 0), 32, INK, settings_box, true)
 	label_at("Who's playing is Family or Guest. Saves are kept per profile and game under Application Support/GigaCouch/saves.", Vector2(0, 52), 16, MUTED, settings_box).size = Vector2(640, 70)
 	label_at("This preview still uses your installed Godot editor as the runtime. A dedicated player-only engine is not bundled yet.", Vector2(0, 128), 16, MUTED, settings_box).size = Vector2(640, 70)
 	label_at("F11 toggles fullscreen. Pair controllers with this computer, not the TV.", Vector2(0, 204), 16, MUTED, settings_box).size = Vector2(640, 48)
@@ -526,6 +564,13 @@ func open_details() -> void:
 	details_meta.text = "%s · %s" % [source_label(game), str(game.get("players", "1–16 players"))]
 	details_body.text = str(game.get("description", ""))
 	details_layer.visible = true
+	if _overlay_tween and _overlay_tween.is_running():
+		_overlay_tween.kill()
+	details_layer.modulate = Color(1, 1, 1, 0)
+	details_box.position.y = 192
+	_overlay_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_overlay_tween.tween_property(details_layer, "modulate:a", 1.0, 0.3)
+	_overlay_tween.tween_property(details_box, "position:y", 180.0, 0.3)
 
 func open_settings() -> void:
 	settings_layer.visible = true

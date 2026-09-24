@@ -48,8 +48,8 @@ final class SetupApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         buildWindow()
         checkEngine(autoLaunch: isInstalledApp)
     }
-    private func label(_ text: String, size: CGFloat = 14, weight: NSFont.Weight = .regular) -> NSTextField {
-        StudioStyle.label(text, size: size, weight: weight)
+    private func label(_ text: String, size: CGFloat = 14, weight: NSFont.Weight = .regular, display: Bool = false) -> NSTextField {
+        StudioStyle.label(text, size: size, weight: weight, display: display)
     }
     private func button(_ title: String, action: Selector, primary: Bool = false) -> NSButton {
         let b = StudioButton(title: title, target: self, action: action)
@@ -86,7 +86,7 @@ final class SetupApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let card = StudioStyle.box(StudioStyle.panel, radius: 16)
         card.layer?.borderWidth = 1
         card.layer?.borderColor = StudioStyle.border.cgColor
-        let iconBox = StudioStyle.box(StudioStyle.border, radius: 10)
+        let iconBox = StudioStyle.box(StudioStyle.border, radius: 10, shadow: false)
         let icon = NSImageView()
         icon.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
         icon.contentTintColor = StudioStyle.mint
@@ -164,7 +164,7 @@ final class SetupApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         ])
         let header = column([
             StudioStyle.label("CREATOR SETUP", size: 10, weight: .semibold, color: StudioStyle.mint),
-            label("Your studio starts here.", size: 32, weight: .bold),
+            label("Your studio starts here.", size: 32, weight: .bold, display: true),
             StudioStyle.label("Let’s check what you have and get the rest ready.", size: 14, color: StudioStyle.muted)
         ], spacing: 7)
         root.addArrangedSubview(header)

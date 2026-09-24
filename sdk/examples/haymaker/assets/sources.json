@@ -1,0 +1,22 @@
+{
+  "note": "Original Haymaker art in a Grapital-inspired carnival-city language. No Rumbleverse characters, logos, or maps.",
+  "generator": "xAI grok-imagine-image-quality, 2026-09-21",
+  "meshes": "Image-to-GLB was unavailable for this team (grok-imagine-3d not enabled). Fighters and buildings are constructed meshes wearing the generated albedo maps.",
+  "files": {
+    "source/fighter_heavy.jpg": "Original heavyweight wrestler concept",
+    "source/fighter_athletic.jpg": "Original athletic wrestler concept",
+    "source/fighter_compact.jpg": "Original compact wrestler concept",
+    "source/fighter_tall.jpg": "Original lanky wrestler concept",
+    "source/ring.jpg": "Original outdoor wrestling ring concept",
+    "source/jumppad.jpg": "Original jump pad concept",
+    "source/apartment.jpg": "Original apartment block concept",
+    "source/gym.jpg": "Original corner gym concept",
+    "source/bell.jpg": "Original championship bell tower concept",
+    "source/crate.jpg": "Original prize crate concept",
+    "textures/asphalt.jpg": "Seamless carnival asphalt albedo",
+    "textures/brick.jpg": "Seamless coral brick albedo",
+    "textures/plaster.jpg": "Seamless cream plaster albedo",
+    "textures/canvas.jpg": "Seamless wrestling canvas albedo",
+    "textures/metal.jpg": "Seamless mint enamel metal albedo"
+  }
+}

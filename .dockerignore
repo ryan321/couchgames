@@ -13,5 +13,6 @@ docs
 **/*.png
 !brand/mark.png
 !brand/logo.png
+!brand/fonts/*.woff2
 **/*.wav
 **/*.mp3

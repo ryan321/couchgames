@@ -46,8 +46,8 @@ func _build_stage() -> void:
 	add_child(floor)
 	var camera := Camera2D.new()
 	camera.position = Vector2(800, 450)
-	camera.make_current()
 	add_child(camera)
+	camera.make_current()
 
 
 func _spawn(id: int) -> void:

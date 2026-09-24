@@ -39,6 +39,7 @@ def app_info(installed):
         "CFBundlePackageType": "APPL", "CFBundleShortVersionString": "0.1.0",
         "CFBundleVersion": "4", "LSMinimumSystemVersion": "13.0",
         "NSHighResolutionCapable": True, "GigaGDKInstalled": installed,
+        "ATSApplicationFontsPath": "fonts",
     }
     info.update(plist_icon())
     return info
@@ -49,6 +50,10 @@ def make_app(path, binary, installed, icns):
     (contents / "MacOS").mkdir(parents=True)
     shutil.copy2(binary, contents / "MacOS/GDKSetup")
     install_into_app(contents, icns)
+    fonts = contents / "Resources/fonts"
+    fonts.mkdir(exist_ok=True)
+    for font in ("Inter.ttf", "SpaceGrotesk.ttf"):
+        shutil.copy2(ROOT / "brand/fonts" / font, fonts / font)
     (contents / "Info.plist").write_bytes(plistlib.dumps(app_info(installed)))
 
 

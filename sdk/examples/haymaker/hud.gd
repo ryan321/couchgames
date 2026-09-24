@@ -306,7 +306,9 @@ func _draw_play() -> void:
 	if local.weapon == "bat":
 		weapon = "Bat  %.0fs" % local.weapon_left
 	draw_string(font, Vector2(48, 158), weapon, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, MINT)
-	draw_string(font, Vector2(48, size.y - 64), "A punch   ·   Y heavy   ·   LB dodge   ·   RB jump",
+	draw_string(font, Vector2(48, size.y - 80), "A strike combo   ·   Y grab / slam   ·   LT dash   ·   RT block",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 16, MUTED)
+	draw_string(font, Vector2(48, size.y - 58), "B dodge   ·   RB jump   ·   dash+A dropkick   ·   jump+A elbow drop",
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 16, MUTED)
 	if not local.alive:
 		draw_string(font, Vector2(size.x * 0.5 - 80, size.y * 0.45), "YOU'RE OUT", HORIZONTAL_ALIGNMENT_LEFT, -1, 36, Color("ffcf8b"))

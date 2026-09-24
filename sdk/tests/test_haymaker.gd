@@ -43,6 +43,9 @@ func run() -> void:
 	await physics_frame
 	expect(game.phase == "menu" and game.hud.menu.visible, "Game starts on the host/join menu")
 	expect(game.camera.current, "This computer has its own camera")
+	expect(FileAccess.file_exists("res://examples/haymaker/assets/textures/asphalt.jpg"), "Asphalt albedo is in the project")
+	expect(FileAccess.file_exists("res://examples/haymaker/assets/source/fighter_heavy.jpg"), "Wrestler concept art is in the project")
+	expect(game.pads.size() == 5 and game.spawns.size() == 8, "City plaza keeps jump pads and spawn ring")
 	expect(game.join_address == "", "Join field does not default to loopback")
 	expect(game.hud.choices.size() >= 1 and game.hud.choice_index == 0, "Practice is the highlighted menu action")
 	game.bots_enabled = false
@@ -108,6 +111,30 @@ func run() -> void:
 	player.heavy_left = 0.0
 	var heavy_hits: Array = game.hit_targets(player, true)
 	expect(heavy_hits.has(dummy) and dummy.health < after_punch, "Heavy hits harder than a jab")
+	player.combo = 0
+	player.combo_left = 0.0
+	player.begin_strike()
+	expect(player.combo == 1 and player.move.begins_with("strike"), "First strike starts a combo")
+	player.punch_left = 0.0
+	player.begin_strike()
+	player.punch_left = 0.0
+	player.begin_strike()
+	expect(player.combo == 3, "Three strikes chain into a hammer-fist finish")
+	dummy.health = 100.0
+	dummy.alive = true
+	dummy.invuln_left = 0.0
+	dummy.global_position = player.global_position + Vector3(0, 0, -1.0)
+	player.begin_vicious(dummy)
+	expect(player.grab_target == dummy, "Vicious attack grabs a fighter in range")
+	for i in 24:
+		game.tick(1.0 / 60.0)
+	expect(dummy.health < 100.0, "Grab slams the caught fighter")
+	dummy.health = 80.0
+	dummy.alive = true
+	dummy.invuln_left = 0.0
+	dummy.blocking = true
+	dummy.take_hit(40.0, Vector3.FORWARD, false)
+	expect(dummy.health > 50.0, "Block cuts chip damage")
 
 	dummy.health = 80.0
 	dummy.invuln_left = 0.0
