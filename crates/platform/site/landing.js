@@ -8,12 +8,20 @@
     { name: 'After Hours', hex: '#c5b4ff', rgb: [0.77, 0.71, 1.0], couch: [0.37, 0.29, 0.58] },
     { name: 'Super Nova', hex: '#ffc39d', rgb: [1.0, 0.76, 0.62], couch: [0.58, 0.32, 0.22] }
   ];
-  let dimension = 0, warpStart = -100, time = 0, pointerX = 0, pointerY = 0, smoothX = 0, smoothY = 0;
+  let dimension = 0, warpStart = -100, time = 0, ambientTime = 0, pointerX = 0, pointerY = 0, smoothX = 0, smoothY = 0;
   let requestFrame = 0, last = 0, onScreen = true, scrollY = window.scrollY;
   const canvas = $('#universe');
   const hero = $('.hero');
   const motion = $('#motion');
   const orbit = $('#couch-orbit');
+  const hyperButton = $('#warp');
+  const hyperspace = $('#hyperspace');
+  const refraction = $('#hyper-refraction-map');
+  const refractionFlow = $('#hyper-refraction-flow');
+  let flightRenderer = null;
+  let flight = null;
+  const smoothstep = n => { n=Math.max(0,Math.min(1,n));return n*n*(3-2*n); };
+  const flightPower = () => flight ? smoothstep(flight.elapsed/.4)*(1-smoothstep((flight.elapsed-3)/.5)) : 0;
   let orientation = [0,0,0,1], drag = null;
   const observers = [];
   document.body.classList.toggle('js-motion', !paused);
@@ -35,25 +43,28 @@
     document.querySelectorAll('[data-dimension]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.dimension) === index)));
     $('#dimension-number').textContent = '0' + (index + 1);
     $('#dimension-status').textContent = palette.name + ' dimension';
-    if (warp && !paused) warpStart = time;
+    if (warp && !paused) warpStart = ambientTime;
     draw();
   }
   document.querySelectorAll('[data-dimension]').forEach(b => b.addEventListener('click', () => selectDimension(Number(b.dataset.dimension), true)));
-  $('#warp').addEventListener('click', () => selectDimension((dimension + 1) % palettes.length, true));
-  function syncMotion() {
+  hyperButton.addEventListener('click', engageHyperdrive);
+  function updateMotionUI() {
     document.body.classList.toggle('paused', paused);
     document.body.classList.toggle('js-motion', !paused);
     motion.textContent = paused ? '▷' : 'Ⅱ';
     motion.setAttribute('aria-pressed', String(paused));
     motion.setAttribute('aria-label', paused ? 'Play animations' : 'Pause animations');
+  }
+  function syncMotion() {
+    updateMotionUI();
     last = 0;
     cancelAnimationFrame(requestFrame); requestFrame = 0;
     draw(); start();
   }
   motion.addEventListener('click', () => { paused = !paused; syncMotion(); });
-  reduced.addEventListener('change', () => { paused = reduced.matches; syncMotion(); });
+  reduced.addEventListener('change', () => { if(flight)finishHyperdrive();paused = reduced.matches; syncMotion(); });
   hero.addEventListener('pointermove', e => {
-    if (e.pointerType === 'touch' || paused || drag) return;
+    if (e.pointerType === 'touch' || paused || drag || flight) return;
     const bounds = hero.getBoundingClientRect();
     pointerX = (e.clientX - bounds.left) / bounds.width * 2 - 1;
     pointerY = (e.clientY - bounds.top) / bounds.height * 2 - 1;
@@ -81,11 +92,172 @@
     el.addEventListener('pointerleave', () => { el.style.transform = ''; });
   });
 
+  // The build clock freezes during a jump; ambient time and the flight clock
+  // keep moving. Pause and hidden tabs suspend flight; an active jump finishes
+  // even if the user scrolls past the hero, so the page cannot stay blurred.
+  function engageHyperdrive() {
+    if(flight)return;
+    if(drag)endDrag({pointerId:drag.id});
+    flight={elapsed:0,restorePaused:paused,gentle:reduced.matches,
+      spinAxis:normalize([Math.random()-.5,Math.random()-.5,Math.random()-.5]),spinSpeed:.32+Math.random()*.12};
+    paused=false;
+    hyperButton.disabled=true;hyperButton.setAttribute('aria-busy','true');
+    orbit.setAttribute('aria-disabled','true');$('#reset-view').disabled=true;
+    document.body.classList.add('hyperdrive-active');
+    document.body.classList.toggle('hyperdrive-gentle',flight.gentle);
+    $('#dimension-status').textContent=flight.gentle?'Hyperdrive engaged. Reduced-motion mode.':'Hyperdrive engaged.';
+    const startedAt=performance.now();
+    resizeHyperspace();syncMotion();last=startedAt;
+  }
+  function finishHyperdrive() {
+    paused=flight.restorePaused;flight=null;
+    hyperButton.disabled=false;hyperButton.removeAttribute('aria-busy');
+    orbit.removeAttribute('aria-disabled');$('#reset-view').disabled=false;
+    document.body.classList.remove('hyperdrive-active','hyperdrive-gentle');
+    for(const key of ['power','zoom','blur','opacity','shift','couch-blur'])document.body.style.removeProperty('--hyper-'+key);
+    refraction.setAttribute('scale','0');
+    refractionFlow.setAttribute('dx','0');refractionFlow.setAttribute('dy','0');
+    $('#dimension-status').textContent='Hyperdrive complete.';
+    updateMotionUI();
+  }
+  function advanceScene(dt) {
+    if(paused)return;
+    if(!flight?.gentle)ambientTime+=dt;
+    if(flight){
+      const remaining=3.5-flight.elapsed;
+      flight.elapsed=Math.min(3.5,flight.elapsed+dt);
+      if(flight.elapsed>=3.5){finishHyperdrive();if(!paused)time+=Math.max(0,dt-remaining);}
+    }else time+=dt;
+    if(!flight){smoothX+=(pointerX-smoothX)*.035;smoothY+=(pointerY-smoothY)*.035;}
+  }
+  function makeFlightRenderer() {
+    const context=hyperspace.getContext('webgl',{alpha:true,antialias:false,premultipliedAlpha:true,powerPreference:'low-power'});
+    if(!context)return null;
+    const compile=(type,source)=>{
+      const shader=context.createShader(type);context.shaderSource(shader,source);context.compileShader(shader);
+      if(!context.getShaderParameter(shader,context.COMPILE_STATUS))throw new Error(context.getShaderInfoLog(shader));
+      return shader;
+    };
+    const vertex=compile(context.VERTEX_SHADER,`
+      attribute vec2 aPosition;varying vec2 vUV;
+      void main(){vUV=aPosition*.5+.5;gl_Position=vec4(aPosition,0.0,1.0);}
+    `);
+    const fragment=compile(context.FRAGMENT_SHADER,`
+      precision highp float;varying vec2 vUV;
+      uniform vec2 uSize;uniform vec2 uCenter;uniform vec4 uCouch;
+      uniform float uTravel;uniform float uPower;
+      float hash(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
+      float noise(vec2 p){
+        vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),f.x),mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0)),f.x),f.y);
+      }
+      float billow(vec2 p){return noise(p)*.64+noise(p*2.07+8.3)*.26+noise(p*4.13-2.8)*.10;}
+      void main(){
+        vec2 screen=vec2(vUV.x,1.0-vUV.y);
+        vec2 p=(screen-uCenter)*vec2(uSize.x/uSize.y,1.0);
+        float t=uTravel,run=t*2.0+3.0*(t-(1.0-exp(-t*2.0))*.5);
+        float radius=length(p);
+        // The camera accelerates into an irregular, translucent cylinder.
+        // Multiple density samples give the folds depth and self-occlusion.
+        vec3 ray=normalize(vec3(p*1.85,1.0));
+        vec3 light=vec3(0.0);float transmission=1.0,distance=.5;
+        for(int i=0;i<24;i++){
+          vec3 position=ray*distance;
+          float z=position.z+run;
+          vec2 bend=vec2(sin(position.z*.63+run*.15),cos(position.z*.48-run*.12))*.32;
+          vec2 crossSection=position.xy*vec2(1.0+sin(z*.42)*.14,1.0+cos(z*.36)*.12)+bend;
+          float r=length(crossSection),a=atan(crossSection.y,crossSection.x);
+          // Circular coordinates keep the noise seamless around the tunnel.
+          vec2 ring=vec2(cos(a),sin(a));
+          vec2 flow=ring*2.5+vec2(z*.31,-z*.22);
+          flow+=vec2(sin(flow.y*1.7+z*.5),cos(flow.x*1.4-z*.3))*.65;
+          float cloud=billow(flow);
+          float twist=a+z*.64+cloud*2.1;
+          float wall=1.22+sin(z*.84+sin(a*3.0+z*.4)*.7)*.20+(cloud-.5)*.6;
+          float density=exp(-abs(r-wall)*7.0)*(.18+cloud*.32);
+          float fold=pow(.5+.5*sin(twist*4.0+cloud*5.0),5.0);
+          float caustic=pow(.5+.5*sin(twist*7.0-z*.4+cloud*8.0),12.0);
+          float pearl=pow(cloud,3.0);
+          vec3 cobalt=vec3(.006,.022,.105),jade=vec3(.035,.40,.48),violet=vec3(.16,.025,.30);
+          vec3 film=mix(cobalt,jade,fold*.85+pearl*.5);
+          film=mix(film,violet,(.5+.5*sin(a*2.0-z*.18))*.22);
+          film+=vec3(.58,.88,1.0)*caustic*.8;
+          film+=vec3(.10,.29,.55)*pearl;
+          light+=film*density*transmission*2.1;
+          transmission*=1.0-density*.56;
+          distance+=.24+float(i)*.020;
+        }
+        // Soft refraction fronts move out through the clouds on ignition.
+        float shock=exp(-pow((radius-(t-.12)*1.6)*8.0,2.0))*exp(-t*2.2);
+        light+=vec3(.23,.55,.72)*shock*.7;
+        light+=vec3(.02,.10,.18)*exp(-radius*3.0);
+        vec3 color=1.0-exp(-light*1.8);
+        color=pow(color,vec3(1.15));
+        // The furniture remains the stable eye of the storm, with soft edges.
+        float eye=smoothstep(.72,1.13,length((screen-uCouch.xy)/uCouch.zw));
+        float alpha=uPower*eye*(.58+.40*(1.0-transmission));
+        gl_FragColor=vec4(color*alpha,alpha);
+      }
+    `);
+    const program=context.createProgram();context.attachShader(program,vertex);context.attachShader(program,fragment);context.linkProgram(program);
+    context.deleteShader(vertex);context.deleteShader(fragment);
+    if(!context.getProgramParameter(program,context.LINK_STATUS))throw new Error(context.getProgramInfoLog(program));
+    context.useProgram(program);
+    const buffer=context.createBuffer();context.bindBuffer(context.ARRAY_BUFFER,buffer);
+    context.bufferData(context.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),context.STATIC_DRAW);
+    const position=context.getAttribLocation(program,'aPosition');context.enableVertexAttribArray(position);context.vertexAttribPointer(position,2,context.FLOAT,false,0,0);
+    const uniforms={};['Size','Center','Couch','Travel','Power'].forEach(n=>uniforms[n]=context.getUniformLocation(program,'u'+n));
+    let lastTravel=-1,lastPower=-1;
+    return {
+      resize(){
+        // Soft volume needs less resolution than the furniture. Keep its GPU
+        // cost bounded on high-density displays and only draw during flight.
+        const ratio=Math.min(1,760/innerWidth,650/innerHeight);
+        hyperspace.width=Math.round(innerWidth*ratio);hyperspace.height=Math.round(innerHeight*ratio);
+        context.viewport(0,0,hyperspace.width,hyperspace.height);lastTravel=-1;
+      },
+      render(power,travel,bounds){
+        if(context.isContextLost())return;
+        if(lastTravel>=0&&Math.abs(travel-lastTravel)<1/30&&power===lastPower)return;
+        lastTravel=travel;lastPower=power;
+        const w=innerWidth,h=innerHeight;
+        context.uniform2f(uniforms.Size,w,h);
+        context.uniform2f(uniforms.Center,.5,Math.max(.2,Math.min(.8,(bounds.top+bounds.height*.57)/h)));
+        context.uniform4f(uniforms.Couch,.5,(bounds.top+bounds.height*(width<760?.61:.62))/h,width<760?.4:Math.min(w*.24,340)/w,bounds.height*.17/h);
+        context.uniform1f(uniforms.Power,power);context.uniform1f(uniforms.Travel,travel);
+        context.drawArrays(context.TRIANGLES,0,6);
+      }
+    };
+  }
+  function restoreHyperspace() {
+    try{flightRenderer=makeFlightRenderer();flightRenderer?.resize();}
+    catch(error){flightRenderer=null;console.warn('Giga Couch fluid flight unavailable:',error);}
+  }
+  hyperspace.addEventListener('webglcontextlost',e=>{e.preventDefault();});
+  hyperspace.addEventListener('webglcontextrestored',()=>{restoreHyperspace();draw();});
+  function resizeHyperspace() {flightRenderer?.resize();}
+  function renderHyperspace() {
+    if(!flight)return;
+    const power=flightPower(),motionPower=flight.gentle?0:power,travel=flight.elapsed;
+    const surge=Math.sin(Math.PI*Math.min(1,travel/.7));
+    const style=document.body.style;
+    style.setProperty('--hyper-power',power.toFixed(4));
+    style.setProperty('--hyper-zoom',(1+motionPower*(.6+surge*.16)).toFixed(4));
+    style.setProperty('--hyper-blur',(motionPower*5).toFixed(3)+'px');
+    style.setProperty('--hyper-opacity',(1-motionPower*.88).toFixed(4));
+    style.setProperty('--hyper-shift',(motionPower*65).toFixed(3)+'px');
+    style.setProperty('--hyper-couch-blur',(motionPower*.45).toFixed(3)+'px');
+    refraction.setAttribute('scale',(motionPower*(52+surge*26)).toFixed(2));
+    refractionFlow.setAttribute('dx',(Math.sin(travel*1.9)*48).toFixed(2));
+    refractionFlow.setAttribute('dy',(travel*-70).toFixed(2));
+    if(flight.gentle)return;
+    flightRenderer?.render(power,travel,hero.getBoundingClientRect());
+  }
+  addEventListener('resize',()=>{if(flight){resizeHyperspace();draw();}});
+
   // Small, dependency-free WebGL scene. No models, libraries, or runtimes to download.
   let gl, program, starsProgram, linesProgram, wireProgram, locations, starLocations, lineLocations, wireLocations;
-  let couchParts = [], ringMeshes = [], controllerParts = [], starBuffer, dustBuffer, orbitBuffer;
-  let gameCameos = [], cameoProgram, cameoLocations, cameoBuffer;
-  const cameoImages = new Map();
+  let couchParts = [], ringMeshes = [], starBuffer, dustBuffer, orbitBuffer;
   let currentColor = [...palettes[0].rgb], currentCouch = [...palettes[0].couch];
   let width = 0, height = 0, ready = false;
   let backdrop = null;
@@ -106,13 +278,26 @@
   function cross(a,b) {return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
   // A quaternion trackball has no pitch limits or pole flips. Edge drags roll.
   function turn(q,render=true) {
+    if(flight)return;
     const [x,y,z,w]=q,[a,b,c,d]=orientation;
     orientation=normalize([w*a+x*d+y*c-z*b,w*b-x*c+y*d+z*a,w*c+x*b-y*a+z*d,w*d-x*a-y*b-z*c]);
     if(render)draw();
   }
-  function orbitMatrix() {
-    const [x,y,z,w]=orientation;
+  function quaternionMatrix([x,y,z,w]) {
     return [1-2*(y*y+z*z),2*(x*y+z*w),2*(x*z-y*w),0,2*(x*y-z*w),1-2*(x*x+z*z),2*(y*z+x*w),0,2*(x*z+y*w),2*(y*z-x*w),1-2*(x*x+y*y),0,0,0,0,1];
+  }
+  function orbitMatrix(blend=0) {
+    // Shortest-arc interpolation preserves the user's view for the return.
+    const sign=orientation[3]<0?-1:1;
+    return quaternionMatrix(normalize(orientation.map((n,i)=>n*sign*(1-blend)+(i===3?blend:0))));
+  }
+  function flightMatrix() {
+    if(!flight||flight.gentle)return identity();
+    // A different axis per jump, cruising at just 18–25 degrees per second.
+    // Ease into the tumble and blend it away during the half-second return.
+    const age=flight.elapsed,travel=age-(1-Math.exp(-age*4))*.25;
+    const halfAngle=travel*flight.spinSpeed*flightPower()*.5;
+    return quaternionMatrix([...flight.spinAxis.map(n=>n*Math.sin(halfAngle)),Math.cos(halfAngle)]);
   }
   function trackball(e) {
     const r=orbit.getBoundingClientRect(),radius=Math.min(r.width,r.height)*.65;
@@ -120,10 +305,11 @@
     return normalize([x,y,Math.sqrt(Math.max(0,1-x*x-y*y))]);
   }
   function resetView(render=true) {
+    if(flight)return;
     orientation=[0,0,0,1];pointerX=pointerY=smoothX=smoothY=0;if(render)draw();
   }
   orbit.addEventListener('pointerdown', e => {
-    if(!ready || !e.isPrimary || e.button!==0 || drag)return;
+    if(!ready || flight || !e.isPrimary || e.button!==0 || drag)return;
     orbit.classList.add('pointer-focus');
     orbit.focus({preventScroll:true});
     orbit.setPointerCapture(e.pointerId);
@@ -168,7 +354,7 @@
     const held=new Set(pads.filter(p=>p.buttons[0]?.pressed).map(p=>p.index));
     const reset=pads.some(p=>held.has(p.index) && !resetButtons.has(p.index));
     resetButtons=held;
-    if(!document.hasFocus() || drag)return false;
+    if(!document.hasFocus() || drag || flight)return false;
     if(reset){resetView(false);return true;}
     // Any active standard-mapped controller can take over. Idle sticks never drift.
     for(const pad of pads) {
@@ -266,59 +452,6 @@
     const geometry=mesh(data);geometry.levels=[geometry,geometry,geometry,geometry];return geometry;
   }
   function part(geometry,position,rotation=[0,0,0],material=0) {return {geometry,local:compose(translation(...position),rotationZ(rotation[2]),rotationY(rotation[1]),rotationX(rotation[0])),material};}
-  // Blender/Cycles passes preserve the detailed materials without shipping a 3D
-  // asset loader or shading dozens of extra meshes on every animation frame.
-  function makeGameCameos() {
-    cameoProgram=makeProgram(`
-      attribute vec2 aPosition;uniform mat4 uModel;uniform mat4 uVP;varying vec2 vUV;
-      void main(){vUV=aPosition+.5;gl_Position=uVP*uModel*vec4(aPosition,0.0,1.0);}
-    `,`
-      precision highp float;varying vec2 vUV;
-      uniform sampler2D uAtlas;uniform vec3 uAccent;
-      uniform float uWire;uniform float uClay;uniform float uFinish;uniform float uOpacity;
-      vec4 pass(float index){return texture2D(uAtlas,vec2((vUV.x+index)/3.0,vUV.y));}
-      void main(){
-        vec4 wire=pass(0.0),clay=pass(1.0),finished=pass(2.0);
-        wire.rgb=mix(wire.rgb,uAccent,.4);
-        wire.a*=smoothstep(vUV.y-.02,vUV.y+.02,uWire);
-        float form=smoothstep(vUV.y-.025,vUV.y+.025,uClay);
-        float material=smoothstep(vUV.y-.025,vUV.y+.025,uFinish);
-        // Blend in premultiplied space so transparent wire pixels leave no fringe.
-        vec4 w=vec4(wire.rgb*wire.a,wire.a),c=vec4(clay.rgb*clay.a,clay.a),f=vec4(finished.rgb*finished.a,finished.a);
-        vec4 color=mix(w,mix(c,f,material),form);
-        float scan=exp(-abs(vUV.y-uClay)*95.0)*step(.001,uClay)*(1.0-step(.999,uClay));
-        scan+=exp(-abs(vUV.y-uFinish)*95.0)*step(.001,uFinish)*(1.0-step(.999,uFinish));
-        color.rgb+=uAccent*scan*color.a*.4;
-        gl_FragColor=color*uOpacity;
-      }
-    `);
-    cameoLocations={p:gl.getAttribLocation(cameoProgram,'aPosition')};
-    ['Model','VP','Atlas','Accent','Wire','Clay','Finish','Opacity'].forEach(n=>cameoLocations[n]=gl.getUniformLocation(cameoProgram,'u'+n));
-    cameoBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,cameoBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-.5,-.5,.5,-.5,-.5,.5,-.5,.5,.5,-.5,.5,.5]),gl.STATIC_DRAW);
-    const definitions=[['jet',[.48,.85,1],11.3,.3],['car',[1,.67,.4],13.1,4.1],['wizard',[.77,.58,1],15.7,8.5]];
-    return definitions.map(([name,accent,period,offset])=>{
-      const model={name,accent,period,offset,texture:gl.createTexture(),loaded:false,aspect:1};
-      let source=cameoImages.get(name);
-      if(!source){source=new Image();source.decoding='async';cameoImages.set(name,source);}
-      function upload(){
-        if(gl.isContextLost())return;
-        gl.bindTexture(gl.TEXTURE_2D,model.texture);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
-        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source);
-        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-        model.aspect=source.naturalWidth/(source.naturalHeight*3);model.loaded=true;draw();
-      }
-      if(source.complete && source.naturalWidth)upload();
-      else {
-        source.addEventListener('load',()=>{if(gameCameos.includes(model))upload();},{once:true});
-        source.addEventListener('error',()=>console.warn('Giga Couch world render unavailable:',name),{once:true});
-        if(!source.src)source.src='/landing-worlds/'+name+'.png';
-      }
-      return model;
-    });
-  }
   function makeScene() {
     program=makeProgram(`
       attribute vec3 aPosition;attribute vec3 aNormal;
@@ -418,9 +551,6 @@
       couchParts.push(part(backPiping,[x,.75,-.44],[-.18,0,0],3));
     }
     ringMeshes=[torus(3.4,.017),torus(3.49,.005),torus(3.64,.008,100,5,Math.PI*1.35),torus(3.72,.005,70,4,Math.PI*.75),torus(3.4,.09),torus(3.4,.19),torus(3.4,.36)];
-    const body=roundBox(.93,.21,.58,.1,8),handle=roundBox(.26,.25,.57,.12,7),stick=torus(.09,.028,20,6),face=roundBox(.064,.025,.064,.023,5),dpad=roundBox(.23,.03,.065,.02,4);
-    controllerParts=[part(body,[0,0,0],[0,0,0],1),part(handle,[-.36,-.01,.21],[0,0,.18],1),part(handle,[.36,-.01,.21],[0,0,-.18],1),part(stick,[-.2,.14,.11],[-Math.PI/2,0,0],0),part(stick,[.14,.14,.14],[-Math.PI/2,0,0],0),part(dpad,[-.27,.12,-.1],[0,0,0],2),part(dpad,[-.27,.12,-.1],[0,Math.PI/2,0],2)];
-    for(const [x,z] of [[.25,-.2],[.35,-.1],[.15,-.1],[.25,0]]) controllerParts.push(part(face,[x,.125,z],[0,0,0],2));
     const stars=[];let seed=187;const random=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646;};
     for(let i=0;i<600;i++) stars.push((random()-.5)*45,(random()-.5)*24,(random()-.5)*30,.6+random()*1.8);
     starBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,starBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(stars),gl.STATIC_DRAW);
@@ -429,7 +559,6 @@
     orbitBuffer={buffer:gl.createBuffer(),count:orbit.length/3};gl.bindBuffer(gl.ARRAY_BUFFER,orbitBuffer.buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(orbit),gl.STATIC_DRAW);
     const dust=[];for(let i=0;i<64;i++){const a=i/64*TAU;dust.push(Math.cos(a)*3.47,Math.sin(a)*3.47,0,Math.cos(a+.006)*3.47,Math.sin(a+.006)*3.47,0);}
     dustBuffer={buffer:gl.createBuffer(),count:dust.length/3};gl.bindBuffer(gl.ARRAY_BUFFER,dustBuffer.buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(dust),gl.STATIC_DRAW);
-    gameCameos=makeGameCameos();
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);ready=true;document.body.classList.add('scene-ready');
   }
   function renderMesh(geometry,model,color,emission=0,metal=0,opacity=1,building=0,quality=2,scanModel=model) {
@@ -440,51 +569,13 @@
   function renderLines(geometry,model,vp,alpha) {
     gl.useProgram(linesProgram);gl.bindBuffer(gl.ARRAY_BUFFER,geometry.buffer);gl.enableVertexAttribArray(lineLocations.p);gl.vertexAttribPointer(lineLocations.p,3,gl.FLOAT,false,12,0);gl.uniformMatrix4fv(lineLocations.VP,false,vp);gl.uniformMatrix4fv(lineLocations.Model,false,model);gl.uniform4f(lineLocations.Color,...currentColor,alpha);gl.drawArrays(gl.LINES,0,geometry.count);gl.disableVertexAttribArray(lineLocations.p);
   }
-  function renderWire(geometry,model,vp,plane,mode=1,fade=1,scanModel=model,accent=currentColor) {
+  function renderWire(geometry,model,vp,plane,mode=1,fade=1,scanModel=model) {
     if(!geometry.wireBuffer)return;
     gl.useProgram(wireProgram);gl.bindBuffer(gl.ARRAY_BUFFER,geometry.wireBuffer);
     gl.enableVertexAttribArray(wireLocations.p);gl.vertexAttribPointer(wireLocations.p,3,gl.FLOAT,false,12,0);
     gl.uniformMatrix4fv(wireLocations.VP,false,vp);gl.uniformMatrix4fv(wireLocations.Model,false,model);gl.uniformMatrix4fv(wireLocations.ScanModel,false,scanModel);
-    gl.uniform3fv(wireLocations.Accent,accent);gl.uniform1f(wireLocations.RevealPlane,plane);gl.uniform1f(wireLocations.Time,time);gl.uniform1f(wireLocations.WireMode,mode);gl.uniform1f(wireLocations.WireFade,fade);
+    gl.uniform3fv(wireLocations.Accent,currentColor);gl.uniform1f(wireLocations.RevealPlane,plane);gl.uniform1f(wireLocations.Time,time);gl.uniform1f(wireLocations.WireMode,mode);gl.uniform1f(wireLocations.WireFade,fade);
     gl.drawArrays(gl.LINES,0,geometry.wireCount);gl.disableVertexAttribArray(wireLocations.p);
-  }
-  const ease=n=>{n=Math.max(0,Math.min(1,n));return n*n*(3-2*n);};
-  function cameoState(index,t,mobile,still=false) {
-    const model=gameCameos[index];
-    // Portrait layouts give each object its own eight-second visit.
-    if(mobile && (still?index!==0:Math.floor(t/8)%3!==index))return null;
-    const age=still?3.6:mobile?t%8:(t+model.offset)%model.period;
-    if(age>=7.4)return null;
-    const entry=ease(age/.65),exit=ease((age-5.5)/1.9);
-    return {age,entry,exit,opacity:entry*(1-exit),build:ease((age-.85)/1.0),wire:ease(age/.8)};
-  }
-  function renderCameos() {
-    const mobile=width<760,compact=width<1100,span=32*Math.tan(.325);
-    const vp=compose(perspective(.65,width/height,.1,60),translation(0,0,-16));
-    const anchors=mobile?[[.5,.405],[.5,.415],[.5,.415]]:compact?[[.12,.505],[.86,.735],[.90,.475]]:[[.115,.375],[.865,.735],[.89,.415]];
-    gl.useProgram(cameoProgram);gl.bindBuffer(gl.ARRAY_BUFFER,cameoBuffer);
-    gl.enableVertexAttribArray(cameoLocations.p);gl.vertexAttribPointer(cameoLocations.p,2,gl.FLOAT,false,0,0);
-    gl.uniformMatrix4fv(cameoLocations.VP,false,vp);gl.uniform1i(cameoLocations.Atlas,0);
-    gl.disable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
-    for(let index=0;index<gameCameos.length;index++) {
-      const model=gameCameos[index],state=cameoState(index,time,mobile,reduced.matches);
-      if(!model.loaded || !state || state.opacity<.005)continue;
-      const {age,entry,exit,opacity}=state;
-      let [x,y]=anchors[index],rz=0;
-      if(index===0){x-=(1-entry)*.17+exit*.19;x+=(age/7.4-.5)*.035;y-=exit*.18;rz=Math.sin(age*.9)*.05+exit*1.5;}
-      if(index===1){x+=(entry-1)*.05+exit*.2+(age/7.4-.5)*.05;y+=Math.sin(age*2)*.0015;rz=-.025+exit*.07;}
-      if(index===2){y+=(1-entry)*.025-exit*.07+Math.sin(age*1.7)*.006;rz=Math.sin(age)*.015;}
-      const pixels=index===2?(mobile?128:compact?166:240):(mobile?136:compact?160:index===0?260:245);
-      const w=index===2?pixels*model.aspect:pixels,h=index===2?pixels:pixels/model.aspect;
-      const root=compose(translation((x-.5)*span*width/height,(.5-y)*span,0),rotationZ(rz),scale(w*span/height,h*span/height,1));
-      gl.uniformMatrix4fv(cameoLocations.Model,false,root);gl.uniform3fv(cameoLocations.Accent,model.accent);
-      gl.uniform1f(cameoLocations.Wire,ease(age/.65));gl.uniform1f(cameoLocations.Clay,ease((age-.7)/.55));
-      gl.uniform1f(cameoLocations.Finish,ease((age-1.25)/.65));gl.uniform1f(cameoLocations.Opacity,opacity);
-      gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,model.texture);gl.drawArrays(gl.TRIANGLES,0,6);
-    }
-    gl.disableVertexAttribArray(cameoLocations.p);gl.disable(gl.BLEND);gl.enable(gl.DEPTH_TEST);
-    // The interactive couch remains in front of the decorative worlds.
-    gl.clear(gl.DEPTH_BUFFER_BIT);
   }
   // A 28-second creation story. Every new pass replaces only the scanned region,
   // so viewers can see blocky and refined geometry side by side at the frontier.
@@ -499,7 +590,7 @@
     return {previous:-1,next:-1,progress:1,label:'DREAM IT ALL AGAIN',wireMode:0,wireFade:1-smooth(c-27)};
   }
   // A separate, capped-resolution layer puts the world behind the typography.
-  // One shared clock drives both canvases, including pause and reduced motion.
+  // Ambient and build clocks share the pause and reduced-motion policy.
   function makeBackdrop() {
     const surface=$('#dimension-field');
     const context=surface.getContext('webgl',{alpha:false,antialias:false,powerPreference:'low-power'});
@@ -519,7 +610,7 @@
       precision highp float;
       varying vec2 vUV;
       uniform vec2 uSize;uniform vec2 uPointer;uniform vec3 uAccent;
-      uniform float uTime;uniform float uWarpAge;uniform float uScanAge;uniform float uFinish;
+      uniform float uTime;uniform float uWarpAge;uniform float uScanAge;uniform float uFinish;uniform float uHyper;
       float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
       float noise(vec2 p){
         vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
@@ -598,6 +689,9 @@
         color*=1.0-smoothstep(.30,.5,p.y)*.62;
         color*=1.0-smoothstep(.30,.50,abs(p.x))*smoothstep(.17,.42,-p.y)*.55;
         color*=1.0-smoothstep(.72,1.15,length((vUV-.5)*vec2(1.0,1.25)))*.5;
+        // The fluid volume occupies a separate full-viewport layer. Darken
+        // this world beneath it, leaving a cool, quiet center behind the couch.
+        color=mix(color,vec3(.002,.009,.020)+uAccent*exp(-radius*4.0)*.016,uHyper);
         color+=(hash(gl_FragCoord.xy)-.5)/255.0;
         gl_FragColor=vec4(color,1.0);
       }
@@ -611,8 +705,8 @@
     context.useProgram(backdropProgram);
     const position=context.getAttribLocation(backdropProgram,'aPosition');
     context.enableVertexAttribArray(position);context.vertexAttribPointer(position,2,context.FLOAT,false,0,0);
-    const uniforms={};['Size','Pointer','Accent','Time','WarpAge','ScanAge','Finish'].forEach(n=>uniforms[n]=context.getUniformLocation(backdropProgram,'u'+n));
-    let lastTime=-1,lastColor='',valid=true;
+    const uniforms={};['Size','Pointer','Accent','Time','WarpAge','ScanAge','Finish','Hyper'].forEach(n=>uniforms[n]=context.getUniformLocation(backdropProgram,'u'+n));
+    let lastTime=-1,lastColor='',lastPower=-1,valid=true;
     document.body.classList.add('backdrop-ready');
     return {
       resize(){
@@ -622,16 +716,17 @@
       },
       render(){
         if(!valid || context.isContextLost())return;
-        const color=currentColor.join(',');
-        if(lastTime>=0 && (paused?time===lastTime && color===lastColor:Math.abs(time-lastTime)<1/30))return;
-        lastTime=time;lastColor=color;
+        const color=currentColor.join(','),power=flight&&!flight.gentle?flightPower():0;
+        if(lastTime>=0 && color===lastColor && power===lastPower && (paused?ambientTime===lastTime:Math.abs(ambientTime-lastTime)<1/30))return;
+        lastTime=ambientTime;lastColor=color;lastPower=power;
         const cycle=time%28,beats=[0,4.5,8,11.5,15,18.7,23.5];
         const beat=beats.reduce((previous,n)=>cycle>=n?n:previous,0);
         context.uniform2f(uniforms.Size,surface.width,surface.height);
         context.uniform2f(uniforms.Pointer,smoothX,smoothY);
         context.uniform3fv(uniforms.Accent,currentColor);
-        context.uniform1f(uniforms.Time,time);
-        const portalAge=time<2.2 && warpStart<0?time:Math.max(-1,time-warpStart);
+        context.uniform1f(uniforms.Time,ambientTime);
+        context.uniform1f(uniforms.Hyper,power);
+        const portalAge=ambientTime<2.2 && warpStart<0?ambientTime:Math.max(-1,ambientTime-warpStart);
         context.uniform1f(uniforms.WarpAge,reduced.matches?-1:portalAge);
         context.uniform1f(uniforms.ScanAge,reduced.matches?10:cycle-beat);
         context.uniform1f(uniforms.Finish,reduced.matches?1:Math.max(0,Math.min(1,(cycle-15)/3.7)));
@@ -652,12 +747,14 @@
     if(gl)gl.viewport(0,0,canvas.width,canvas.height);backdrop?.resize();draw();updateScroll();
   }
   function draw() {
-    if(!ready || !width || !height) return;
+    renderHyperspace();
+    if(!ready || !width || !height || (!onScreen&&flight)) return;
     const mobile=width<760,aspect=width/height;
-    const warpAge=time-warpStart,warp=paused?0:Math.max(0,1-warpAge/1.6);
+    const drive=flight&&!flight.gentle?flightPower():0;
+    const warpAge=ambientTime-warpStart,warp=paused?0:Math.max(drive,1-warpAge/1.6,0);
     for(let i=0;i<3;i++){currentColor[i]+=(palettes[dimension].rgb[i]-currentColor[i])*(paused?1:.04);currentCouch[i]+=(palettes[dimension].couch[i]-currentCouch[i])*(paused?1:.04);}
     backdrop?.render();
-    const eye=[smoothX*.65,3.8+smoothY*.4,mobile?16.8:12.6];
+    const eye=[smoothX*.65*(1-drive),3.8+smoothY*.4*(1-drive),mobile?16.8:12.6];
     const fov=mobile?.70:.65;
     const view=lookAt(eye,[0,mobile?1.85:.75,0]);
     // A portrait view uses a smaller scene so the portal stays inside the screen.
@@ -665,9 +762,10 @@
     const vp=multiply(perspective(fov,aspect,.1,80),view);
     gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     gl.useProgram(program);gl.uniformMatrix4fv(locations.VP,false,vp);gl.uniform3fv(locations.Accent,currentColor);gl.uniform3fv(locations.Eye,eye);
-    const bob=Math.sin(time*.8)*.17;
-    const root=compose(translation(0,mobile?.28:-.65,0),scale(sceneScale),rotationY(-.2+smoothX*.18+Math.sin(time*.17)*.05),rotationZ(-.09+smoothY*.025));
-    const couch=compose(root,translation(0,bob,0),orbitMatrix(),rotationY(Math.sin(time*.35)*.12));
+    const bob=Math.sin(time*.8)*.17*(1-drive);
+    const root=compose(translation(0,mobile?.28:-.65,0),scale(sceneScale),rotationY((-.2+smoothX*.18+Math.sin(time*.17)*.05)*(1-drive)),rotationZ((-.09+smoothY*.025)*(1-drive)));
+    const shake=drive*(flight?Math.sin(flight.elapsed*91)+Math.sin(flight.elapsed*137)*.4:0)*.018;
+    const couch=compose(root,translation(shake,bob+shake*.45,0),orbitMatrix(drive),flightMatrix(),rotationY(Math.sin(time*.35)*.12*(1-drive)),rotationZ(shake*.18));
     const stage=reduced.matches?{previous:3,next:3,progress:1,label:'IMAGINATION, MADE REAL'}:creationState(time);
     // Scan in couch space so every pass stays aligned at any viewing angle.
     const plane=-1.3+stage.progress*3.2;
@@ -676,19 +774,20 @@
     if(label && label.textContent!==stage.label)label.textContent=stage.label;
     // Portal sits behind the furniture. Extra rings layer light without postprocessing.
     const ring=compose(root,translation(0,.35,-1.35),rotationX(-.16),rotationY(.08));
-    renderMesh(ringMeshes[0],ring,currentColor,1);
-    renderMesh(ringMeshes[1],ring,currentColor,.65);
-    renderMesh(ringMeshes[2],multiply(ring,rotationZ(-time*.07)),currentColor,.7);
-    renderMesh(ringMeshes[3],multiply(ring,rotationZ(time*.05+2)),currentColor,.4);
+    gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+    const ringVisibility=1-drive*.98;
+    renderMesh(ringMeshes[0],ring,currentColor,1,0,ringVisibility);
+    renderMesh(ringMeshes[1],ring,currentColor,.65,0,ringVisibility);
+    renderMesh(ringMeshes[2],multiply(ring,rotationZ(-time*.07)),currentColor,.7,0,ringVisibility);
+    renderMesh(ringMeshes[3],multiply(ring,rotationZ(time*.05+2)),currentColor,.4,0,ringVisibility);
     // The orbit's smaller ticks move independently, like a living instrument.
     gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);gl.depthMask(false);
-    renderMesh(ringMeshes[4],ring,currentColor,1,0,.055);
-    renderMesh(ringMeshes[5],ring,currentColor,1,0,.025);
-    renderMesh(ringMeshes[6],ring,currentColor,1,0,.008);
-    renderLines(orbitBuffer,multiply(ring,rotationZ(time*.015)),vp,.35);
-    renderLines(dustBuffer,multiply(ring,rotationZ(-time*.12)),vp,.8);
+    renderMesh(ringMeshes[4],ring,currentColor,1,0,.055*ringVisibility);
+    renderMesh(ringMeshes[5],ring,currentColor,1,0,.025*ringVisibility);
+    renderMesh(ringMeshes[6],ring,currentColor,1,0,.008*ringVisibility);
+    renderLines(orbitBuffer,multiply(ring,rotationZ(time*.015)),vp,.35*ringVisibility);
+    renderLines(dustBuffer,multiply(ring,rotationZ(-time*.12)),vp,.8*ringVisibility);
     gl.depthMask(true);gl.disable(gl.BLEND);
-    renderCameos();
     gl.useProgram(program);
     gl.uniformMatrix4fv(locations.VP,false,vp);gl.uniform3fv(locations.Accent,currentColor);gl.uniform3fv(locations.Eye,eye);gl.uniform1f(locations.RevealPlane,plane);
     function renderCouchQuality(quality,clip) {
@@ -715,35 +814,34 @@
       couchParts.slice(0,13).forEach(p=>renderWire(p.geometry,multiply(couch,p.local),vp,plane,stage.wireMode,stage.wireFade,p.local));
       gl.enable(gl.DEPTH_TEST);gl.depthMask(true);gl.disable(gl.BLEND);
     }
-    for(let c=0;c<2;c++) {
-      const controller=compose(root,translation(c===0?-3.18:3.05,-.05+Math.sin(time*.8+c*3)*.22,c===0?.3:1.1),rotationY(c===0?.4:-.8),rotationX(.55),rotationZ(c===0?-.5:.5),scale(c===0?.82:.7));
-      controllerParts.forEach(p=>renderMesh(p.geometry,multiply(controller,p.local),p.material===1?[.1,.14,.13]:currentColor,p.material===2?.5:0,.7));
-    }
     // Additive points make a light field around the scene; no animation when offscreen.
     gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);gl.depthMask(false);
-    gl.useProgram(starsProgram);gl.uniformMatrix4fv(starLocations.VP,false,vp);gl.uniform1f(starLocations.Time,time);gl.uniform1f(starLocations.Warp,warp*warp*9);gl.uniform1f(starLocations.Pixel,canvas.width/width);gl.uniform3fv(starLocations.Accent,currentColor);gl.bindBuffer(gl.ARRAY_BUFFER,starBuffer);gl.enableVertexAttribArray(starLocations.p);gl.vertexAttribPointer(starLocations.p,4,gl.FLOAT,false,16,0);gl.drawArrays(gl.POINTS,0,600);gl.disableVertexAttribArray(starLocations.p);
-    if(warp>0){const pulse=compose(ring,scale(1+(1-warp)*2.4));renderLines(orbitBuffer,pulse,vp,warp*.9);}
+    gl.useProgram(starsProgram);gl.uniformMatrix4fv(starLocations.VP,false,vp);gl.uniform1f(starLocations.Time,ambientTime);gl.uniform1f(starLocations.Warp,warp*warp*9);gl.uniform1f(starLocations.Pixel,canvas.width/width);gl.uniform3fv(starLocations.Accent,currentColor);gl.bindBuffer(gl.ARRAY_BUFFER,starBuffer);gl.enableVertexAttribArray(starLocations.p);gl.vertexAttribPointer(starLocations.p,4,gl.FLOAT,false,16,0);gl.drawArrays(gl.POINTS,0,600);gl.disableVertexAttribArray(starLocations.p);
+    if(warp>0&&!flight){const pulse=compose(ring,scale(1+(1-warp)*2.4));renderLines(orbitBuffer,pulse,vp,warp*.9);}
     gl.depthMask(true);gl.disable(gl.BLEND);
   }
   function tick(stamp) {
     requestFrame=0;
-    if(document.hidden||!onScreen||!ready){last=0;return;}
-    const dt=last?Math.min((stamp-last)/1000,.05):0;last=stamp;
-    if(!paused){time+=dt;smoothX+=(pointerX-smoothX)*.035;smoothY+=(pointerY-smoothY)*.035;}
+    if(document.hidden||(!onScreen&&!flight)||(!ready&&!flight)){last=0;return;}
+    const elapsed=last?Math.max(0,(stamp-last)/1000):0,dt=Math.min(elapsed,.05);last=stamp;
+    const wasFlying=Boolean(flight);
+    // Flight duration follows elapsed seconds even when a device renders slowly.
+    advanceScene(wasFlying?elapsed:dt);
     const turned=pollControllers(dt);
     // Paused/reduced-motion scenes only redraw in response to explicit input.
-    if(!paused||turned)draw();
+    if(!paused||turned||wasFlying)draw();
     requestFrame=requestAnimationFrame(tick);
   }
-  function start(){if(!requestFrame&&!document.hidden&&onScreen&&ready)requestFrame=requestAnimationFrame(tick);}
+  function start(){if(!requestFrame&&!document.hidden&&(onScreen||flight)&&(ready||flight))requestFrame=requestAnimationFrame(tick);}
+  restoreHyperspace();
   try {
     gl=canvas.getContext('webgl',{alpha:true,antialias:true,powerPreference:'low-power',premultipliedAlpha:true});
     if(!gl)throw new Error('WebGL unavailable');
     makeScene();resize();restoreBackdrop();
     if('ResizeObserver' in window){const ro=new ResizeObserver(resize);ro.observe(canvas);observers.push(ro);}else addEventListener('resize',resize);
-    if('IntersectionObserver' in window){const io=new IntersectionObserver(entries=>{onScreen=entries[0].isIntersecting;if(onScreen)start();else{cancelAnimationFrame(requestFrame);requestFrame=0;last=0;}});io.observe(hero);observers.push(io);}
-    canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();ready=false;cancelAnimationFrame(requestFrame);requestFrame=0;document.body.classList.remove('scene-ready');});
-    canvas.addEventListener('webglcontextrestored',()=>{couchParts=[];ringMeshes=[];controllerParts=[];makeScene();resize();start();});
+    if('IntersectionObserver' in window){const io=new IntersectionObserver(entries=>{onScreen=entries[0].isIntersecting;if(onScreen||flight)start();else{cancelAnimationFrame(requestFrame);requestFrame=0;last=0;}});io.observe(hero);observers.push(io);}
+    canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();ready=false;cancelAnimationFrame(requestFrame);requestFrame=0;document.body.classList.remove('scene-ready');if(flight)start();});
+    canvas.addEventListener('webglcontextrestored',()=>{couchParts=[];ringMeshes=[];makeScene();resize();start();});
   } catch (error) {
     console.warn('Giga Couch 3D preview unavailable:', error);
     ready=false;document.body.classList.remove('scene-ready');

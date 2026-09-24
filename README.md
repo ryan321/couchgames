@@ -15,26 +15,19 @@ A controller-first platform for playing and privately sharing Godot games on you
 
 ## Public landing page
 
-`couch platform` serves the landing page at `/` and the existing account flow at `/account`. The page source lives in `crates/platform/site/`: a responsive, full-screen WebGL couch and portal, a 28-second creation loop (wireframe scan → blockout → faceted geometry → smooth surfaces → detailed upholstery → reset), pointer parallax, three selectable atmospheres, a portal pulse, animated concept worlds, and scroll reveals. Assets and fonts are served locally; there are no CDN or JavaScript framework dependencies. These are illustrative concepts, not playable game previews.
+`couch platform` serves the landing page at `/` and the existing account flow at `/account`. The page source lives in `crates/platform/site/`: a responsive, full-screen WebGL couch and portal, a 28-second creation loop (wireframe scan → blockout → faceted geometry → smooth surfaces → detailed upholstery → reset), pointer parallax, three selectable atmospheres, a Hyperdrive jump, animated concept worlds, and scroll reveals. Assets and fonts are served locally; there are no CDN or JavaScript framework dependencies. These are illustrative concepts, not playable game previews.
 
-The hero background is a procedural WebGL environment: flowing aurora filaments, drifting nebula clouds and distant stars over a receding grid. Energy waves follow the couch’s scan stages, pointer motion bends the currents, and arrival or Open a Portal sends a gravity wave and radial flight trails through the scene. The background renders behind the headline, caps its resolution and update rate, and falls back to static gradients if its graphics context is unavailable.
+The hero background is a procedural WebGL environment: flowing aurora filaments, drifting nebula clouds and distant stars over a receding grid. Energy waves follow the couch’s scan stages, pointer motion bends the currents, and arrival or changing the atmosphere sends a gravity wave through the scene. The background renders behind the headline, caps its resolution and update rate, and falls back to static gradients if its graphics context is unavailable.
 
-Three smaller game-world objects visit the hero: a titanium jet with panel seams and a glass canopy, a copper sports car with alloy wheels and detailed brakes, and a bearded wizard with embroidered cloth and a crystal staff. Original Blender models are rendered with Cycles studio lighting into aligned wireframe, clay, and finished passes. The page composites these transparent images into moving sprites: each scans to its finished materials in under two seconds, then flies, drives, or floats away after a roughly seven-second visit. Their desktop loops have independent periods; phones show one at a time above the couch. These decorative objects have fixed viewing angles and do not respond to couch rotation. Pause freezes their motion, and reduced motion shows a still composition.
+The couch is the only rendered object in the hero, surrounded by the portal and atmospheric effects. There are no side-object textures or animation atlases to load.
 
-To regenerate the side-object art, use an **already-installed** Blender and Python with Pillow:
-
-```sh
-blender --background --threads 6 --python scripts/blender/create_landing_worlds.py
-python3 scripts/blender/pack_landing_worlds.py
-```
-
-The authoring script writes editable `.blend` files and individual passes to `/tmp/gigacouch-world-renders`; the packer writes three PNG atlases into `crates/platform/site/worlds`. Rebuild the platform to embed updated assets. These commands do not install tools, and visitors do not need Blender.
+**Hyperdrive** freezes the couch at its exact creation stage, eases it into a slow randomized tumble, and adds a small vibration and blur. Each jump picks a new rotation axis and a cruising rate of about 18–25 degrees per second. A full-viewport fluid tunnel surrounds it: translucent blue-green folds, twisting currents, and luminous refraction fronts rush past as the camera accelerates. The headline and intro bend through a moving displacement filter as the page stretches and blurs. The volume uses a capped-resolution WebGL layer that draws only during flight; it needs no downloaded artwork or animation files. The jump lasts three seconds, followed by a half-second eased return to the previous viewing angle; the build then resumes where it stopped. Repeated clicks are ignored during flight. Pause freezes the flight, hidden tabs suspend it, and launching from a paused scene restores that pause afterward. An active jump finishes even if you scroll past the hero, so the rest of the page returns to normal. Reduced motion uses a gentle button glow without the tunnel, shake, or page movement.
 
 The final creation pass adds sage green linen shading, a geometry-locked woven texture, inflated cushions, and rounded seam piping; earlier stages retain their simpler materials.
 
 Every couch stage is a full 3D model. Drag over the couch to rotate in any direction; arrow keys turn it, Q/E roll it, and Home or Reset View restores the original view. A browser-standard controller uses the left stick to turn, the right stick horizontally to roll, and A/Cross to reset. Press a controller button to make it available to the browser. Rotation works while paused or with reduced motion enabled; touch scrolling remains available outside the couch.
 
-The motion control pauses the scene and CSS animations. Reduced-motion preferences are respected, rendering stops when the hero is offscreen or the tab is hidden, and a branded fallback appears when WebGL is unavailable. The landing page has its own stylesheet; account styling remains separate.
+The motion control pauses the scene and CSS animations. Reduced-motion preferences are respected, normal scene rendering stops when the hero is offscreen or the tab is hidden, and a branded fallback appears when WebGL is unavailable. The landing page has its own stylesheet; account styling remains separate.
 
 ## GDK setup preview
 

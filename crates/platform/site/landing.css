@@ -593,6 +593,66 @@ h1 span {
   box-shadow:0 0 30px rgba(var(--accent-rgb),.25);
 }
 
+/* Hyperdrive transforms surrounding page layers while the couch holds steady.
+   The values come from the same pausable clock as the WebGL flight tunnel. */
+#hyperspace {
+  display:none;
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:8;
+  pointer-events:none;
+}
+
+.hyperdrive-active:not(.hyperdrive-gentle) #hyperspace {
+  display:block;
+}
+
+.hyperdrive-active:not(.hyperdrive-gentle) :is(.header,.hero-heading,.hero-bottom,.hero~*,.footer) {
+  scale:var(--hyper-zoom,1);
+  filter:blur(var(--hyper-blur,0px));
+  opacity:var(--hyper-opacity,1);
+  will-change:scale,filter,opacity;
+}
+
+.effect-defs {
+  position:absolute;
+  pointer-events:none;
+}
+
+.hyperdrive-active:not(.hyperdrive-gentle) :is(.hero-heading,.hero-bottom) {
+  filter:url(#hyper-refraction) blur(var(--hyper-blur,0px));
+}
+
+.hyperdrive-active:not(.hyperdrive-gentle) :is(.hero~*,.footer) {
+  translate:0 var(--hyper-shift,0px);
+}
+
+.hyperdrive-active :is(.scene-label,.scene-index,.orbit-controls,.dimension-picker,.scroll-cue) {
+  opacity:var(--hyper-opacity,1);
+}
+
+.hyperdrive-active #couch-orbit {
+  pointer-events:none;
+  cursor:default;
+}
+
+.hyperdrive-active #universe {
+  filter:blur(var(--hyper-couch-blur,0px));
+}
+
+.hyperdrive-active .warp {
+  border-color:#b2eeff;
+  color:#dcf7ff;
+  box-shadow:0 0 calc(var(--hyper-power,0)*35px) #82d6ff80;
+  cursor:progress;
+}
+
+.hyperdrive-active .dimension-picker {
+  pointer-events:none;
+}
+
 .marquee {
   overflow:hidden;
   border-block:1px solid #8ce8be40;
